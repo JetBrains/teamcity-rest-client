@@ -3,7 +3,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:0.10.195"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     }
 }
 plugins {
@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:0.10.195"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     compile "commons-codec:commons-codec:1.10"
     compile 'com.squareup.retrofit:retrofit:1.9.0'
 }
