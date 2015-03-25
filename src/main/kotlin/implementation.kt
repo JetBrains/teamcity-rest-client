@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import org.apache.commons.codec.binary.Base64
 import retrofit.RequestInterceptor
 import retrofit.RestAdapter
 import retrofit.mime.TypedString
@@ -8,10 +9,39 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.regex.Pattern
 
-private class TeamCityInstanceImpl(private val serverUrl: String, private val authMethod: String, private val basicAuthHeader: String?) : TeamCityInstance {
+private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCityInstanceBuilder {
+    private var debug = false
+    private var username: String? = null
+    private var password: String? = null
+
+    override fun withDebugLogging(): TeamCityInstanceBuilder {
+        debug = true
+        return this
+    }
+
+    override fun httpAuth(username: String, password: String): TeamCityInstanceBuilder {
+        this.username = username
+        this.password = password
+        return this
+    }
+
+    override fun build(): TeamCityInstance {
+        if (username != null && password != null) {
+            val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
+            return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization, debug)
+        } else {
+            return TeamCityInstanceImpl(serverUrl, "guestAuth", null, debug)
+        }
+    }
+}
+
+private class TeamCityInstanceImpl(private val serverUrl: String,
+                                   private val authMethod: String,
+                                   private val basicAuthHeader: String?,
+                                   private val debug: Boolean) : TeamCityInstance {
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
-            //.setLogLevel(RestAdapter.LogLevel.BASIC)
+            .setLogLevel(if (debug) retrofit.RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.NONE)
             .setRequestInterceptor(object : RequestInterceptor {
                 override fun intercept(request: RequestInterceptor.RequestFacade) {
                     if (basicAuthHeader != null) {
