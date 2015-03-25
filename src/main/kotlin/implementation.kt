@@ -24,7 +24,6 @@ private class TeamCityInstanceImpl(private val serverUrl: String, private val au
 
     override fun builds(buildTypeId: BuildTypeId, status: BuildStatus?, tag: String?): List<Build> {
         val locator = buildLocator(buildTypeId, status, listOf(tag).filterNotNull())
-        logLine("Retrieving builds from $serverUrl using query '$locator'")
         return service.builds(locator).build.map { BuildImpl(BuildId(it.id!!), service, it.number!!, it.status!!) }
     }
 
@@ -66,12 +65,10 @@ private class BuildImpl(private val id: BuildId,
                         override val status: BuildStatus) : Build {
     override fun addTag(tag: String) {
         service.addTag(id.stringId, TypedString(tag))
-        logLine("Added tag $tag to build $buildNumber")
     }
 
     override fun pin(comment: String) {
         service.pin(id.stringId, TypedString(comment))
-        logLine("Pinned build $buildNumber")
     }
 
     override fun getArtifacts(parentPath: String): List<BuildArtifactImpl> {
@@ -109,13 +106,11 @@ private class BuildImpl(private val id: BuildId,
 
     override fun downloadArtifact(artifactPath: String, output: File) {
         output.getParentFile().mkdirs()
-        logLine("Downloading artifact '$artifactPath' from build $buildNumber...")
         val response = service.artifactContent(id.stringId, artifactPath)
         val input = response.getBody().`in`()
         BufferedOutputStream(FileOutputStream(output)).use {
             input.copyTo(it)
         }
-        logLine("Artifact downloaded to $output")
     }
 }
 
@@ -136,8 +131,4 @@ private fun buildLocator(buildTypeId: BuildTypeId, status: BuildStatus? = BuildS
 
 private fun convertToJavaRegexp(pattern: String): Pattern {
     return pattern.replaceAll("\\.", "\\.").replaceAll("\\*", ".*").replaceAll("\\?", ".").toRegex()
-}
-
-fun logLine(s: String) {
-    println(s)
 }
