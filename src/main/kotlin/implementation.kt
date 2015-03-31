@@ -52,10 +52,24 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(javaClass<TeamCityService>())
 
-    override fun builds(buildTypeId: BuildTypeId, status: BuildStatus?, tag: String?): List<Build> {
-        val locator = buildLocator(buildTypeId, status, listOf(tag).filterNotNull())
-        return service.builds(locator).build.map { BuildImpl(BuildId(it.id!!), service, it.number!!, it.status!!) }
+    override fun builds(buildTypeId: BuildTypeId?, buildId: BuildId?, status: BuildStatus?, tags: List<String>?): List<Build> {
+        val parameters = listOf(
+                if (buildTypeId != null) "buildType:${buildTypeId.stringId}" else null,
+                if (buildId != null) "id:${buildId.stringId}" else null,
+                if (status != null) "status:${status.name()}" else null,
+                if (tags != null && !tags.isEmpty())
+                    tags.joinToString(",", prefix = "tags:(", postfix = ")")
+                else null
+        ).filterNotNull()
+
+        if (parameters.isEmpty()) {
+            throw IllegalArgumentException("At least one parameter should be specified")
+        }
+
+        return service.builds(parameters.joinToString(",")).build.map { it.toBuild(service) }
     }
+
+    override fun build(id: BuildId): Build = builds(buildId = id).first()
 
     override fun project(id: ProjectId): Project = service.project(id.stringId).toProject(service)
 
@@ -154,15 +168,6 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
     fun download(output: File) {
         build.downloadArtifact(fileName, output)
     }
-}
-
-private fun buildLocator(buildTypeId: BuildTypeId, status: BuildStatus? = BuildStatus.SUCCESS, tags: List<String>): String {
-    val parameters = listOf(
-            if (status != null) "status:${status.name()}" else null,
-            if (tags.isEmpty()) null else tags.joinToString(",", prefix = "tags:(", postfix = ")")
-    )
-
-    return "buildType:${buildTypeId.stringId}," + parameters.filterNotNull().joinToString(",")
 }
 
 private fun convertToJavaRegexp(pattern: String): Pattern {

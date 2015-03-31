@@ -53,6 +53,8 @@ private class BuildInfoBean {
     var id: String? = null
     var number: String? = null
     var status: BuildStatus? = null
+
+    fun toBuild(service: TeamCityService): Build = BuildImpl(BuildId(id!!), service, number!!, status!!)
 }
 
 private class BuildTypeInfoBean {

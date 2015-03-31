@@ -1,10 +1,14 @@
 package org.jetbrains.teamcity.rest
 
-import org.apache.commons.codec.binary.Base64
 import java.io.File
 
 public trait TeamCityInstance {
-    fun builds(buildTypeId: BuildTypeId, status: BuildStatus? = BuildStatus.SUCCESS, tag: String? = null): List<Build>
+    fun builds(buildTypeId: BuildTypeId? = null,
+               buildId: BuildId? = null,
+               status: BuildStatus? = BuildStatus.SUCCESS,
+               tags: List<String>? = null): List<Build>
+
+    fun build(id: BuildId): Build
     fun project(id: ProjectId): Project
     fun rootProject(): Project
 
