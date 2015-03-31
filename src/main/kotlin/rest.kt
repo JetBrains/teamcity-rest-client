@@ -91,7 +91,10 @@ private class ProjectInfoBean {
 
     fun toProject(service: TeamCityService): Project =
             ProjectImpl(
-                    toProjectInfo(service),
+                    ProjectId(id!!),
+                    name!!,
+                    archived,
+                    ProjectId(parentProjectId!!),
                     projects!!.project.map { it.toProjectInfo(service) },
                     buildTypes!!.buildType.map { it.toBuildTypeInfo(service) },
                     parameters!!.property!!.map { it.toPropertyInfo() }

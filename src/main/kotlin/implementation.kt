@@ -80,16 +80,22 @@ public class BuildTypeInfoImpl(
 }
 
 public class ProjectImpl(
-        override val info: ProjectInfo,
+        override val id: ProjectId,
+        override val name: String,
+        override val archived: Boolean,
+        override val parentProjectId: ProjectId,
+
         override val childProjects: List<ProjectInfo>,
         override val buildTypes: List<BuildTypeInfo>,
-        override val parameters: List<PropertyInfo>) : Project
+        override val parameters: List<PropertyInfo>) : Project {
+    override fun project(): Project = this
+}
 
 public class PropertyInfoImpl(override val name: String,
                               override val value: String?,
                               override val own: Boolean) : PropertyInfo
 
-private class BuildImpl(private val id: BuildId,
+private class BuildImpl(override val id: BuildId,
                         private val service: TeamCityService,
                         override val buildNumber: String,
                         override val status: BuildStatus) : Build {

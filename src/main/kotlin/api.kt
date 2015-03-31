@@ -43,8 +43,7 @@ public trait BuildTypeInfo {
     fun buildTags(): List<String>
 }
 
-public trait Project {
-    val info: ProjectInfo
+public trait Project: ProjectInfo {
     val childProjects: List<ProjectInfo>
     val buildTypes: List<BuildTypeInfo>
     val parameters: List<PropertyInfo>
@@ -57,6 +56,7 @@ public trait PropertyInfo {
 }
 
 public trait Build {
+    val id: BuildId
     val buildNumber: String
     val status: BuildStatus
 
