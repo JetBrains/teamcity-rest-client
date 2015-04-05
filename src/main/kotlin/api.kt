@@ -1,12 +1,13 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
+import java.util.Date
 
 public trait TeamCityInstance {
     fun builds(buildTypeId: BuildTypeId? = null,
                buildId: BuildId? = null,
                status: BuildStatus? = BuildStatus.SUCCESS,
-               tags: List<String>? = null): List<Build>
+               tags: List<String>? = null): List<BuildInfo>
 
     fun build(id: BuildId): Build
     fun project(id: ProjectId): Project
@@ -59,10 +60,12 @@ public trait PropertyInfo {
     val own: Boolean
 }
 
-public trait Build {
+public trait BuildInfo {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
+
+    fun build(): Build
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
@@ -70,6 +73,12 @@ public trait Build {
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
+}
+
+public trait Build: BuildInfo {
+    val queuedDate: Date
+    val startDate: Date
+    val finishDate: Date
 }
 
 public trait BuildArtifact {

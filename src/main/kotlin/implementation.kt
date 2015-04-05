@@ -1,12 +1,14 @@
 package org.jetbrains.teamcity.rest
 
 import org.apache.commons.codec.binary.Base64
+import org.slf4j.LoggerFactory
 import retrofit.RequestInterceptor
 import retrofit.RestAdapter
 import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Date
 import java.util.regex.Pattern
 
 private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCityInstanceBuilder {
@@ -39,6 +41,8 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
                                    private val authMethod: String,
                                    private val basicAuthHeader: String?,
                                    private val debug: Boolean) : TeamCityInstance {
+    private val LOG = LoggerFactory.getLogger(javaClass)
+
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
             .setLogLevel(if (debug) retrofit.RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.NONE)
@@ -52,7 +56,7 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(javaClass<TeamCityService>())
 
-    override fun builds(buildTypeId: BuildTypeId?, buildId: BuildId?, status: BuildStatus?, tags: List<String>?): List<Build> {
+    override fun builds(buildTypeId: BuildTypeId?, buildId: BuildId?, status: BuildStatus?, tags: List<String>?): List<BuildInfo> {
         val parameters = listOf(
                 if (buildTypeId != null) "buildType:${buildTypeId.stringId}" else null,
                 if (buildId != null) "id:${buildId.stringId}" else null,
@@ -66,10 +70,13 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
-        return service.builds(parameters.joinToString(",")).build.map { it.toBuild(service) }
+        val buildLocator = parameters.joinToString(",")
+        LOG.debug("Builds query via build locator ${buildLocator}")
+
+        return service.builds(buildLocator).build.map { it.toBuildInfo(service) }
     }
 
-    override fun build(id: BuildId): Build = builds(buildId = id).first()
+    override fun build(id: BuildId): Build = service.build(id.stringId).toBuild(service)
 
     override fun project(id: ProjectId): Project = service.project(id.stringId).toProject(service)
 
@@ -109,10 +116,12 @@ public class PropertyInfoImpl(override val name: String,
                               override val value: String?,
                               override val own: Boolean) : PropertyInfo
 
-private class BuildImpl(override val id: BuildId,
+private class BuildInfoImpl(override val id: BuildId,
                         private val service: TeamCityService,
                         override val buildNumber: String,
-                        override val status: BuildStatus) : Build {
+                        override val status: BuildStatus) : BuildInfo {
+    override fun build(): Build = service.build(id.stringId).toBuild(service)
+
     override fun addTag(tag: String) {
         service.addTag(id.stringId, TypedString(tag))
     }
@@ -164,7 +173,12 @@ private class BuildImpl(override val id: BuildId,
     }
 }
 
-private class BuildArtifactImpl(private val build: Build, override val fileName: String) : BuildArtifact {
+private class BuildImpl(val buildInfo: BuildInfoImpl,
+                            override val queuedDate: Date,
+                            override val startDate: Date,
+                            override val finishDate: Date) : Build, BuildInfo by buildInfo
+
+private class BuildArtifactImpl(private val build: BuildInfo, override val fileName: String) : BuildArtifact {
     fun download(output: File) {
         build.downloadArtifact(fileName, output)
     }

@@ -3,12 +3,18 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
+import java.text.SimpleDateFormat
 import java.util.ArrayList
+import java.util.Locale
 
 private trait TeamCityService {
     Headers("Accept: application/json")
     GET("/app/rest/builds")
-    fun builds(Query("locator") buildLocator: String): BuildListBean
+    fun builds(Query("locator") buildLocator: String): BuildInfoListBean
+
+    Headers("Accept: application/json")
+    GET("/app/rest/builds/id:{id}")
+    fun build(Path("id") id: String): BuildBean
 
     POST("/app/rest/builds/id:{id}/tags/")
     fun addTag(Path("id") buildId: String, Body tag: TypedString): Response
@@ -33,6 +39,8 @@ private trait TeamCityService {
     fun buildTypeTags(Path("id") buildTypeId: String): TagsBean
 }
 
+private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
+
 private class ProjectsBean {
     var project: List<ProjectInfoBean> = ArrayList()
 }
@@ -45,16 +53,32 @@ private class ArtifactFileBean {
     var name: String? = null
 }
 
-private class BuildListBean {
+private class BuildInfoListBean {
     var build: List<BuildInfoBean> = ArrayList()
 }
 
-private class BuildInfoBean {
+private open class BuildInfoBean {
     var id: String? = null
     var number: String? = null
     var status: BuildStatus? = null
 
-    fun toBuild(service: TeamCityService): Build = BuildImpl(BuildId(id!!), service, number!!, status!!)
+    fun toBuildInfo(service: TeamCityService): BuildInfoImpl = BuildInfoImpl(
+            id = BuildId(id!!),
+            service = service,
+            buildNumber = number!!,
+            status = status!!)
+}
+
+private class BuildBean: BuildInfoBean() {
+    var queuedDate: String? = null
+    var startDate: String? = null
+    var finishDate: String? = null
+
+    fun toBuild(service: TeamCityService): Build = BuildImpl(
+            buildInfo = toBuildInfo(service),
+            startDate = teamCityServiceDateFormat.parse(startDate!!),
+            finishDate = teamCityServiceDateFormat.parse(finishDate!!),
+            queuedDate = teamCityServiceDateFormat.parse(queuedDate!!))
 }
 
 private class BuildTypeInfoBean {
