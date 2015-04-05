@@ -1,6 +1,5 @@
 package org.jetbrains.teamcity.rest
 
-import jdk.nashorn.internal.runtime.logging.Logger
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RequestInterceptor
