@@ -42,9 +42,11 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
                                    private val basicAuthHeader: String?,
                                    private val debug: Boolean) : TeamCityInstance {
     private val LOG = LoggerFactory.getLogger(javaClass)
+    private val RestLOG = LoggerFactory.getLogger(javaClass.getName() + ".rest")
 
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
+            .setLog({ RestLOG.debug(it) })
             .setLogLevel(if (debug) retrofit.RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.NONE)
             .setRequestInterceptor(object : RequestInterceptor {
                 override fun intercept(request: RequestInterceptor.RequestFacade) {
