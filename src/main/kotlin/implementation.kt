@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import jdk.nashorn.internal.runtime.logging.Logger
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RequestInterceptor
@@ -10,6 +11,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
 import java.util.regex.Pattern
+
+private val LOG = LoggerFactory.getLogger(TeamCityInstance.javaClass)
 
 private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCityInstanceBuilder {
     private var debug = false
@@ -41,8 +44,7 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
                                    private val authMethod: String,
                                    private val basicAuthHeader: String?,
                                    private val debug: Boolean) : TeamCityInstance {
-    private val LOG = LoggerFactory.getLogger(javaClass)
-    private val RestLOG = LoggerFactory.getLogger(javaClass.getName() + ".rest")
+    private val RestLOG = LoggerFactory.getLogger(LOG.getName() + ".rest")
 
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
@@ -73,8 +75,8 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
         }
 
         val buildLocator = parameters.joinToString(",")
-        LOG.debug("Builds query via build locator ${buildLocator}")
 
+        LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
         return service.builds(buildLocator).build.map { it.toBuildInfo(service) }
     }
 
@@ -125,10 +127,12 @@ private class BuildInfoImpl(override val id: BuildId,
     override fun build(): Build = service.build(id.stringId).toBuild(service)
 
     override fun addTag(tag: String) {
+        LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")
         service.addTag(id.stringId, TypedString(tag))
     }
 
     override fun pin(comment: String) {
+        LOG.info("Pinning build $buildNumber (id:${id.stringId})")
         service.pin(id.stringId, TypedString(comment))
     }
 
@@ -166,12 +170,16 @@ private class BuildInfoImpl(override val id: BuildId,
     }
 
     override fun downloadArtifact(artifactPath: String, output: File) {
+        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to ${output}")
+
         output.getParentFile().mkdirs()
         val response = service.artifactContent(id.stringId, artifactPath)
         val input = response.getBody().`in`()
         BufferedOutputStream(FileOutputStream(output)).use {
             input.copyTo(it)
         }
+
+        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to ${output}")
     }
 }
 
