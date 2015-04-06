@@ -105,21 +105,33 @@ public class ProjectImpl(
     }
 
     override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { ProjectImpl(it, false, service) }
-    override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullProjectBean.buildTypes!!.buildType.map { it.toBuildType(service) }
-    override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { it.toParameter() }
+    override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullProjectBean.buildTypes!!.buildType.map { BuildConfigurationImpl(it, service) }
+    override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { ParameterImpl(it) }
 }
 
-public class BuildConfigurationImpl(
-        override val id: BuildConfigurationId,
-        override val name: String,
-        override val projectId: ProjectId,
-        private val service: TeamCityService) : BuildConfiguration {
+public class BuildConfigurationImpl(private val bean: BuildTypeBean, private val service: TeamCityService) : BuildConfiguration {
+    override val name: String
+        get() = bean.name!!
+
+    override val projectId: ProjectId
+        get() = ProjectId(bean.projectId!!)
+
+    override val id: BuildConfigurationId
+        get() = BuildConfigurationId(bean.id!!)
+
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 }
 
-public class ParameterImpl(override val name: String,
-                              override val value: String?,
-                              override val own: Boolean) : Parameter
+public class ParameterImpl(private val bean: ParameterBean) : Parameter {
+    override val name: String
+        get() = bean.name!!
+
+    override val value: String?
+        get() = bean.value!!
+
+    override val own: Boolean
+        get() = bean.own
+}
 
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,

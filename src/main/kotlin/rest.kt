@@ -69,9 +69,6 @@ private class BuildTypeBean {
     var id: String? = null
     var name: String? = null
     var projectId: String? = null
-
-    fun toBuildType(service: TeamCityService): BuildConfiguration =
-            BuildConfigurationImpl(BuildConfigurationId(id!!), name!!, ProjectId(projectId!!), service)
 }
 
 private class BuildTypesBean {
@@ -105,7 +102,4 @@ private class ParameterBean {
     var name: String? = null
     var value: String? = null
     var own: Boolean = false
-
-    fun toParameter(): Parameter = ParameterImpl(name!!, value, own)
 }
-
