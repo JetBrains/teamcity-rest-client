@@ -51,6 +51,7 @@ publishing {
 if (hasProperty("bintrayUser")) {
     bintray {
         user = bintrayUser
+        userOrg = 'jetbrains'
         key = bintrayApiKey
         publish = true
         publications = ['mavenJava']
