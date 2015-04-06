@@ -19,14 +19,8 @@ private val LOG = LoggerFactory.getLogger(TeamCityInstance.javaClass)
 private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCityInstanceBuilder {
-    private var debug = false
     private var username: String? = null
     private var password: String? = null
-
-    override fun withDebugLogging(): TeamCityInstanceBuilder {
-        debug = true
-        return this
-    }
 
     override fun httpAuth(username: String, password: String): TeamCityInstanceBuilder {
         this.username = username
@@ -37,23 +31,22 @@ private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCi
     override fun build(): TeamCityInstance {
         if (username != null && password != null) {
             val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
-            return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization, debug)
+            return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization)
         } else {
-            return TeamCityInstanceImpl(serverUrl, "guestAuth", null, debug)
+            return TeamCityInstanceImpl(serverUrl, "guestAuth", null)
         }
     }
 }
 
 private class TeamCityInstanceImpl(private val serverUrl: String,
                                    private val authMethod: String,
-                                   private val basicAuthHeader: String?,
-                                   private val debug: Boolean) : TeamCityInstance {
+                                   private val basicAuthHeader: String?) : TeamCityInstance {
     private val RestLOG = LoggerFactory.getLogger(LOG.getName() + ".rest")
 
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
             .setLog({ RestLOG.debug(it) })
-            .setLogLevel(if (debug) retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS else RestAdapter.LogLevel.NONE)
+            .setLogLevel(retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor(object : RequestInterceptor {
                 override fun intercept(request: RequestInterceptor.RequestFacade) {
                     if (basicAuthHeader != null) {

@@ -18,9 +18,7 @@ public trait TeamCityInstance {
 }
 
 public trait TeamCityInstanceBuilder {
-    fun withDebugLogging(): TeamCityInstanceBuilder
     fun httpAuth(username: String, password: String): TeamCityInstanceBuilder
-
     fun build(): TeamCityInstance
 }
 
