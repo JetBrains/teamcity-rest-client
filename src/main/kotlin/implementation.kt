@@ -8,10 +8,15 @@ import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.properties.Delegates
 
 private val LOG = LoggerFactory.getLogger(TeamCityInstance.javaClass)
+
+private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCityInstanceBuilder {
     private var debug = false
@@ -59,7 +64,7 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(javaClass<TeamCityService>())
 
-    override fun builds(buildTypeId: BuildTypeId?, buildId: BuildId?, status: BuildStatus?, tags: List<String>?): List<BuildInfo> {
+    override fun builds(buildTypeId: BuildTypeId?, buildId: BuildId?, status: BuildStatus?, tags: List<String>?): List<Build> {
         val parameters = listOf(
                 if (buildTypeId != null) "buildType:${buildTypeId.stringId}" else null,
                 if (buildId != null) "id:${buildId.stringId}" else null,
@@ -76,7 +81,7 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
         val buildLocator = parameters.joinToString(",")
 
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
-        return service.builds(buildLocator).build.map { it.toBuildInfo(service) }
+        return service.builds(buildLocator).build.map { it.toBuild(service) }
     }
 
     override fun build(id: BuildId): Build = service.build(id.stringId).toBuild(service)
@@ -119,11 +124,15 @@ public class ParameterImpl(override val name: String,
                               override val value: String?,
                               override val own: Boolean) : Parameter
 
-private class BuildInfoImpl(override val id: BuildId,
+private class BuildImpl(override val id: BuildId,
                         private val service: TeamCityService,
                         override val buildNumber: String,
-                        override val status: BuildStatus) : BuildInfo {
-    override fun build(): Build = service.build(id.stringId).toBuild(service)
+                        override val status: BuildStatus) : Build {
+    val buildBean: BuildBean by Delegates.blockingLazy { service.build(id.stringId) }
+
+    override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.parse(buildBean.queuedDate!!)
+    override fun fetchStartDate(): Date = teamCityServiceDateFormat.parse(buildBean.startDate!!)
+    override fun fetchFinishDate(): Date = teamCityServiceDateFormat.parse(buildBean.finishDate!!)
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")
@@ -182,12 +191,7 @@ private class BuildInfoImpl(override val id: BuildId,
     }
 }
 
-private class BuildImpl(val buildInfo: BuildInfoImpl,
-                            override val queuedDate: Date,
-                            override val startDate: Date,
-                            override val finishDate: Date) : Build, BuildInfo by buildInfo
-
-private class BuildArtifactImpl(private val build: BuildInfo, override val fileName: String) : BuildArtifact {
+private class BuildArtifactImpl(private val build: Build, override val fileName: String) : BuildArtifact {
     fun download(output: File) {
         build.downloadArtifact(fileName, output)
     }

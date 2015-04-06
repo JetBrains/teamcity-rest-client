@@ -39,8 +39,6 @@ private trait TeamCityService {
     fun buildTypeTags(Path("id") buildTypeId: String): TagsBean
 }
 
-private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
-
 private class ProjectsBean {
     var project: List<ProjectInfoBean> = ArrayList()
 }
@@ -62,7 +60,7 @@ private open class BuildInfoBean {
     var number: String? = null
     var status: BuildStatus? = null
 
-    fun toBuildInfo(service: TeamCityService): BuildInfoImpl = BuildInfoImpl(
+    fun toBuild(service: TeamCityService): BuildImpl = BuildImpl(
             id = BuildId(id!!),
             service = service,
             buildNumber = number!!,
@@ -73,12 +71,6 @@ private class BuildBean: BuildInfoBean() {
     var queuedDate: String? = null
     var startDate: String? = null
     var finishDate: String? = null
-
-    fun toBuild(service: TeamCityService): Build = BuildImpl(
-            buildInfo = toBuildInfo(service),
-            startDate = teamCityServiceDateFormat.parse(startDate!!),
-            finishDate = teamCityServiceDateFormat.parse(finishDate!!),
-            queuedDate = teamCityServiceDateFormat.parse(queuedDate!!))
 }
 
 private class BuildTypeInfoBean {

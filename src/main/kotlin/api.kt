@@ -7,7 +7,7 @@ public trait TeamCityInstance {
     fun builds(buildTypeId: BuildTypeId? = null,
                buildId: BuildId? = null,
                status: BuildStatus? = BuildStatus.SUCCESS,
-               tags: List<String>? = null): List<BuildInfo>
+               tags: List<String>? = null): List<Build>
 
     fun build(id: BuildId): Build
     fun project(id: ProjectId): Project
@@ -60,12 +60,14 @@ public trait Parameter {
     val own: Boolean
 }
 
-public trait BuildInfo {
+public trait Build {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
 
-    fun build(): Build
+    fun fetchQueuedDate(): Date
+    fun fetchStartDate(): Date
+    fun fetchFinishDate(): Date
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
@@ -73,12 +75,6 @@ public trait BuildInfo {
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
-}
-
-public trait Build: BuildInfo {
-    val queuedDate: Date
-    val startDate: Date
-    val finishDate: Date
 }
 
 public trait BuildArtifact {
