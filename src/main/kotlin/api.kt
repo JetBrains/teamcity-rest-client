@@ -30,13 +30,15 @@ public data class BuildId(val stringId: String)
 
 public data class BuildTypeId(val stringId: String)
 
-public trait ProjectInfo {
+public trait Project {
     val id: ProjectId
     val name: String
     val archived: Boolean
     val parentProjectId: ProjectId
 
-    fun project(): Project
+    fun fetchChildProjects(): List<Project>
+    fun fetchBuildTypes(): List<BuildType>
+    fun fetchParameters(): List<Parameter>
 }
 
 public trait BuildType {
@@ -45,12 +47,6 @@ public trait BuildType {
     val projectId: ProjectId
 
     fun buildTags(): List<String>
-}
-
-public trait Project: ProjectInfo {
-    val childProjects: List<ProjectInfo>
-    val buildTypes: List<BuildType>
-    val parameters: List<Parameter>
 }
 
 public trait Parameter {

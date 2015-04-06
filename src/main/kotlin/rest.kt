@@ -32,7 +32,7 @@ private trait TeamCityService {
 
     Headers("Accept: application/json")
     GET("/app/rest/projects/id:{id}")
-    fun project(Path("id") id: String): ProjectInfoBean
+    fun project(Path("id") id: String): ProjectBean
 
     Headers("Accept: application/json")
     GET("/app/rest/buildTypes/id:{id}/buildTags")
@@ -40,7 +40,7 @@ private trait TeamCityService {
 }
 
 private class ProjectsBean {
-    var project: List<ProjectInfoBean> = ArrayList()
+    var project: List<ProjectBean> = ArrayList()
 }
 
 private class ArtifactFileListBean {
@@ -94,29 +94,18 @@ private class TagsBean {
     var tag: List<TagBean>? = ArrayList()
 }
 
-private class ProjectInfoBean {
+private class ProjectBean {
     var id: String? = null
     var name: String? = null
     var parentProjectId: String? = null
     var archived: Boolean = false
 
-    var projects: ProjectsBean? = ProjectsBean()
-    var parameters: ParametersBean? = ParametersBean()
-    var buildTypes: BuildTypesBean? = BuildTypesBean()
-
-    fun toProjectInfo(service: TeamCityService): ProjectInfo =
-            ProjectInfoImpl(ProjectId(id!!), name!!, archived, ProjectId(parentProjectId!!), service)
+    var projects: ProjectsBean? = null
+    var parameters: ParametersBean? = null
+    var buildTypes: BuildTypesBean? = null
 
     fun toProject(service: TeamCityService): Project =
-            ProjectImpl(
-                    ProjectId(id!!),
-                    name!!,
-                    archived,
-                    ProjectId(parentProjectId!!),
-                    projects!!.project.map { it.toProjectInfo(service) },
-                    buildTypes!!.buildType.map { it.toBuildType(service) },
-                    parameters!!.property!!.map { it.toParameter() }
-            )
+            ProjectImpl(ProjectId(id!!), name!!, archived, ProjectId(parentProjectId!!), service)
 }
 
 private class ParametersBean {
