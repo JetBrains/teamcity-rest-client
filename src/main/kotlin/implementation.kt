@@ -85,20 +85,33 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun build(id: BuildId): Build = service.build(id.stringId).toBuild(service)
 
-    override fun project(id: ProjectId): Project = service.project(id.stringId).toProject(service)
+    override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 }
 
 public class ProjectImpl(
-        override val id: ProjectId,
-        override val name: String,
-        override val archived: Boolean,
-        override val parentProjectId: ProjectId,
+        private val bean: ProjectBean,
+        private val isFullProjectBean: Boolean,
         private val service: TeamCityService): Project {
-    val fullProjectBean: ProjectBean by Delegates.blockingLazy { service.project(id.stringId) }
 
-    override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { it.toProject(service) }
+    override val id: ProjectId
+        get() = ProjectId(bean.id!!)
+
+    override val name: String
+        get() = bean.name!!
+
+    override val archived: Boolean
+        get() = bean.archived
+
+    override val parentProjectId: ProjectId
+        get() = ProjectId(bean.parentProjectId!!)
+
+    val fullProjectBean: ProjectBean by Delegates.blockingLazy {
+        if (isFullProjectBean) bean else service.project(id.stringId)
+    }
+
+    override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { ProjectImpl(it, false, service) }
     override fun fetchBuildTypes(): List<BuildType> = fullProjectBean.buildTypes!!.buildType.map { it.toBuildType(service) }
     override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { it.toParameter() }
 }

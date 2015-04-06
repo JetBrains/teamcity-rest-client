@@ -100,12 +100,9 @@ private class ProjectBean {
     var parentProjectId: String? = null
     var archived: Boolean = false
 
-    var projects: ProjectsBean? = null
-    var parameters: ParametersBean? = null
-    var buildTypes: BuildTypesBean? = null
-
-    fun toProject(service: TeamCityService): Project =
-            ProjectImpl(ProjectId(id!!), name!!, archived, ProjectId(parentProjectId!!), service)
+    var projects: ProjectsBean? = ProjectsBean()
+    var parameters: ParametersBean? = ParametersBean()
+    var buildTypes: BuildTypesBean? = BuildTypesBean()
 }
 
 private class ParametersBean {
