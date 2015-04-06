@@ -70,8 +70,8 @@ private class BuildTypeBean {
     var name: String? = null
     var projectId: String? = null
 
-    fun toBuildType(service: TeamCityService): BuildType =
-            BuildTypeImpl(BuildTypeId(id!!), name!!, ProjectId(projectId!!), service)
+    fun toBuildType(service: TeamCityService): BuildConfiguration =
+            BuildConfigurationImpl(BuildConfigurationId(id!!), name!!, ProjectId(projectId!!), service)
 }
 
 private class BuildTypesBean {

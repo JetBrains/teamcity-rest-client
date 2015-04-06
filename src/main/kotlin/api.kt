@@ -4,7 +4,7 @@ import java.io.File
 import java.util.Date
 
 public trait TeamCityInstance {
-    fun builds(buildTypeId: BuildTypeId? = null,
+    fun builds(buildTypeId: BuildConfigurationId? = null,
                status: BuildStatus? = BuildStatus.SUCCESS,
                tags: List<String>? = null): List<Build>
 
@@ -28,7 +28,7 @@ public data class ProjectId(val stringId: String)
 
 public data class BuildId(val stringId: String)
 
-public data class BuildTypeId(val stringId: String)
+public data class BuildConfigurationId(val stringId: String)
 
 public trait Project {
     val id: ProjectId
@@ -37,12 +37,12 @@ public trait Project {
     val parentProjectId: ProjectId
 
     fun fetchChildProjects(): List<Project>
-    fun fetchBuildTypes(): List<BuildType>
+    fun fetchBuildConfigurations(): List<BuildConfiguration>
     fun fetchParameters(): List<Parameter>
 }
 
-public trait BuildType {
-    val id: BuildTypeId
+public trait BuildConfiguration {
+    val id: BuildConfigurationId
     val name: String
     val projectId: ProjectId
 

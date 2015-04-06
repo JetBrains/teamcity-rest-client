@@ -64,7 +64,7 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(javaClass<TeamCityService>())
 
-    override fun builds(buildTypeId: BuildTypeId?, status: BuildStatus?, tags: List<String>?): List<Build> {
+    override fun builds(buildTypeId: BuildConfigurationId?, status: BuildStatus?, tags: List<String>?): List<Build> {
         val parameters = listOf(
                 if (buildTypeId != null) "buildType:${buildTypeId.stringId}" else null,
                 if (status != null) "status:${status.name()}" else null,
@@ -112,15 +112,15 @@ public class ProjectImpl(
     }
 
     override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { ProjectImpl(it, false, service) }
-    override fun fetchBuildTypes(): List<BuildType> = fullProjectBean.buildTypes!!.buildType.map { it.toBuildType(service) }
+    override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullProjectBean.buildTypes!!.buildType.map { it.toBuildType(service) }
     override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { it.toParameter() }
 }
 
-public class BuildTypeImpl(
-        override val id: BuildTypeId,
+public class BuildConfigurationImpl(
+        override val id: BuildConfigurationId,
         override val name: String,
         override val projectId: ProjectId,
-        private val service: TeamCityService) : BuildType {
+        private val service: TeamCityService) : BuildConfiguration {
     override fun buildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 }
 
