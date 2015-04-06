@@ -64,10 +64,9 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(javaClass<TeamCityService>())
 
-    override fun builds(buildTypeId: BuildTypeId?, buildId: BuildId?, status: BuildStatus?, tags: List<String>?): List<Build> {
+    override fun builds(buildTypeId: BuildTypeId?, status: BuildStatus?, tags: List<String>?): List<Build> {
         val parameters = listOf(
                 if (buildTypeId != null) "buildType:${buildTypeId.stringId}" else null,
-                if (buildId != null) "id:${buildId.stringId}" else null,
                 if (status != null) "status:${status.name()}" else null,
                 if (tags != null && !tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")

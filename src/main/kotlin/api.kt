@@ -5,7 +5,6 @@ import java.util.Date
 
 public trait TeamCityInstance {
     fun builds(buildTypeId: BuildTypeId? = null,
-               buildId: BuildId? = null,
                status: BuildStatus? = BuildStatus.SUCCESS,
                tags: List<String>? = null): List<Build>
 
