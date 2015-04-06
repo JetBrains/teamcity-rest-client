@@ -114,7 +114,7 @@ public class BuildConfigurationImpl(
         override val name: String,
         override val projectId: ProjectId,
         private val service: TeamCityService) : BuildConfiguration {
-    override fun buildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
+    override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 }
 
 public class ParameterImpl(override val name: String,

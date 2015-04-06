@@ -44,7 +44,7 @@ public trait BuildConfiguration {
     val name: String
     val projectId: ProjectId
 
-    fun buildTags(): List<String>
+    fun fetchBuildTags(): List<String>
 }
 
 public trait Parameter {
