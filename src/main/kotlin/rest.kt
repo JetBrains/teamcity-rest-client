@@ -73,17 +73,17 @@ private class BuildBean: BuildInfoBean() {
     var finishDate: String? = null
 }
 
-private class BuildTypeInfoBean {
+private class BuildTypeBean {
     var id: String? = null
     var name: String? = null
     var projectId: String? = null
 
-    fun toBuildTypeInfo(service: TeamCityService): BuildTypeInfo =
-            BuildTypeInfoImpl(BuildTypeId(id!!), name!!, ProjectId(projectId!!), service)
+    fun toBuildType(service: TeamCityService): BuildType =
+            BuildTypeImpl(BuildTypeId(id!!), name!!, ProjectId(projectId!!), service)
 }
 
 private class BuildTypesBean {
-    var buildType: List<BuildTypeInfoBean> = ArrayList()
+    var buildType: List<BuildTypeBean> = ArrayList()
 }
 
 private class TagBean {
@@ -114,7 +114,7 @@ private class ProjectInfoBean {
                     archived,
                     ProjectId(parentProjectId!!),
                     projects!!.project.map { it.toProjectInfo(service) },
-                    buildTypes!!.buildType.map { it.toBuildTypeInfo(service) },
+                    buildTypes!!.buildType.map { it.toBuildType(service) },
                     parameters!!.property!!.map { it.toParameter() }
             )
 }

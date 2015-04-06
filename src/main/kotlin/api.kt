@@ -40,7 +40,7 @@ public trait ProjectInfo {
     fun project(): Project
 }
 
-public trait BuildTypeInfo {
+public trait BuildType {
     val id: BuildTypeId
     val name: String
     val projectId: ProjectId
@@ -50,7 +50,7 @@ public trait BuildTypeInfo {
 
 public trait Project: ProjectInfo {
     val childProjects: List<ProjectInfo>
-    val buildTypes: List<BuildTypeInfo>
+    val buildTypes: List<BuildType>
     val parameters: List<Parameter>
 }
 

@@ -100,11 +100,11 @@ public class ProjectInfoImpl(
     override fun project(): Project = service.project(id.stringId).toProject(service)
 }
 
-public class BuildTypeInfoImpl(
+public class BuildTypeImpl(
         override val id: BuildTypeId,
         override val name: String,
         override val projectId: ProjectId,
-        private val service: TeamCityService) : BuildTypeInfo {
+        private val service: TeamCityService) : BuildType {
     override fun buildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 }
 
@@ -115,7 +115,7 @@ public class ProjectImpl(
         override val parentProjectId: ProjectId,
 
         override val childProjects: List<ProjectInfo>,
-        override val buildTypes: List<BuildTypeInfo>,
+        override val buildTypes: List<BuildType>,
         override val parameters: List<Parameter>) : Project {
     override fun project(): Project = this
 }
