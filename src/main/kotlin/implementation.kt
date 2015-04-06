@@ -111,13 +111,13 @@ public class ProjectImpl(
 
         override val childProjects: List<ProjectInfo>,
         override val buildTypes: List<BuildTypeInfo>,
-        override val parameters: List<PropertyInfo>) : Project {
+        override val parameters: List<Parameter>) : Project {
     override fun project(): Project = this
 }
 
-public class PropertyInfoImpl(override val name: String,
+public class ParameterImpl(override val name: String,
                               override val value: String?,
-                              override val own: Boolean) : PropertyInfo
+                              override val own: Boolean) : Parameter
 
 private class BuildInfoImpl(override val id: BuildId,
                         private val service: TeamCityService,

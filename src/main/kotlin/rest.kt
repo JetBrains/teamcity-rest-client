@@ -123,19 +123,19 @@ private class ProjectInfoBean {
                     ProjectId(parentProjectId!!),
                     projects!!.project.map { it.toProjectInfo(service) },
                     buildTypes!!.buildType.map { it.toBuildTypeInfo(service) },
-                    parameters!!.property!!.map { it.toPropertyInfo() }
+                    parameters!!.property!!.map { it.toParameter() }
             )
 }
 
 private class ParametersBean {
-    var property: List<PropertyBean>? = ArrayList()
+    var property: List<ParameterBean>? = ArrayList()
 }
 
-private class PropertyBean {
+private class ParameterBean {
     var name: String? = null
     var value: String? = null
     var own: Boolean = false
 
-    fun toPropertyInfo(): PropertyInfo = PropertyInfoImpl(name!!, value, own)
+    fun toParameter(): Parameter = ParameterImpl(name!!, value, own)
 }
 

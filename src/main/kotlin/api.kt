@@ -51,10 +51,10 @@ public trait BuildTypeInfo {
 public trait Project: ProjectInfo {
     val childProjects: List<ProjectInfo>
     val buildTypes: List<BuildTypeInfo>
-    val parameters: List<PropertyInfo>
+    val parameters: List<Parameter>
 }
 
-public trait PropertyInfo {
+public trait Parameter {
     val name: String
     val value: String?
     val own: Boolean
