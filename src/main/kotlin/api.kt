@@ -74,6 +74,8 @@ public trait Build {
 
 public trait BuildArtifact {
     val fileName: String
+
+    fun download(output: File)
 }
 
 public enum class BuildStatus {

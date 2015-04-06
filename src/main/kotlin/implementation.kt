@@ -206,7 +206,7 @@ private class BuildImpl(private val bean: BuildBean,
 }
 
 private class BuildArtifactImpl(private val build: Build, override val fileName: String) : BuildArtifact {
-    fun download(output: File) {
+    override fun download(output: File) {
         build.downloadArtifact(fileName, output)
     }
 }
