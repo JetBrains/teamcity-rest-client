@@ -10,7 +10,7 @@ import java.util.Locale
 private trait TeamCityService {
     Headers("Accept: application/json")
     GET("/app/rest/builds")
-    fun builds(Query("locator") buildLocator: String): BuildInfoListBean
+    fun builds(Query("locator") buildLocator: String): BuildListBean
 
     Headers("Accept: application/json")
     GET("/app/rest/builds/id:{id}")
@@ -51,23 +51,15 @@ private class ArtifactFileBean {
     var name: String? = null
 }
 
-private class BuildInfoListBean {
-    var build: List<BuildInfoBean> = ArrayList()
+private class BuildListBean {
+    var build: List<BuildBean> = ArrayList()
 }
 
-private open class BuildInfoBean {
+private open class BuildBean {
     var id: String? = null
     var number: String? = null
     var status: BuildStatus? = null
 
-    fun toBuild(service: TeamCityService): BuildImpl = BuildImpl(
-            id = BuildId(id!!),
-            service = service,
-            buildNumber = number!!,
-            status = status!!)
-}
-
-private class BuildBean: BuildInfoBean() {
     var queuedDate: String? = null
     var startDate: String? = null
     var finishDate: String? = null

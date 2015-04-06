@@ -80,10 +80,10 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
         val buildLocator = parameters.joinToString(",")
 
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
-        return service.builds(buildLocator).build.map { it.toBuild(service) }
+        return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
     }
 
-    override fun build(id: BuildId): Build = service.build(id.stringId).toBuild(service)
+    override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
     override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
 
@@ -128,15 +128,25 @@ public class ParameterImpl(override val name: String,
                               override val value: String?,
                               override val own: Boolean) : Parameter
 
-private class BuildImpl(override val id: BuildId,
-                        private val service: TeamCityService,
-                        override val buildNumber: String,
-                        override val status: BuildStatus) : Build {
-    val buildBean: BuildBean by Delegates.blockingLazy { service.build(id.stringId) }
+private class BuildImpl(private val bean: BuildBean,
+                        private val isFullBuildBean: Boolean,
+                        private val service: TeamCityService) : Build {
+    override val id: BuildId
+        get() = BuildId(bean.id!!)
 
-    override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.parse(buildBean.queuedDate!!)
-    override fun fetchStartDate(): Date = teamCityServiceDateFormat.parse(buildBean.startDate!!)
-    override fun fetchFinishDate(): Date = teamCityServiceDateFormat.parse(buildBean.finishDate!!)
+    override val buildNumber: String
+        get() = bean.number!!
+
+    override val status: BuildStatus
+        get() = bean.status!!
+
+    val fullBuildBean: BuildBean by Delegates.blockingLazy {
+        if (isFullBuildBean) bean else service.build(id.stringId)
+    }
+
+    override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.queuedDate!!)
+    override fun fetchStartDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.startDate!!)
+    override fun fetchFinishDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.finishDate!!)
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")
