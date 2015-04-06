@@ -55,7 +55,7 @@ if (hasProperty("bintrayUser")) {
         publish = true
         publications = ['mavenJava']
         pkg {
-            repo = "maven"
+            repo = "teamcity-rest-client"
             name = "teamcity-rest-client"
             version {
                 name = "0.1.$buildNumber"
