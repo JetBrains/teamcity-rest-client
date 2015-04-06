@@ -83,10 +83,10 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
     override fun rootProject(): Project = project(ProjectId("_Root"))
 }
 
-public class ProjectImpl(
+private class ProjectImpl(
         private val bean: ProjectBean,
         private val isFullProjectBean: Boolean,
-        private val service: TeamCityService): Project {
+        private val service: TeamCityService) : Project {
 
     override val id: ProjectId
         get() = ProjectId(bean.id!!)
@@ -109,7 +109,7 @@ public class ProjectImpl(
     override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { ParameterImpl(it) }
 }
 
-public class BuildConfigurationImpl(private val bean: BuildTypeBean, private val service: TeamCityService) : BuildConfiguration {
+private class BuildConfigurationImpl(private val bean: BuildTypeBean, private val service: TeamCityService) : BuildConfiguration {
     override val name: String
         get() = bean.name!!
 
@@ -122,7 +122,7 @@ public class BuildConfigurationImpl(private val bean: BuildTypeBean, private val
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 }
 
-public class ParameterImpl(private val bean: ParameterBean) : Parameter {
+private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
 
