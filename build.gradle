@@ -51,11 +51,11 @@ publishing {
 if (hasProperty("bintrayUser")) {
     bintray {
         user = bintrayUser
-        userOrg = 'jetbrains'
         key = bintrayApiKey
         publish = true
         publications = ['mavenJava']
         pkg {
+            userOrg = 'jetbrains'
             repo = "teamcity-rest-client"
             name = "teamcity-rest-client"
             version {
