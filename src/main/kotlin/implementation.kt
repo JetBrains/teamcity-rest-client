@@ -18,24 +18,13 @@ private val LOG = LoggerFactory.getLogger("team-rest-client")
 
 private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
-private class TeamCityInstanceBuilderImpl(private val serverUrl: String): TeamCityInstanceBuilder {
-    private var username: String? = null
-    private var password: String? = null
+private fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
+    return TeamCityInstanceImpl(serverUrl, "guestAuth", null)
+}
 
-    override fun httpAuth(username: String, password: String): TeamCityInstanceBuilder {
-        this.username = username
-        this.password = password
-        return this
-    }
-
-    override fun build(): TeamCityInstance {
-        if (username != null && password != null) {
-            val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
-            return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization)
-        } else {
-            return TeamCityInstanceImpl(serverUrl, "guestAuth", null)
-        }
-    }
+private fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
+    val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
+    return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization)
 }
 
 private class TeamCityInstanceImpl(private val serverUrl: String,
