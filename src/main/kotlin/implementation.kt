@@ -14,7 +14,7 @@ import java.util.Locale
 import java.util.regex.Pattern
 import kotlin.properties.Delegates
 
-private val LOG = LoggerFactory.getLogger("team-rest-client")
+private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
 private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
