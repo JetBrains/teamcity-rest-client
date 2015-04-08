@@ -14,13 +14,10 @@ public trait TeamCityInstance {
     fun rootProject(): Project
 
     companion object {
-        fun builder(serverUrl: String): TeamCityInstanceBuilder = TeamCityInstanceBuilderImpl(serverUrl)
+        fun guestAuth(serverUrl: String): TeamCityInstance = createGuestAuthInstance(serverUrl)
+        fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
+                = createHttpAuthInstance(serverUrl, username, password)
     }
-}
-
-public trait TeamCityInstanceBuilder {
-    fun httpAuth(username: String, password: String): TeamCityInstanceBuilder
-    fun build(): TeamCityInstance
 }
 
 public data class ProjectId(val stringId: String)
