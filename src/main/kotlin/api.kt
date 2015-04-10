@@ -4,10 +4,7 @@ import java.io.File
 import java.util.Date
 
 public trait TeamCityInstance {
-    fun builds(buildTypeId: BuildConfigurationId? = null,
-               status: BuildStatus? = BuildStatus.SUCCESS,
-               tags: List<String>? = null,
-               count: Int? = null): List<Build>
+    fun builds(): BuildLocator
 
     fun build(id: BuildId): Build
     fun project(id: ProjectId): Project
@@ -18,6 +15,17 @@ public trait TeamCityInstance {
         fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
                 = createHttpAuthInstance(serverUrl, username, password)
     }
+}
+
+public trait BuildLocator {
+    fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
+    fun withAnyStatus() : BuildLocator
+    fun withStatus(status: BuildStatus): BuildLocator
+    fun withTag(tag: String): BuildLocator
+    fun limitResults(count: Int): BuildLocator
+
+    fun latest(): Build?
+    fun list(): List<Build>
 }
 
 public data class ProjectId(val stringId: String)
