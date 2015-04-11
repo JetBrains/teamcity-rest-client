@@ -9,6 +9,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
+import java.util.ArrayList
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
@@ -46,17 +47,58 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(javaClass<TeamCityService>())
 
-    override fun builds(buildTypeId: BuildConfigurationId?,
-                        status: BuildStatus?,
-                        tags: List<String>?,
-                        count: Int?): List<Build> {
+    override fun builds(): BuildLocator = BuildLocatorImpl(service, serverUrl)
+
+    override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
+
+    override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
+
+    override fun rootProject(): Project = project(ProjectId("_Root"))
+}
+
+private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
+    private var buildConfigurationId: BuildConfigurationId? = null
+    private var status: BuildStatus? = BuildStatus.SUCCESS
+    private var tags = ArrayList<String>()
+    private var count: Int? = null
+
+    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
+        this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun withAnyStatus(): BuildLocator {
+        status = null
+        return this
+    }
+
+    override fun withStatus(status: BuildStatus): BuildLocator {
+        this.status = status
+        return this
+    }
+
+    override fun withTag(tag: String): BuildLocator {
+        tags.add(tag)
+        return this
+    }
+
+    override fun limitResults(count: Int): BuildLocator {
+        this.count = count
+        return this
+    }
+
+    override fun latest(): Build? {
+        return limitResults(1).list().firstOrNull()
+    }
+
+    override fun list(): List<Build> {
         val parameters = listOf(
-                if (buildTypeId != null) "buildType:${buildTypeId.stringId}" else null,
-                if (status != null) "status:${status.name()}" else null,
-                if (tags != null && !tags.isEmpty())
+                buildConfigurationId?.stringId?.let {"buildType:$it}"},
+                status?.name()?.let {"status:$it"},
+                if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
-                if (count != null) "count:${count}" else null
+                count?.let {"count:$it"}
         ).filterNotNull()
 
         if (parameters.isEmpty()) {
@@ -64,16 +106,9 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
         }
 
         val buildLocator = parameters.joinToString(",")
-
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
         return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
     }
-
-    override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
-
-    override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
-
-    override fun rootProject(): Project = project(ProjectId("_Root"))
 }
 
 private class ProjectImpl(
