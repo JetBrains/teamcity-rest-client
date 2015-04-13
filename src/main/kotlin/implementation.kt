@@ -93,7 +93,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
 
     override fun list(): List<Build> {
         val parameters = listOf(
-                buildConfigurationId?.stringId?.let {"buildType:$it}"},
+                buildConfigurationId?.stringId?.let {"buildType:$it"},
                 status?.name()?.let {"status:$it"},
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
