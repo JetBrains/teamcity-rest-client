@@ -59,7 +59,7 @@ if (hasProperty("bintrayUser")) {
             repo = "teamcity-rest-client"
             name = "teamcity-rest-client"
             version {
-                name = "0.1.$buildNumber"
+                name = "$buildNumber"
             }
         }
     }
