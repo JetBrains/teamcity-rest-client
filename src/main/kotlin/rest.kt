@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Locale
 
-private trait TeamCityService {
+private interface TeamCityService {
     Headers("Accept: application/json")
     GET("/app/rest/builds")
     fun builds(Query("locator") buildLocator: String): BuildListBean

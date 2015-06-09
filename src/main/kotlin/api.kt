@@ -3,7 +3,7 @@ package org.jetbrains.teamcity.rest
 import java.io.File
 import java.util.Date
 
-public trait TeamCityInstance {
+public interface TeamCityInstance {
     fun builds(): BuildLocator
 
     fun build(id: BuildId): Build
@@ -17,7 +17,7 @@ public trait TeamCityInstance {
     }
 }
 
-public trait BuildLocator {
+public interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
     fun withAnyStatus() : BuildLocator
     fun withStatus(status: BuildStatus): BuildLocator
@@ -34,7 +34,7 @@ public data class BuildId(val stringId: String)
 
 public data class BuildConfigurationId(val stringId: String)
 
-public trait Project {
+public interface Project {
     val id: ProjectId
     val name: String
     val archived: Boolean
@@ -45,7 +45,7 @@ public trait Project {
     fun fetchParameters(): List<Parameter>
 }
 
-public trait BuildConfiguration {
+public interface BuildConfiguration {
     val id: BuildConfigurationId
     val name: String
     val projectId: ProjectId
@@ -53,13 +53,13 @@ public trait BuildConfiguration {
     fun fetchBuildTags(): List<String>
 }
 
-public trait Parameter {
+public interface Parameter {
     val name: String
     val value: String?
     val own: Boolean
 }
 
-public trait Build {
+public interface Build {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
@@ -76,14 +76,14 @@ public trait Build {
     fun downloadArtifact(artifactPath: String, output: File)
 }
 
-public trait BuildArtifact {
+public interface BuildArtifact {
     val fileName: String
 
     fun download(output: File)
 }
 
 public enum class BuildStatus {
-    SUCCESS
-    FAILURE
+    SUCCESS,
+    FAILURE,
     ERROR
 }

@@ -12,8 +12,8 @@ import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
 import java.util.Locale
-import java.util.regex.Pattern
 import kotlin.properties.Delegates
+import kotlin.text.Regex
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -198,7 +198,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
         val list = getArtifacts(parentPath)
         val regexp = convertToJavaRegexp(pattern)
-        val result = list.filter { regexp.matcher(it.fileName).matches() }
+        val result = list.filter { regexp.matches(it.fileName) }
         if (result.isEmpty()) {
             val available = list.map { it.fileName }.joinToString(",")
             throw RuntimeException("Artifact $pattern not found in build $buildNumber. Available artifacts: $available.")
@@ -213,7 +213,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun downloadArtifacts(pattern: String, outputDir: File) {
         val list = getArtifacts()
         val regexp = convertToJavaRegexp(pattern)
-        val matched = list.filter { regexp.matcher(it.fileName).matches() }
+        val matched = list.filter { regexp.matches(it.fileName) }
         if (matched.isEmpty()) {
             val available = list.map { it.fileName }.joinToString(",")
             throw RuntimeException("No artifacts matching $pattern are found in build $buildNumber. Available artifacts: $available.")
@@ -244,6 +244,6 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
     }
 }
 
-private fun convertToJavaRegexp(pattern: String): Pattern {
-    return pattern.replaceAll("\\.", "\\.").replaceAll("\\*", ".*").replaceAll("\\?", ".").toRegex()
+private fun convertToJavaRegexp(pattern: String): Regex {
+    return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()
 }
