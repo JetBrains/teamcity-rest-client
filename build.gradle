@@ -29,7 +29,7 @@ dependencies {
 
 group = 'org.jetbrains.teamcity'
 if (hasProperty("buildNumber")) {
-    version = "0.1.$buildNumber"
+    version = "$buildNumber"
 }
 apply plugin: 'maven-publish'
 task sourceJar(type: Jar) {
