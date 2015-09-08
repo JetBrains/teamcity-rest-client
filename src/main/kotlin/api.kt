@@ -68,6 +68,8 @@ public interface Build {
     fun fetchStartDate(): Date
     fun fetchFinishDate(): Date
 
+    fun fetchParameters(): List<Parameter>
+
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
     fun getArtifacts(parentPath: String = ""): List<BuildArtifact>

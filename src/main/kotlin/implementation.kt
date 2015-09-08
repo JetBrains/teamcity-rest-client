@@ -181,6 +181,8 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.finishDate!!)
 
+    override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
+
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")
         service.addTag(id.stringId, TypedString(tag))

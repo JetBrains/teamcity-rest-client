@@ -63,6 +63,8 @@ private open class BuildBean {
     var queuedDate: String? = null
     var startDate: String? = null
     var finishDate: String? = null
+
+    var properties: ParametersBean? = ParametersBean()
 }
 
 private class BuildTypeBean {
