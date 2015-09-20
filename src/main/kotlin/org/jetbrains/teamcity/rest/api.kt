@@ -22,6 +22,7 @@ public interface BuildLocator {
     fun withAnyStatus() : BuildLocator
     fun withStatus(status: BuildStatus): BuildLocator
     fun withTag(tag: String): BuildLocator
+    fun withBranch(branch: String): BuildLocator
     fun limitResults(count: Int): BuildLocator
 
     fun latest(): Build?

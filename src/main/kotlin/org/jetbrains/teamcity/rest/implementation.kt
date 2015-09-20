@@ -60,6 +60,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
+    private var branch: String? = null
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
@@ -81,6 +82,11 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         return this
     }
 
+    override fun withBranch(branch: String): BuildLocator {
+        this.branch = branch
+        return this
+    }
+
     override fun limitResults(count: Int): BuildLocator {
         this.count = count
         return this
@@ -97,7 +103,8 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
-                count?.let {"count:$it"}
+                count?.let {"count:$it"},
+                branch?.let {"branch:$it"}
         ).filterNotNull()
 
         if (parameters.isEmpty()) {
