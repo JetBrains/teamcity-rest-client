@@ -12,18 +12,17 @@ import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
 import java.util.Locale
-import kotlin.properties.Delegates
 import kotlin.text.Regex
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
 private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
-private fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
+internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
     return TeamCityInstanceImpl(serverUrl, "guestAuth", null)
 }
 
-private fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
+internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
     val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
     return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization)
 }
@@ -31,7 +30,7 @@ private fun createHttpAuthInstance(serverUrl: String, username: String, password
 private class TeamCityInstanceImpl(private val serverUrl: String,
                                    private val authMethod: String,
                                    private val basicAuthHeader: String?) : TeamCityInstance {
-    private val RestLOG = LoggerFactory.getLogger(LOG.getName() + ".rest")
+    private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
 
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
@@ -45,7 +44,7 @@ private class TeamCityInstanceImpl(private val serverUrl: String,
                 }
             })
             .build()
-            .create(javaClass<TeamCityService>())
+            .create(TeamCityService::class.java)
 
     override fun builds(): BuildLocator = BuildLocatorImpl(service, serverUrl)
 
@@ -128,7 +127,7 @@ private class ProjectImpl(
     override val parentProjectId: ProjectId
         get() = ProjectId(bean.parentProjectId!!)
 
-    val fullProjectBean: ProjectBean by Delegates.blockingLazy {
+    val fullProjectBean: ProjectBean by lazy {
         if (isFullProjectBean) bean else service.project(id.stringId)
     }
 
@@ -173,7 +172,7 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
-    val fullBuildBean: BuildBean by Delegates.blockingLazy {
+    val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else service.build(id.stringId)
     }
 
@@ -227,16 +226,16 @@ private class BuildImpl(private val bean: BuildBean,
     }
 
     override fun downloadArtifact(artifactPath: String, output: File) {
-        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to ${output}")
+        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
 
-        output.getParentFile().mkdirs()
+        output.parentFile.mkdirs()
         val response = service.artifactContent(id.stringId, artifactPath)
-        val input = response.getBody().`in`()
+        val input = response.body.`in`()
         BufferedOutputStream(FileOutputStream(output)).use {
             input.copyTo(it)
         }
 
-        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to ${output}")
+        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
 }
 
