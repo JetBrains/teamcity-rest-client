@@ -27,7 +27,7 @@ internal fun createHttpAuthInstance(serverUrl: String, username: String, passwor
     return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization)
 }
 
-private class TeamCityInstanceImpl(private val serverUrl: String,
+internal class TeamCityInstanceImpl(private val serverUrl: String,
                                    private val authMethod: String,
                                    private val basicAuthHeader: String?) : TeamCityInstance {
     private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
@@ -99,7 +99,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     override fun list(): List<Build> {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
-                status?.name()?.let {"status:$it"},
+                status?.name?.let {"status:$it"},
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
@@ -211,7 +211,7 @@ private class BuildImpl(private val bean: BuildBean,
             val available = list.map { it.fileName }.joinToString(",")
             throw RuntimeException("Artifact $pattern not found in build $buildNumber. Available artifacts: $available.")
         }
-        if (result.size() > 1) {
+        if (result.size > 1) {
             val names = result.map { it.fileName }.joinToString(",")
             throw RuntimeException("Several artifacts matching $pattern are found in build $buildNumber: $names.")
         }
