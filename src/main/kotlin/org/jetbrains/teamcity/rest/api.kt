@@ -33,6 +33,8 @@ public data class ProjectId(val stringId: String)
 
 public data class BuildId(val stringId: String)
 
+public data class ChangeId(val stringId: String)
+
 public data class BuildConfigurationId(val stringId: String)
 
 public interface Project {
@@ -71,12 +73,28 @@ public interface Build {
 
     fun fetchParameters(): List<Parameter>
 
+    fun fetchChanges(): List<Change>
+
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
     fun getArtifacts(parentPath: String = ""): List<BuildArtifact>
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
+}
+
+public interface Change {
+    val id: ChangeId
+    val version: String
+    val user: User
+    val date: Date
+    val comment: String
+}
+
+public interface User {
+    val id: String
+    val username: String
+    val name: String
 }
 
 public interface BuildArtifact {

@@ -9,9 +9,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.ArrayList
-import java.util.Date
-import java.util.Locale
+import java.util.*
 import kotlin.text.Regex
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
@@ -156,6 +154,34 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 }
 
+private class ChangeImpl(private val bean: ChangeBean) : Change {
+    override val id: ChangeId
+        get() = ChangeId(bean.id!!)
+
+    override val version: String
+        get() = bean.version!!
+
+    override val user: User
+        get() = UserImpl(bean.user!!)
+
+    override val date: Date
+        get() = teamCityServiceDateFormat.parse(bean.date!!)
+
+    override val comment: String
+        get() = bean.comment!!
+}
+
+private class UserImpl(private val bean: UserBean) : User {
+    override val id: String
+        get() = bean.id!!
+
+    override val username: String
+        get() = bean.username!!
+
+    override val name: String
+        get() = bean.name!!
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -188,6 +214,8 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.finishDate!!)
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
+
+    override fun fetchChanges(): List<Change> = service.changes("build:${id.stringId}", "change(id,version,user,date,comment)").change!!.map { ChangeImpl(it) }
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")

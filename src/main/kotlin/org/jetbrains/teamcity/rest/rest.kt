@@ -14,6 +14,10 @@ internal interface TeamCityService {
     @GET("/app/rest/builds/id:{id}")
     fun build(@Path("id") id: String): BuildBean
 
+    @Headers("Accept: application/json")
+    @GET("/app/rest/changes")
+    fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
+
     @POST("/app/rest/builds/id:{id}/tags/")
     fun addTag(@Path("id") buildId: String, @Body tag: TypedString): Response
 
@@ -92,6 +96,24 @@ internal class ProjectBean {
     var projects: ProjectsBean? = ProjectsBean()
     var parameters: ParametersBean? = ParametersBean()
     var buildTypes: BuildTypesBean? = BuildTypesBean()
+}
+
+internal class ChangesBean {
+    var change: List<ChangeBean>? = ArrayList()
+}
+
+internal class ChangeBean {
+    var id: String? = null
+    var version: String? = null
+    var user: UserBean? = null
+    var date: String? = null
+    var comment: String? = null
+}
+
+internal class UserBean {
+    var id: String? = null
+    var username: String? = null
+    var name: String? = null
 }
 
 internal class ParametersBean {
