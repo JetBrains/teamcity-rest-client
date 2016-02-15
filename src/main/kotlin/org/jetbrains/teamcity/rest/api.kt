@@ -1,9 +1,9 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
-import java.util.Date
+import java.util.*
 
-public interface TeamCityInstance {
+interface TeamCityInstance {
     fun builds(): BuildLocator
 
     fun build(id: BuildId): Build
@@ -17,7 +17,7 @@ public interface TeamCityInstance {
     }
 }
 
-public interface BuildLocator {
+interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
     fun withAnyStatus() : BuildLocator
     fun withStatus(status: BuildStatus): BuildLocator
@@ -29,15 +29,15 @@ public interface BuildLocator {
     fun list(): List<Build>
 }
 
-public data class ProjectId(val stringId: String)
+data class ProjectId(val stringId: String)
 
-public data class BuildId(val stringId: String)
+data class BuildId(val stringId: String)
 
-public data class ChangeId(val stringId: String)
+data class ChangeId(val stringId: String)
 
-public data class BuildConfigurationId(val stringId: String)
+data class BuildConfigurationId(val stringId: String)
 
-public interface Project {
+interface Project {
     val id: ProjectId
     val name: String
     val archived: Boolean
@@ -48,7 +48,7 @@ public interface Project {
     fun fetchParameters(): List<Parameter>
 }
 
-public interface BuildConfiguration {
+interface BuildConfiguration {
     val id: BuildConfigurationId
     val name: String
     val projectId: ProjectId
@@ -56,13 +56,13 @@ public interface BuildConfiguration {
     fun fetchBuildTags(): List<String>
 }
 
-public interface Parameter {
+interface Parameter {
     val name: String
     val value: String?
     val own: Boolean
 }
 
-public interface Build {
+interface Build {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
@@ -83,7 +83,7 @@ public interface Build {
     fun downloadArtifact(artifactPath: String, output: File)
 }
 
-public interface Change {
+interface Change {
     val id: ChangeId
     val version: String
     val user: User
@@ -91,19 +91,19 @@ public interface Change {
     val comment: String
 }
 
-public interface User {
+interface User {
     val id: String
     val username: String
     val name: String
 }
 
-public interface BuildArtifact {
+interface BuildArtifact {
     val fileName: String
 
     fun download(output: File)
 }
 
-public enum class BuildStatus {
+enum class BuildStatus {
     SUCCESS,
     FAILURE,
     ERROR

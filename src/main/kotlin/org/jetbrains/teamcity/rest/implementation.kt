@@ -2,7 +2,6 @@ package org.jetbrains.teamcity.rest
 
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
-import retrofit.RequestInterceptor
 import retrofit.RestAdapter
 import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
@@ -10,7 +9,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.text.Regex
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -34,11 +32,9 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
             .setEndpoint("$serverUrl/$authMethod")
             .setLog({ RestLOG.debug(it) })
             .setLogLevel(retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
-            .setRequestInterceptor(object : RequestInterceptor {
-                override fun intercept(request: RequestInterceptor.RequestFacade) {
-                    if (basicAuthHeader != null) {
-                        request.addHeader("Authorization", "Basic $basicAuthHeader")
-                    }
+            .setRequestInterceptor({ request ->
+                if (basicAuthHeader != null) {
+                    request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
             })
             .build()
