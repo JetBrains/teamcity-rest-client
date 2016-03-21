@@ -37,6 +37,7 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
             })
+            .setErrorHandler({ throw Error("Failed to connect to ${it.url}: ${it.message}", it) })
             .build()
             .create(TeamCityService::class.java)
 
