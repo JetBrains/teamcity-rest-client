@@ -23,6 +23,7 @@ interface BuildLocator {
     fun withStatus(status: BuildStatus): BuildLocator
     fun withTag(tag: String): BuildLocator
     fun withBranch(branch: String): BuildLocator
+    fun withAllBranches() : BuildLocator
     fun limitResults(count: Int): BuildLocator
 
     fun latest(): Build?
@@ -66,6 +67,7 @@ interface Build {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
+    val branch : String
 
     fun fetchQueuedDate(): Date
     fun fetchStartDate(): Date

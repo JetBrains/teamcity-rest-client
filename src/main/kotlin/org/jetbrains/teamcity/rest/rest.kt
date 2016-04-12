@@ -3,7 +3,7 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
-import java.util.ArrayList
+import java.util.*
 
 internal interface TeamCityService {
     @Headers("Accept: application/json")
@@ -61,6 +61,7 @@ internal open class BuildBean {
     var id: String? = null
     var number: String? = null
     var status: BuildStatus? = null
+    var branchName : String? = null
 
     var queuedDate: String? = null
     var startDate: String? = null

@@ -31,7 +31,7 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
             .setLog({ RestLOG.debug(it) })
-            .setLogLevel(retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
+            .setLogLevel(retrofit.RestAdapter.LogLevel.FULL)
             .setRequestInterceptor({ request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
@@ -56,6 +56,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var tags = ArrayList<String>()
     private var count: Int? = null
     private var branch: String? = null
+    private var includeAllBranches = false
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
@@ -82,6 +83,15 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         return this
     }
 
+    override fun withAllBranches(): BuildLocator {
+        if (branch != null) {
+            LOG.warn("Branch is ignored because of #withAllBranches")
+        }
+
+        this.includeAllBranches = true
+        return this
+    }
+
     override fun limitResults(count: Int): BuildLocator {
         this.count = count
         return this
@@ -99,7 +109,11 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 count?.let {"count:$it"},
-                branch?.let {"branch:$it"}
+
+                if (!includeAllBranches)
+                    branch?.let {"branch:$it"}
+                else
+                    "branch:default:any"
         ).filterNotNull()
 
         if (parameters.isEmpty()) {
@@ -202,8 +216,15 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
+    override val branch: String
+        get() = bean.branchName!!
+
     val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else service.build(id.stringId)
+    }
+
+    override fun toString(): String {
+        return "Build{id=${bean.id}, number=${bean.number}, state=${bean.status}, branch=${bean.branchName}}"
     }
 
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.queuedDate!!)
