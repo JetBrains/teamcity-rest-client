@@ -68,6 +68,7 @@ interface Build {
     val buildNumber: String
     val status: BuildStatus
     val branch : String?
+    val isDefaultBranch : Boolean
 
     fun fetchQueuedDate(): Date
     fun fetchStartDate(): Date
