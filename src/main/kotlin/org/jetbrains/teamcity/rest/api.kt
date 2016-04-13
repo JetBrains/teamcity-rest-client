@@ -4,6 +4,8 @@ import java.io.File
 import java.util.*
 
 interface TeamCityInstance {
+    fun withLogResponses() : TeamCityInstance
+
     fun builds(): BuildLocator
 
     fun build(id: BuildId): Build

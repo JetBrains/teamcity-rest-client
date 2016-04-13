@@ -72,11 +72,13 @@ class BranchesTest {
 
   private fun kotlinBuilds(): BuildLocator =
           TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
+                  .withLogResponses()
                   .builds()
                   .fromConfiguration(BuildConfigurationId("bt345"))
 
   private fun kotlinBuildsNoBranches(): BuildLocator =
           TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
+                  .withLogResponses()
                   .builds()
                   .fromConfiguration(BuildConfigurationId("bt446"))
 

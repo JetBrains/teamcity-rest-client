@@ -15,23 +15,26 @@ private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
-    return TeamCityInstanceImpl(serverUrl, "guestAuth", null)
+    return TeamCityInstanceImpl(serverUrl, "guestAuth", null, false)
 }
 
 internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
     val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
-    return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization)
+    return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization, false)
 }
 
 internal class TeamCityInstanceImpl(private val serverUrl: String,
-                                   private val authMethod: String,
-                                   private val basicAuthHeader: String?) : TeamCityInstance {
+                                    private val authMethod: String,
+                                    private val basicAuthHeader: String?,
+                                    private val logResponces : Boolean) : TeamCityInstance {
+    override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
+
     private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
 
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
             .setLog({ RestLOG.debug(it) })
-            .setLogLevel(retrofit.RestAdapter.LogLevel.FULL)
+            .setLogLevel(if (logResponces) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor({ request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
