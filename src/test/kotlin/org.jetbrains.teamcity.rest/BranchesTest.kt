@@ -39,7 +39,7 @@ class BranchesTest {
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(50)
             .list().forEach {
-      branches += it.branch
+      branches += it.branch!!
       println(it)
     }
 
@@ -53,7 +53,7 @@ class BranchesTest {
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(50)
             .list().forEach {
-      branches += it.branch
+      branches += it.branch!!
       println(it)
     }
 
