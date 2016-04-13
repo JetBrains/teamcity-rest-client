@@ -19,6 +19,16 @@ class BranchesTest {
   fun setupLog4j() { setupLog4jDebug() }
 
   @Test
+  fun test_list_works_no_branches() {
+    kotlinBuildsNoBranches()
+            .withAllBranches()
+            .withStatus(BuildStatus.SUCCESS)
+            .limitResults(20)
+            .list().forEach {
+      Assert.assertTrue(it.branch.isDefault)
+    }
+  }
+  @Test
   fun test_list_works() {
     kotlinBuilds()
             .withAllBranches()
@@ -39,7 +49,7 @@ class BranchesTest {
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(50)
             .list().forEach {
-      branches += it.branch!!
+      branches += it.branch.name!!
       println(it)
     }
 
@@ -53,7 +63,7 @@ class BranchesTest {
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(50)
             .list().forEach {
-      branches += it.branch!!
+      branches += it.branch.name!!
       println(it)
     }
 
@@ -64,5 +74,10 @@ class BranchesTest {
           TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
                   .builds()
                   .fromConfiguration(BuildConfigurationId("bt345"))
+
+  private fun kotlinBuildsNoBranches(): BuildLocator =
+          TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
+                  .builds()
+                  .fromConfiguration(BuildConfigurationId("bt446"))
 
 }

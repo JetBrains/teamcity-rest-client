@@ -216,11 +216,14 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
-    override val branch: String?
-        get() = bean.branchName
+    override val branch: Branch
+        get() = object:Branch {
+            override val isDefault: Boolean
+                get() = bean.isDefaultBranch ?: name == null
 
-    override val isDefaultBranch: Boolean
-        get() = bean.isDefaultBranch ?: branch == null
+            override val name: String?
+                get() = bean.branchName
+        }
 
     val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else service.build(id.stringId)

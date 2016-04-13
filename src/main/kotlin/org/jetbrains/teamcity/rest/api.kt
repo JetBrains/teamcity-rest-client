@@ -63,12 +63,16 @@ interface Parameter {
     val own: Boolean
 }
 
+interface Branch {
+    val name : String?
+    val isDefault : Boolean
+}
+
 interface Build {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
-    val branch : String?
-    val isDefaultBranch : Boolean
+    val branch : Branch
 
     fun fetchQueuedDate(): Date
     fun fetchStartDate(): Date
