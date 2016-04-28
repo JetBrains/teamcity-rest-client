@@ -12,7 +12,10 @@ import java.util.*
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
-private val teamCityServiceDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
+private val teamCityServiceDateFormat =
+        object : ThreadLocal<SimpleDateFormat>() {
+            override fun initialValue(): SimpleDateFormat? = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
+        }
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
     return TeamCityInstanceImpl(serverUrl, "guestAuth", null, false)
@@ -179,7 +182,7 @@ private class ChangeImpl(private val bean: ChangeBean) : Change {
         get() = UserImpl(bean.user!!)
 
     override val date: Date
-        get() = teamCityServiceDateFormat.parse(bean.date!!)
+        get() = teamCityServiceDateFormat.get().parse(bean.date!!)
 
     override val comment: String
         get() = bean.comment!!
@@ -236,9 +239,9 @@ private class BuildImpl(private val bean: BuildBean,
         return "Build{id=${bean.id}, number=${bean.number}, state=${bean.status}, branch=${bean.branchName}}"
     }
 
-    override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.queuedDate!!)
-    override fun fetchStartDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.startDate!!)
-    override fun fetchFinishDate(): Date = teamCityServiceDateFormat.parse(fullBuildBean.finishDate!!)
+    override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
+    override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
+    override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
