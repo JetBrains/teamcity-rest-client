@@ -258,7 +258,9 @@ private class BuildImpl(private val bean: BuildBean,
     }
 
     override fun getArtifacts(parentPath: String): List<BuildArtifactImpl> {
-        return service.artifactChildren(id.stringId, parentPath).file.map { it.name }.filterNotNull().map { BuildArtifactImpl(this, it) }
+        return service.artifactChildren(id.stringId, parentPath).file.filter { it.name != null && it.modificationTime != null }.map {
+            BuildArtifactImpl(this, it.name!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!))
+        }
     }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
@@ -304,7 +306,7 @@ private class BuildImpl(private val bean: BuildBean,
     }
 }
 
-private class BuildArtifactImpl(private val build: Build, override val fileName: String) : BuildArtifact {
+private class BuildArtifactImpl(private val build: Build, override val fileName: String, override val size: Long?, override val modificationTime: Date) : BuildArtifact {
     override fun download(output: File) {
         build.downloadArtifact(fileName, output)
     }

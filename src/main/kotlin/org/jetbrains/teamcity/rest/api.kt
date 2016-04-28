@@ -108,6 +108,8 @@ interface User {
 
 interface BuildArtifact {
     val fileName: String
+    val size: Long?
+    val modificationTime: Date
 
     fun download(output: File)
 }

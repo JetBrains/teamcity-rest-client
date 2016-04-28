@@ -51,6 +51,8 @@ internal class ArtifactFileListBean {
 
 internal class ArtifactFileBean {
     var name: String? = null
+    var size: Long? = null
+    var modificationTime: String? = null
 }
 
 internal class BuildListBean {
