@@ -8,3 +8,5 @@ val build = TeamCityInstance.guestAuth("https://teamcity.jetbrains.com").builds(
                             .latest()
 build!!.downloadArtifacts("*.zip", File("out"))
 ```
+# Published on bintray
+https://bintray.com/jetbrains/teamcity-rest-client/teamcity-rest-client/view
