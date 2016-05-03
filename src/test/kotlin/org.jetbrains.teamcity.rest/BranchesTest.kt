@@ -20,20 +20,22 @@ class BranchesTest {
 
   @Test
   fun test_list_works_no_branches() {
-    kotlinBuildsNoBranches()
+    val noBranchesLocator = kotlinBuildsNoBranches()
             .withAllBranches()
             .withStatus(BuildStatus.SUCCESS)
-            .limitResults(20)
+            .limitResults(20) as BuildLocator
+    noBranchesLocator
             .list().forEach {
       Assert.assertTrue(it.branch.isDefault)
     }
   }
   @Test
   fun test_list_works() {
-    kotlinBuilds()
+    val buildLocator = kotlinBuilds()
             .withAllBranches()
             .withStatus(BuildStatus.SUCCESS)
-            .limitResults(20)
+            .limitResults(20) as BuildLocator
+    buildLocator
             .list().forEach {
       it.fetchParameters()
       it.fetchChanges()
@@ -44,10 +46,11 @@ class BranchesTest {
   @Test
   fun test_kotlin_branches() {
     val branches = mutableSetOf<String>()
-    kotlinBuilds()
+    val branchesLocator = kotlinBuilds()
             .withAllBranches()
             .withStatus(BuildStatus.SUCCESS)
-            .limitResults(50)
+            .limitResults(50) as BuildLocator
+    branchesLocator
             .list().forEach {
       branches += it.branch.name!!
       println(it)
@@ -59,9 +62,10 @@ class BranchesTest {
   @Test
   fun test_kotlin_default() {
     val branches = mutableSetOf<String>()
-    kotlinBuilds()
+    val buildLocator = kotlinBuilds()
             .withStatus(BuildStatus.SUCCESS)
-            .limitResults(50)
+            .limitResults(50) as BuildLocator
+    buildLocator
             .list().forEach {
       branches += it.branch.name!!
       println(it)
@@ -70,16 +74,28 @@ class BranchesTest {
     Assert.assertTrue("Actual branches: $branches", branches.size == 1)
   }
 
+  @Test
+  fun test_kotlin_queuelength() {
+    val queuedBuildsLocator = kotlinBuildQueue()
+
+    queuedBuildsLocator
+            .list().forEach {
+      println(it)
+    }
+  }
+
   private fun kotlinBuilds(): BuildLocator =
           TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
                   .withLogResponses()
                   .builds()
-                  .fromConfiguration(BuildConfigurationId("bt345"))
+                  .fromConfiguration(BuildConfigurationId("bt345")) as BuildLocator
 
   private fun kotlinBuildsNoBranches(): BuildLocator =
           TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
                   .withLogResponses()
                   .builds()
-                  .fromConfiguration(BuildConfigurationId("bt446"))
+                  .fromConfiguration(BuildConfigurationId("bt446")) as BuildLocator
 
+  private fun kotlinBuildQueue(): QueuedBuildLocator =
+          TeamCityInstance.guestAuth("https://teamcity.jetbrains.com").queuedBuilds()
 }

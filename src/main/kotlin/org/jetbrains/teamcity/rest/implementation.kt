@@ -47,6 +47,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
             .build()
             .create(TeamCityService::class.java)
 
+    override fun queuedBuilds(): QueuedBuildLocator = QueuedBuildsLocatorImpl(service, serverUrl)
+
     override fun builds(): BuildLocator = BuildLocatorImpl(service, serverUrl)
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
@@ -56,40 +58,41 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun rootProject(): Project = project(ProjectId("_Root"))
 }
 
-private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
+private open class LocatorImpl(): Locator {
     private var buildConfigurationId: BuildConfigurationId? = null
-    private var status: BuildStatus? = BuildStatus.SUCCESS
+    private var status: BuildStatus? = null
     private var tags = ArrayList<String>()
     private var count: Int? = null
     private var branch: String? = null
     private var includeAllBranches = false
+    private var sinceDate: String? = null
 
-    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
+    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): Locator {
         this.buildConfigurationId = buildConfigurationId
         return this
     }
 
-    override fun withAnyStatus(): BuildLocator {
+    override fun withAnyStatus(): Locator {
         status = null
         return this
     }
 
-    override fun withStatus(status: BuildStatus): BuildLocator {
+    override fun withStatus(status: BuildStatus): Locator {
         this.status = status
         return this
     }
 
-    override fun withTag(tag: String): BuildLocator {
+    override fun withTag(tag: String): Locator {
         tags.add(tag)
         return this
     }
 
-    override fun withBranch(branch: String): BuildLocator {
+    override fun withBranch(branch: String): Locator {
         this.branch = branch
         return this
     }
 
-    override fun withAllBranches(): BuildLocator {
+    override fun withAllBranches(): Locator {
         if (branch != null) {
             LOG.warn("Branch is ignored because of #withAllBranches")
         }
@@ -98,16 +101,21 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         return this
     }
 
-    override fun limitResults(count: Int): BuildLocator {
+    override fun limitResults(count: Int): Locator {
         this.count = count
         return this
     }
 
-    override fun latest(): Build? {
-        return limitResults(1).list().firstOrNull()
+    override fun sinceDate(sinceDate: Date): Locator {
+        // ISO8601-sorta date needs to be passed to REST API
+        val tz = TimeZone.getTimeZone("UTC")
+        val df = SimpleDateFormat("yyyyMMdd'T'HHmmssZ")
+        df.setTimeZone(tz)
+        this.sinceDate = df.format(sinceDate)
+        return this
     }
 
-    override fun list(): List<Build> {
+    override fun build() : String? {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
                 status?.name?.let {"status:$it"},
@@ -115,6 +123,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 count?.let {"count:$it"},
+                sinceDate?.let {"sinceDate:$it"},
 
                 if (!includeAllBranches)
                     branch?.let {"branch:$it"}
@@ -123,12 +132,38 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         ).filterNotNull()
 
         if (parameters.isEmpty()) {
-            throw IllegalArgumentException("At least one parameter should be specified")
+            return null;
         }
 
-        val buildLocator = parameters.joinToString(",")
+        return parameters.joinToString(",")
+    }
+}
+
+private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String)
+        : BuildLocator, LocatorImpl() {
+    override fun latest(): Build? {
+        limitResults(1)
+        return list().firstOrNull()
+    }
+
+    override fun list(): List<Build> {
+        val buildLocator = build();
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
         return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
+    }
+}
+
+private class QueuedBuildsLocatorImpl(private val service: TeamCityService, private val serverUrl: String)
+        : QueuedBuildLocator, LocatorImpl() {
+    override fun latest(): QueuedBuild? {
+        limitResults(1)
+        return list().firstOrNull()
+    }
+
+    override fun list(): List<QueuedBuild> {
+        val buildLocator = build();
+        LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
+        return service.queuedBuilds(buildLocator).build.map { QueuedBuildImpl(it, false, service) }
     }
 }
 
@@ -222,6 +257,9 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
+    override val buildConfigurationId: String
+        get() = bean.buildTypeId!!
+
     override val branch: Branch
         get() = object:Branch {
             override val isDefault: Boolean
@@ -236,7 +274,7 @@ private class BuildImpl(private val bean: BuildBean,
     }
 
     override fun toString(): String {
-        return "Build{id=${bean.id}, number=${bean.number}, state=${bean.status}, branch=${bean.branchName}}"
+        return "Build{id=${bean.id}, number=${bean.number}, state=${bean.status}, typeId=${bean.buildTypeId}, branch=${bean.branchName}}"
     }
 
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
@@ -303,6 +341,32 @@ private class BuildImpl(private val bean: BuildBean,
         }
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
+}
+
+private class QueuedBuildImpl(private val bean: QueuedBuildBean,
+                              private val isFullBean: Boolean,
+                              private val service: TeamCityService) : QueuedBuild {
+    override val id: BuildId
+        get() = BuildId(bean.id!!)
+
+    override val buildConfigurationId: String
+        get() = bean.buildTypeId!!
+
+    override val status: QueuedBuildStatus
+        get() = bean.state!!
+
+    override val branch: Branch
+        get() = object:Branch {
+            override val isDefault: Boolean
+                get() = bean.isDefaultBranch ?: name == null
+
+            override val name: String?
+                get() = bean.branchName
+        }
+
+    override fun toString(): String {
+        return "QueuedBuild{id=${bean.id}, typeId=${bean.buildTypeId}, state=${bean.state}, branch=${bean.branchName}}"
     }
 }
 
