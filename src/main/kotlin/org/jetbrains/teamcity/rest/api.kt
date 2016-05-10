@@ -8,6 +8,8 @@ interface TeamCityInstance {
 
     fun builds(): BuildLocator
 
+    fun queuedBuilds(): QueuedBuildLocator
+
     fun build(id: BuildId): Build
     fun project(id: ProjectId): Project
     fun rootProject(): Project
@@ -19,17 +21,26 @@ interface TeamCityInstance {
     }
 }
 
-interface BuildLocator {
-    fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
-    fun withAnyStatus() : BuildLocator
-    fun withStatus(status: BuildStatus): BuildLocator
-    fun withTag(tag: String): BuildLocator
-    fun withBranch(branch: String): BuildLocator
-    fun withAllBranches() : BuildLocator
-    fun limitResults(count: Int): BuildLocator
+interface Locator {
+    fun fromConfiguration(buildConfigurationId: BuildConfigurationId): Locator
+    fun withAnyStatus() : Locator
+    fun withStatus(status: BuildStatus): Locator
+    fun withTag(tag: String): Locator
+    fun withBranch(branch: String): Locator
+    fun withAllBranches() : Locator
+    fun sinceDate(sinceDate: Date): Locator
+    fun limitResults(count: Int): Locator
+    fun build() : String?
+}
 
+interface BuildLocator : Locator {
     fun latest(): Build?
     fun list(): List<Build>
+}
+
+interface QueuedBuildLocator : Locator {
+    fun latest(): QueuedBuild?
+    fun list(): List<QueuedBuild>
 }
 
 data class ProjectId(val stringId: String)
@@ -74,6 +85,7 @@ interface Build {
     val id: BuildId
     val buildNumber: String
     val status: BuildStatus
+    val buildConfigurationId: String
     val branch : Branch
 
     fun fetchQueuedDate(): Date
@@ -90,6 +102,13 @@ interface Build {
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
+}
+
+interface QueuedBuild {
+    val id: BuildId
+    val buildConfigurationId: String
+    val status: QueuedBuildStatus
+    val branch : Branch
 }
 
 interface Change {
@@ -118,4 +137,9 @@ enum class BuildStatus {
     SUCCESS,
     FAILURE,
     ERROR
+}
+
+enum class QueuedBuildStatus {
+    QUEUED,
+    FINISHED
 }
