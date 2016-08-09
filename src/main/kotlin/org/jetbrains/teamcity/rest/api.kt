@@ -9,6 +9,7 @@ interface TeamCityInstance {
     fun builds(): BuildLocator
 
     fun build(id: BuildId): Build
+    fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     fun project(id: ProjectId): Project
     fun rootProject(): Project
 

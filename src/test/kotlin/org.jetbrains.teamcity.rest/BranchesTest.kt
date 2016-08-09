@@ -5,15 +5,6 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-//slf4j simple ignores debug output
-fun setupLog4jDebug() {
-  LogManager.resetConfiguration()
-  Logger.getRootLogger().removeAllAppenders()
-  Logger.getRootLogger().addAppender(ConsoleAppender(PatternLayout("TEST[%d] %6p [%15.15t] - %30.30c - %m %n")))
-  Logger.getLogger("jetbrains").level = Level.DEBUG
-  Logger.getLogger("org.apache.http").level = Level.ERROR
-}
-
 class BranchesTest {
   @Before
   fun setupLog4j() { setupLog4jDebug() }
@@ -70,16 +61,15 @@ class BranchesTest {
     Assert.assertTrue("Actual branches: $branches", branches.size == 1)
   }
 
-  private fun kotlinBuilds(): BuildLocator =
-          TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
-                  .withLogResponses()
-                  .builds()
-                  .fromConfiguration(BuildConfigurationId("bt345"))
+  private fun kotlinBuilds(): BuildLocator {
+    return publicInstance()
+            .builds()
+            .fromConfiguration(compilerAndPluginConfiguration)
+  }
 
-  private fun kotlinBuildsNoBranches(): BuildLocator =
-          TeamCityInstance.guestAuth("https://teamcity.jetbrains.com")
-                  .withLogResponses()
-                  .builds()
-                  .fromConfiguration(BuildConfigurationId("bt446"))
+  private fun kotlinBuildsNoBranches(): BuildLocator {
+    return publicInstance().builds()
+            .fromConfiguration(compileExamplesConfiguration)
+  }
 
 }

@@ -51,6 +51,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
+    override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
+
     override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
