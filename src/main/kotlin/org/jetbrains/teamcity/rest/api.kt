@@ -50,6 +50,8 @@ interface Project {
     fun fetchChildProjects(): List<Project>
     fun fetchBuildConfigurations(): List<BuildConfiguration>
     fun fetchParameters(): List<Parameter>
+
+    fun setParameter(name: String, value: String)
 }
 
 interface BuildConfiguration {
@@ -58,6 +60,8 @@ interface BuildConfiguration {
     val projectId: ProjectId
 
     fun fetchBuildTags(): List<String>
+
+    fun setParameter(name: String, value: String)
 }
 
 interface Parameter {

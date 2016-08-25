@@ -158,6 +158,11 @@ private class ProjectImpl(
     override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { ProjectImpl(it, false, service) }
     override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullProjectBean.buildTypes!!.buildType.map { BuildConfigurationImpl(it, service) }
     override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { ParameterImpl(it) }
+
+    override fun setParameter(name: String, value: String) {
+        LOG.info("Setting parameter $name=$value in ${bean.id}")
+        service.setProjectParameter(id.stringId, name, TypedString(value))
+    }
 }
 
 private class BuildConfigurationImpl(private val bean: BuildTypeBean, private val service: TeamCityService) : BuildConfiguration {
@@ -171,6 +176,11 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
         get() = BuildConfigurationId(bean.id!!)
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
+
+    override fun setParameter(name: String, value: String) {
+        LOG.info("Setting parameter $name=$value in ${bean.id}")
+        service.setBuildTypeParameter(id.stringId, name, TypedString(value))
+    }
 }
 
 private class ChangeImpl(private val bean: ChangeBean) : Change {

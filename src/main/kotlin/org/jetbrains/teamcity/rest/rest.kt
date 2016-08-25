@@ -43,6 +43,12 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/buildTypes/id:{id}/buildTags")
     fun buildTypeTags(@Path("id") buildTypeId: String): TagsBean
+
+    @PUT("/app/rest/projects/id:{id}/parameters/{name}")
+    fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: TypedString): Response
+
+    @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
+    fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
 }
 
 internal class ProjectsBean {
