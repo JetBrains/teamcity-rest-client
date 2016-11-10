@@ -16,3 +16,4 @@ fun publicInstance() = TeamCityInstance.guestAuth("https://teamcity.jetbrains.co
 val kotlinProject = ProjectId("Kotlin")
 val compilerAndPluginConfiguration = BuildConfigurationId("bt345")
 val compileExamplesConfiguration = BuildConfigurationId("bt446")
+val fSharpVSPowerToolsPausedConfiguration = BuildConfigurationId("bt1208")

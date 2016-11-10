@@ -87,6 +87,7 @@ internal class BuildTypeBean {
     var id: String? = null
     var name: String? = null
     var projectId: String? = null
+    var paused: Boolean = false
 }
 
 internal class BuildTypesBean {
