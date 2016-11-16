@@ -58,6 +58,7 @@ interface BuildConfiguration {
     val id: BuildConfigurationId
     val name: String
     val projectId: ProjectId
+    val paused: Boolean
 
     fun fetchBuildTags(): List<String>
 

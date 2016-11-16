@@ -175,6 +175,9 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
     override val id: BuildConfigurationId
         get() = BuildConfigurationId(bean.id!!)
 
+    override val paused: Boolean
+        get() = bean.paused
+
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
     override fun setParameter(name: String, value: String) {
