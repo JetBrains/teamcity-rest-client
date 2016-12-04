@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import com.google.gson.annotations.SerializedName
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
@@ -17,6 +18,14 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/vcs-roots")
+    fun vcsRoots(): VcsRootListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/vcs-roots/id:{id}")
+    fun vcsRoot(@Path("id") id: String): VcsRootBean
 
     @POST("/app/rest/builds/id:{id}/tags/")
     fun addTag(@Path("id") buildId: String, @Body tag: TypedString): Response
@@ -63,6 +72,16 @@ internal class ArtifactFileBean {
     var name: String? = null
     var size: Long? = null
     var modificationTime: String? = null
+}
+
+internal class VcsRootListBean {
+    @SerializedName("vcs-root")
+    var vcsRoot: List<VcsRootBean> = ArrayList()
+}
+
+internal open class VcsRootBean {
+    var id: String? = null
+    var name: String? = null
 }
 
 internal class BuildListBean {

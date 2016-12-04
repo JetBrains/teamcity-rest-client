@@ -53,6 +53,10 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
 
+    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
+
+    override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId))
+
     override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
@@ -183,6 +187,13 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         service.setBuildTypeParameter(id.stringId, name, TypedString(value))
+    }
+}
+
+private class VcsRootLocatorImpl(private val service: TeamCityService): VcsRootLocator {
+
+    override fun list(): List<VcsRoot> {
+        return service.vcsRoots().vcsRoot.map(::VcsRootImpl)
     }
 }
 
@@ -319,6 +330,15 @@ private class BuildImpl(private val bean: BuildBean,
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
+}
+
+private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
+
+    override val id: VcsRootId
+        get() = VcsRootId(bean.id!!)
+
+    override val name: String
+        get() = bean.name!!
 }
 
 private class BuildArtifactImpl(private val build: Build, override val fileName: String, override val size: Long?, override val modificationTime: Date) : BuildArtifact {

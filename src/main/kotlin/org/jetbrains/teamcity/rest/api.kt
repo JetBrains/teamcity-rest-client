@@ -10,6 +10,8 @@ interface TeamCityInstance {
 
     fun build(id: BuildId): Build
     fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
+    fun vcsRoots(): VcsRootLocator
+    fun vcsRoot(id: VcsRootId): VcsRoot
     fun project(id: ProjectId): Project
     fun rootProject(): Project
 
@@ -18,6 +20,10 @@ interface TeamCityInstance {
         fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
                 = createHttpAuthInstance(serverUrl, username, password)
     }
+}
+
+interface VcsRootLocator {
+    fun list(): List<VcsRoot>
 }
 
 interface BuildLocator {
@@ -40,6 +46,8 @@ data class BuildId(val stringId: String)
 data class ChangeId(val stringId: String)
 
 data class BuildConfigurationId(val stringId: String)
+
+data class VcsRootId(val stringId: String)
 
 interface Project {
     val id: ProjectId
@@ -118,6 +126,11 @@ interface BuildArtifact {
     val modificationTime: Date
 
     fun download(output: File)
+}
+
+interface VcsRoot {
+    val id: VcsRootId
+    val name: String
 }
 
 enum class BuildStatus {
