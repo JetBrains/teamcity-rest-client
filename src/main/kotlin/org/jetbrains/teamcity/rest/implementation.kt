@@ -29,7 +29,7 @@ internal fun createHttpAuthInstance(serverUrl: String, username: String, passwor
 internal class TeamCityInstanceImpl(private val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
-                                    private val logResponces : Boolean) : TeamCityInstance {
+                                    private val logResponces : Boolean) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
 
     private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")

@@ -3,20 +3,23 @@ package org.jetbrains.teamcity.rest
 import java.io.File
 import java.util.*
 
-interface TeamCityInstance {
-    fun withLogResponses() : TeamCityInstance
+abstract class TeamCityInstance {
+    abstract fun withLogResponses() : TeamCityInstance
 
-    fun builds(): BuildLocator
+    abstract fun builds(): BuildLocator
 
-    fun build(id: BuildId): Build
-    fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
-    fun vcsRoots(): VcsRootLocator
-    fun vcsRoot(id: VcsRootId): VcsRoot
-    fun project(id: ProjectId): Project
-    fun rootProject(): Project
+    abstract fun build(id: BuildId): Build
+    abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
+    abstract fun vcsRoots(): VcsRootLocator
+    abstract fun vcsRoot(id: VcsRootId): VcsRoot
+    abstract fun project(id: ProjectId): Project
+    abstract fun rootProject(): Project
 
     companion object {
+        @JvmStatic
         fun guestAuth(serverUrl: String): TeamCityInstance = createGuestAuthInstance(serverUrl)
+
+        @JvmStatic
         fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
                 = createHttpAuthInstance(serverUrl, username, password)
     }
