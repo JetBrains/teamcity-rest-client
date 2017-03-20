@@ -31,10 +31,20 @@ interface VcsRootLocator {
 
 interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
+
+    /**
+     * By default only successful builds are returned, call this method to include failed builds as well.
+     */
     fun withAnyStatus() : BuildLocator
+
     fun withStatus(status: BuildStatus): BuildLocator
     fun withTag(tag: String): BuildLocator
+
     fun withBranch(branch: String): BuildLocator
+
+    /**
+     * By default only builds from the default branch are returned, call this method to include builds from all branches.
+     */
     fun withAllBranches() : BuildLocator
     fun limitResults(count: Int): BuildLocator
 
