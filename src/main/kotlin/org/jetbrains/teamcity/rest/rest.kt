@@ -33,6 +33,11 @@ internal interface TeamCityService {
     @PUT("/app/rest/builds/id:{id}/pin/")
     fun pin(@Path("id") buildId: String, @Body comment: TypedString): Response
 
+    //The standard DELETE annotation doesn't allow to include a body, so we need to use our own.
+    //Probably it would be better to change Rest API here (https://youtrack.jetbrains.com/issue/TW-49178).
+    @DELETE_WITH_BODY("/app/rest/builds/id:{id}/pin/")
+    fun unpin(@Path("id") buildId: String, @Body comment: TypedString): Response
+
     @Streaming
     @GET("/app/rest/builds/id:{id}/artifacts/content/{path}")
     fun artifactContent(@Path("id") buildId: String, @Path("path") artifactPath: String): Response

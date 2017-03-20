@@ -296,6 +296,11 @@ private class BuildImpl(private val bean: BuildBean,
         service.pin(id.stringId, TypedString(comment))
     }
 
+    override fun unpin(comment: String) {
+        LOG.info("Unpinning build $buildNumber (id:${id.stringId})")
+        service.unpin(id.stringId, TypedString(comment))
+    }
+
     override fun getArtifacts(parentPath: String): List<BuildArtifactImpl> {
         return service.artifactChildren(id.stringId, parentPath).file.filter { it.name != null && it.modificationTime != null }.map {
             BuildArtifactImpl(this, it.name!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!))
