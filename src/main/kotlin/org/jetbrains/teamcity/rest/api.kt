@@ -46,6 +46,9 @@ interface BuildLocator {
      * By default only builds from the default branch are returned, call this method to include builds from all branches.
      */
     fun withAllBranches() : BuildLocator
+
+    fun pinnedOnly(): BuildLocator
+
     fun limitResults(count: Int): BuildLocator
 
     fun latest(): Build?
@@ -111,6 +114,8 @@ interface Build {
 
     fun fetchChanges(): List<Change>
 
+    fun fetchPinInfo(): PinInfo?
+
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
     fun getArtifacts(parentPath: String = ""): List<BuildArtifact>
@@ -150,4 +155,9 @@ enum class BuildStatus {
     SUCCESS,
     FAILURE,
     ERROR
+}
+
+interface PinInfo {
+    val user: User
+    val time: Date
 }

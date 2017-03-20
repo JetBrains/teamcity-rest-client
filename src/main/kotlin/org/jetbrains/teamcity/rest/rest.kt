@@ -99,6 +99,8 @@ internal open class BuildBean {
     var startDate: String? = null
     var finishDate: String? = null
 
+    var pinInfo: PinInfoBean? = null
+
     var properties: ParametersBean? = ParametersBean()
 }
 
@@ -158,4 +160,9 @@ internal class ParameterBean {
     var name: String? = null
     var value: String? = null
     var own: Boolean = false
+}
+
+internal class PinInfoBean {
+    var user: UserBean? = null
+    var timestamp: String? = null
 }

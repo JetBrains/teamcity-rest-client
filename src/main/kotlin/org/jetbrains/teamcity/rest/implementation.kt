@@ -69,6 +69,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var count: Int? = null
     private var branch: String? = null
     private var includeAllBranches = false
+    private var pinnedOnly = false
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
@@ -120,6 +121,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
+                if (pinnedOnly) "pinned:true" else null,
                 count?.let {"count:$it"},
 
                 if (!includeAllBranches)
@@ -135,6 +137,11 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         val buildLocator = parameters.joinToString(",")
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
         return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
+    }
+
+    override fun pinnedOnly(): BuildLocator {
+        this.pinnedOnly = true
+        return this
     }
 }
 
@@ -225,6 +232,11 @@ private class UserImpl(private val bean: UserBean) : User {
         get() = bean.name!!
 }
 
+private class PinInfoImpl(bean: PinInfoBean) : PinInfo {
+    override val user = UserImpl(bean.user!!)
+    override val time = teamCityServiceDateFormat.get().parse(bean.timestamp!!)
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -268,6 +280,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
+    override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
