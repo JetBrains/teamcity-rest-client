@@ -104,6 +104,8 @@ internal open class BuildBean {
     var startDate: String? = null
     var finishDate: String? = null
 
+    var revisions: RevisionsBean? = null
+
     var pinInfo: PinInfoBean? = null
 
     var properties: ParametersBean? = ParametersBean()
@@ -170,4 +172,14 @@ internal class ParameterBean {
 internal class PinInfoBean {
     var user: UserBean? = null
     var timestamp: String? = null
+}
+
+internal class RevisionsBean {
+    var revision: List<RevisionBean>? = ArrayList()
+}
+
+internal class RevisionBean {
+    var version: String? = null
+    var vcsBranchName: String? = null
+    var `vcs-root-instance`: VcsRootBean? = null
 }
