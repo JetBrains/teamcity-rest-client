@@ -29,7 +29,7 @@ internal fun createHttpAuthInstance(serverUrl: String, username: String, passwor
 internal class TeamCityInstanceImpl(private val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
-                                    private val logResponces : Boolean) : TeamCityInstance() {
+                                    private val logResponses : Boolean) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
 
     private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
@@ -37,7 +37,7 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     private val service = RestAdapter.Builder()
             .setEndpoint("$serverUrl/$authMethod")
             .setLog({ RestLOG.debug(it) })
-            .setLogLevel(if (logResponces) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
+            .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor({ request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
