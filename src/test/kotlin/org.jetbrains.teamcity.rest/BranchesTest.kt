@@ -28,6 +28,7 @@ class BranchesTest {
             .list().forEach {
       it.fetchParameters()
       it.fetchChanges()
+      it.fetchRevisions()
       it.getArtifacts()
     }
   }

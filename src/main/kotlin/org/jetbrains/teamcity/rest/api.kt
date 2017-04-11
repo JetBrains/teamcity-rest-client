@@ -112,6 +112,8 @@ interface Build {
 
     fun fetchParameters(): List<Parameter>
 
+    fun fetchRevisions(): List<Revision>
+
     fun fetchChanges(): List<Change>
 
     fun fetchPinInfo(): PinInfo?
@@ -161,4 +163,10 @@ enum class BuildStatus {
 interface PinInfo {
     val user: User
     val time: Date
+}
+
+interface Revision {
+    val version: String
+    val vcsBranchName: String
+    val vcsRoot: VcsRoot
 }

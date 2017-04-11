@@ -248,6 +248,17 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
         get() = bean.own
 }
 
+private class RevisionImpl(private val bean: RevisionBean) : Revision {
+    override val version: String
+        get() = bean.version!!
+
+    override val vcsBranchName: String
+        get() = bean.vcsBranchName!!
+
+    override val vcsRoot: VcsRoot
+        get() = VcsRootImpl(bean.`vcs-root-instance`!!)
+}
+
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,
                         private val service: TeamCityService) : Build {
@@ -283,6 +294,8 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
+
+    override fun fetchRevisions(): List<Revision> = fullBuildBean.revisions!!.revision!!.map { RevisionImpl(it) }
 
     override fun fetchChanges(): List<Change> = service.changes("build:${id.stringId}", "change(id,version,user,date,comment)").change!!.map { ChangeImpl(it) }
 
