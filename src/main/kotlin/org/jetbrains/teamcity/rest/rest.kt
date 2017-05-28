@@ -97,6 +97,7 @@ internal open class BuildBean {
     var id: String? = null
     var number: String? = null
     var status: BuildStatus? = null
+    var statusText: String? = null
     var branchName : String? = null
     var isDefaultBranch : Boolean? = null
 
