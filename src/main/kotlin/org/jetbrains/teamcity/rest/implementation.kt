@@ -70,9 +70,15 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var number: String? = null
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun buildNumber(buildNumber: String): BuildLocator {
+        this.number = buildNumber
         return this
     }
 
@@ -117,6 +123,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     override fun list(): List<Build> {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
+                number?.let {"number:$it"},
                 status?.name?.let {"status:$it"},
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
@@ -237,6 +244,13 @@ private class PinInfoImpl(bean: PinInfoBean) : PinInfo {
     override val time = teamCityServiceDateFormat.get().parse(bean.timestamp!!)
 }
 
+private class TriggeredImpl(private val bean: TriggeredBean, private val service: TeamCityService) : TriggeredInfo {
+    override val user: User?
+        get() = if (bean.user != null) UserImpl(bean.user!!) else null
+    override val build: Build?
+        get() = if (bean.build != null) BuildImpl(bean.build, false, service) else null
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -265,6 +279,9 @@ private class BuildImpl(private val bean: BuildBean,
     override val id: BuildId
         get() = BuildId(bean.id!!)
 
+    override val buildTypeId: String
+        get() = bean.buildTypeId!!
+
     override val buildNumber: String
         get() = bean.number!!
 
@@ -292,6 +309,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
+    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let {TriggeredImpl(it, service)}
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
