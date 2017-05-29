@@ -277,6 +277,9 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
+    override val statusText: String
+        get() = bean.statusText!!
+
     override val branch: Branch
         get() = object:Branch {
             override val isDefault: Boolean
