@@ -130,7 +130,8 @@ interface Build {
 interface Change {
     val id: ChangeId
     val version: String
-    val user: User
+    val username: String
+    val user: User?
     val date: Date
     val comment: String
 }

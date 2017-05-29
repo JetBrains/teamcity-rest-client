@@ -27,7 +27,7 @@ class BranchesTest {
             .limitResults(20)
             .list().forEach {
       it.fetchParameters()
-      it.fetchChanges()
+      it.fetchChanges().joinToString("\n")
       it.fetchRevisions()
       it.getArtifacts()
     }

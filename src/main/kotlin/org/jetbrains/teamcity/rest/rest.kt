@@ -151,6 +151,7 @@ internal class ChangeBean {
     var user: UserBean? = null
     var date: String? = null
     var comment: String? = null
+    var username: String? = null
 }
 
 internal class UserBean {

@@ -211,14 +211,20 @@ private class ChangeImpl(private val bean: ChangeBean) : Change {
     override val version: String
         get() = bean.version!!
 
-    override val user: User
-        get() = UserImpl(bean.user!!)
+    override val username: String
+        get() = bean.username!!
+
+    override val user: User?
+        get() = bean.user?.let { UserImpl(it) }
 
     override val date: Date
         get() = teamCityServiceDateFormat.get().parse(bean.date!!)
 
     override val comment: String
         get() = bean.comment!!
+
+    override fun toString() =
+            "id=$id, version=$version, username=$username, user=$user, date=$date, comment=$comment"
 }
 
 private class UserImpl(private val bean: UserBean) : User {
@@ -297,7 +303,10 @@ private class BuildImpl(private val bean: BuildBean,
 
     override fun fetchRevisions(): List<Revision> = fullBuildBean.revisions!!.revision!!.map { RevisionImpl(it) }
 
-    override fun fetchChanges(): List<Change> = service.changes("build:${id.stringId}", "change(id,version,user,date,comment)").change!!.map { ChangeImpl(it) }
+    override fun fetchChanges(): List<Change> = service.changes(
+            "build:${id.stringId}",
+            "change(id,version,username,user,date,comment)")
+            .change!!.map { ChangeImpl(it) }
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")
