@@ -32,6 +32,8 @@ interface VcsRootLocator {
 interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
 
+    fun buildNumber(buildNumber: String): BuildLocator
+
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
      */
@@ -102,6 +104,7 @@ interface Branch {
 
 interface Build {
     val id: BuildId
+    val buildTypeId: String
     val buildNumber: String
     val status: BuildStatus
     val branch : Branch
@@ -117,6 +120,8 @@ interface Build {
     fun fetchChanges(): List<Change>
 
     fun fetchPinInfo(): PinInfo?
+
+    fun fetchTriggeredInfo(): TriggeredInfo?
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
@@ -169,4 +174,9 @@ interface Revision {
     val version: String
     val vcsBranchName: String
     val vcsRoot: VcsRoot
+}
+
+interface TriggeredInfo {
+    val user: User?
+    val build: Build?
 }
