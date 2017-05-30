@@ -31,4 +31,14 @@ class BuildTest {
                     Assert.assertTrue(revisions.isNotEmpty())
                 }
     }
+
+    @Test
+    fun test_fetch_status() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compileExamplesConfiguration)
+                .limitResults(1)
+                .list().first()
+
+        build.fetchStatusText()
+    }
 }
