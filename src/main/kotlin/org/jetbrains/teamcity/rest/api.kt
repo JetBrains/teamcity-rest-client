@@ -9,6 +9,7 @@ abstract class TeamCityInstance {
     abstract fun builds(): BuildLocator
 
     abstract fun build(id: BuildId): Build
+    abstract fun build(buildType: BuildConfigurationId, number: String): Build
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
@@ -102,6 +103,7 @@ interface Branch {
 
 interface Build {
     val id: BuildId
+    val buildTypeId: String
     val buildNumber: String
     val status: BuildStatus
     val branch : Branch
@@ -117,6 +119,8 @@ interface Build {
     fun fetchChanges(): List<Change>
 
     fun fetchPinInfo(): PinInfo?
+
+    fun fetchTriggeredInfo(): TriggeredInfo?
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
@@ -169,4 +173,9 @@ interface Revision {
     val version: String
     val vcsBranchName: String
     val vcsRoot: VcsRoot
+}
+
+interface TriggeredInfo {
+    val user: User?
+    val build: Build?
 }
