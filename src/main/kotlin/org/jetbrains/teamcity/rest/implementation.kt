@@ -51,6 +51,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
+    override fun build(buildType: BuildConfigurationId, number: String): Build = BuildImpl(service.build(buildType.stringId, number), true, service)
+
     override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
@@ -243,6 +245,13 @@ private class PinInfoImpl(bean: PinInfoBean) : PinInfo {
     override val time = teamCityServiceDateFormat.get().parse(bean.timestamp!!)
 }
 
+private class TriggeredImpl(private val bean: TriggeredBean, private val service: TeamCityService) : TriggeredInfo {
+    override val user: User?
+        get() = if (bean.user != null) UserImpl(bean.user!!) else null
+    override val build: Build?
+        get() = if (bean.build != null) BuildImpl(bean.build, false, service) else null
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -270,6 +279,9 @@ private class BuildImpl(private val bean: BuildBean,
                         private val service: TeamCityService) : Build {
     override val id: BuildId
         get() = BuildId(bean.id!!)
+
+    override val buildTypeId: String
+        get() = bean.buildTypeId!!
 
     override val buildNumber: String
         get() = bean.number!!
@@ -301,6 +313,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
+    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let {TriggeredImpl(it, service)}
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 

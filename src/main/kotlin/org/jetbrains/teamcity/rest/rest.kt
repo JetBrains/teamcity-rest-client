@@ -16,6 +16,10 @@ internal interface TeamCityService {
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/builds/buildType:{buildType},number:{number}")
+    fun build(@Path("buildType") buildType: String, @Path("number") number: String): BuildBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
@@ -95,6 +99,7 @@ internal class BuildListBean {
 
 internal open class BuildBean {
     var id: String? = null
+    var buildTypeId: String? = null
     var number: String? = null
     var status: BuildStatus? = null
     var statusText: String? = null
@@ -108,6 +113,8 @@ internal open class BuildBean {
     var revisions: RevisionsBean? = null
 
     var pinInfo: PinInfoBean? = null
+
+    var triggered: TriggeredBean? = null
 
     var properties: ParametersBean? = ParametersBean()
 }
@@ -174,6 +181,11 @@ internal class ParameterBean {
 internal class PinInfoBean {
     var user: UserBean? = null
     var timestamp: String? = null
+}
+
+internal class TriggeredBean {
+    var user: UserBean? = null
+    val build: BuildBean? = null
 }
 
 internal class RevisionsBean {
