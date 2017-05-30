@@ -106,9 +106,9 @@ interface Build {
     val buildTypeId: String
     val buildNumber: String
     val status: BuildStatus
-    val statusText: String
     val branch : Branch
 
+    fun fetchStatusText(): String
     fun fetchQueuedDate(): Date
     fun fetchStartDate(): Date
     fun fetchFinishDate(): Date

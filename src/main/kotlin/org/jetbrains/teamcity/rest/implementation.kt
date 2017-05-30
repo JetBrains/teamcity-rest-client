@@ -274,6 +274,10 @@ private class RevisionImpl(private val bean: RevisionBean) : Revision {
         get() = VcsRootImpl(bean.`vcs-root-instance`!!)
 }
 
+private data class BranchImpl(
+        override val name: String?,
+        override val isDefault: Boolean): Branch
+
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,
                         private val service: TeamCityService) : Build {
@@ -289,26 +293,18 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
-    override val statusText: String
-        get() = bean.statusText!!
-
     override val branch: Branch
-        get() = object:Branch {
-            override val isDefault: Boolean
-                get() = bean.isDefaultBranch ?: name == null
-
-            override val name: String?
-                get() = bean.branchName
-        }
+        get() = BranchImpl(bean.branchName, bean.isDefaultBranch ?: (bean.branchName == null))
 
     val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else service.build(id.stringId)
     }
 
     override fun toString(): String {
-        return "Build{id=${bean.id}, number=${bean.number}, state=${bean.status}, branch=${bean.branchName}}"
+        return "Build{id=$id, buildTypeId=$buildTypeId, buildNumber=$buildNumber, status=$status, branch=$branch}"
     }
 
+    override fun fetchStatusText(): String = fullBuildBean.statusText!!
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
