@@ -53,6 +53,8 @@ dependencies {
 group = 'org.jetbrains.teamcity'
 if (hasProperty("buildNumber")) {
     version = "$buildNumber"
+} else {
+    version = "SNAPSHOT"
 }
 
 apply plugin: 'maven-publish'
