@@ -21,27 +21,28 @@ class Hackathon17Tests {
     
     val buildTypeID = BuildConfigurationId("TestProjectForRest_Build")
 
-    @Test
+    //@Test
     fun test_run_build() {
         val build = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
         println(build)
     }
 
-    @Test
+    //@Test
     fun test_run_build_and_get_info() {
         // trigger build -> Get triggered build from TC
         val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
         getBuild(triggeredBuild.id)
     }
 
-    @Test
+    //@Test
     fun run_with_parameters() {
         val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID, mapOf("a" to "b")))
         val build = getBuild(triggeredBuild.id)
         build.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
 
-    @Test
+
+    //@Test
     fun test_for_build_finishing() {
         val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
         val build = awaitState(triggeredBuild.id, "finished", 60000)
