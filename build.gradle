@@ -31,7 +31,9 @@ dependencies {
 }
 
 group = 'org.teamcity.buildPipelines'
-if (hasProperty("buildNumber")) {
+if (rootProject.hasProperty('teamcity')) {
+    version = rootProject['teamcity']['build.number']
+} else if (hasProperty("buildNumber")) {
     version = "$buildNumber"
 } else {
     version = "SNAPSHOT"
