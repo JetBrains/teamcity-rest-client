@@ -32,23 +32,35 @@ class Hackathon17Tests {
     fun test_run_build_and_get_info() {
         // trigger build -> Get triggered build from TC
         val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        getBuild(triggeredBuild.id)
+    }
+
+    @Test
+    fun run_with_parameters() {
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID, mapOf("a" to "b")))
+        val build = getBuild(triggeredBuild.id)
+        build.fetchParameters().forEach { println("${it.name}=${it.value}") }
+    }
+
+    private fun getBuild(id:Int): Build {
         // get build by build id
         var flag = false
-        var buildNumber: String? = null
+        var buildStatus: BuildStatus? = null
         var b: Build? = null
         var attempts = 10
 
         while (!flag && attempts-- > 0) {
             try {
-                b = teamcity.build(BuildId(triggeredBuild.id.toString()))
-                buildNumber = b.buildNumber
+                b = teamcity.build(BuildId(id.toString()))
+                buildStatus = b.status
                 flag = true
             } catch (e: KotlinNullPointerException) {
                 Thread.sleep(1000)
             }
         }
         b?.let { println(it) }
-        buildNumber?.let { println(it) }
+        buildStatus?.let { println(it) }
+        return b!!
     }
 
 }

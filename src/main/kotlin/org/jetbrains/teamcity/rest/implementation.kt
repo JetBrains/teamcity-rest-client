@@ -413,7 +413,16 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
 
 private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
     override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
-        return TriggeredBuildImpl(service.triggerBuild(TypedByteArray("application/xml", "<build><buildType id=\"${triggerRequest.buildConfigurationId.stringId}\"/></build>".toByteArray())))
+        val params = StringBuilder()
+        if (!triggerRequest.parameters.isEmpty()) {
+            params.append("<properties>")
+            triggerRequest.parameters.forEach { params.append("<property name=\"${it.key}\" value=\"${it.value}\"/>") }
+            params.append("</properties>")
+        }
+
+
+        return TriggeredBuildImpl(service.triggerBuild(TypedByteArray("application/xml",
+                ("<build><buildType id=\"${triggerRequest.buildConfigurationId.stringId}\"/>$params</build>").toByteArray())))
     }
 }
 

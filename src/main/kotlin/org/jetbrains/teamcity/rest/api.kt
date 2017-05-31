@@ -67,7 +67,7 @@ data class BuildConfigurationId(val stringId: String)
 
 data class VcsRootId(val stringId: String)
 
-data class TriggerRequest(val buildConfigurationId: BuildConfigurationId)
+data class TriggerRequest(val buildConfigurationId: BuildConfigurationId, val parameters: Map<String, String> = emptyMap())
 
 interface Project {
     val id: ProjectId
