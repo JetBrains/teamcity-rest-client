@@ -33,7 +33,10 @@ dependencies {
 group = 'org.teamcity.buildPipelines'
 if (hasProperty("buildNumber")) {
     version = "$buildNumber"
+} else {
+    version = "SNAPSHOT"
 }
+
 apply plugin: 'maven-publish'
 task sourceJar(type: Jar) {
     from sourceSets.main.kotlin
