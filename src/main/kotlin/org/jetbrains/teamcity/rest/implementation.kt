@@ -308,6 +308,9 @@ private class BuildImpl(private val bean: BuildBean,
     override val state: String
         get() = bean.state!!
 
+    override val webUrl: String
+        get() = bean.webUrl!!
+
     override val branch: Branch
         get() = BranchImpl(bean.branchName, bean.isDefaultBranch ?: (bean.branchName == null))
 
