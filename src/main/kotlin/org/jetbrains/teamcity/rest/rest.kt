@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import com.google.gson.annotations.SerializedName
 import retrofit.client.Response
 import retrofit.http.*
+import retrofit.mime.TypedByteArray
 import retrofit.mime.TypedString
 import java.util.*
 
@@ -67,6 +68,10 @@ internal interface TeamCityService {
 
     @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
     fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
+
+    @Headers("Content-Type: application/xml;encoding=UTF-8", "Accept: application/json")
+    @POST("/app/rest/buildQueue")
+    fun triggerBuild(@Body value: TypedByteArray): TriggeredBuildBean
 }
 
 internal class ProjectsBean {
@@ -186,6 +191,11 @@ internal class PinInfoBean {
 internal class TriggeredBean {
     var user: UserBean? = null
     val build: BuildBean? = null
+}
+
+internal class TriggeredBuildBean {
+    val id: Int? = null
+    val buildTypeId: String? = null
 }
 
 internal class RevisionsBean {

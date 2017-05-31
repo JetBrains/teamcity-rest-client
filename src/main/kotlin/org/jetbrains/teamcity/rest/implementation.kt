@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
+import retrofit.mime.TypedByteArray
 import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
 import java.io.File
@@ -62,6 +63,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
+
+    override fun buildQueue(): BuildQueue = BuildQueueImpl(service)
 }
 
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
@@ -252,6 +255,15 @@ private class TriggeredImpl(private val bean: TriggeredBean, private val service
         get() = if (bean.build != null) BuildImpl(bean.build, false, service) else null
 }
 
+private class TriggeredBuildImpl(private val bean: TriggeredBuildBean): TriggeredBuild {
+    override val id: Int
+        get() = bean.id!!
+    override val buildTypeId: String
+        get() = bean.buildTypeId!!
+    override fun toString() =
+            "TriggeredBuildImpl{id=$id, buildTypeId=$buildTypeId}"
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -396,6 +408,12 @@ private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
 private class BuildArtifactImpl(private val build: Build, override val fileName: String, override val size: Long?, override val modificationTime: Date) : BuildArtifact {
     override fun download(output: File) {
         build.downloadArtifact(fileName, output)
+    }
+}
+
+private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
+    override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
+        return TriggeredBuildImpl(service.triggerBuild(TypedByteArray("application/xml", "<build><buildType id=\"${triggerRequest.buildConfigurationId.stringId}\"/></build>".toByteArray())))
     }
 }
 

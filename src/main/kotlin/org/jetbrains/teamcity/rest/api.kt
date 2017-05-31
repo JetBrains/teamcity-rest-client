@@ -15,6 +15,7 @@ abstract class TeamCityInstance {
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
+    abstract fun buildQueue(): BuildQueue
 
     companion object {
         @JvmStatic
@@ -65,6 +66,8 @@ data class ChangeId(val stringId: String)
 data class BuildConfigurationId(val stringId: String)
 
 data class VcsRootId(val stringId: String)
+
+data class TriggerRequest(val buildConfigurationId: BuildConfigurationId)
 
 interface Project {
     val id: ProjectId
@@ -180,4 +183,13 @@ interface Revision {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+}
+
+interface TriggeredBuild {
+    val id: Int
+    val buildTypeId: String
+}
+
+interface BuildQueue {
+    fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild
 }
