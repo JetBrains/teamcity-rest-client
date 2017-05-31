@@ -18,8 +18,7 @@ class Hackathon17Tests {
         setupLog4jDebug()
         teamcity = customInstanceByConnectionFile()
     }
-
-    val project = ProjectId("TestProjectForRest")
+    
     val buildTypeID = BuildConfigurationId("TestProjectForRest_Build")
 
     @Test
@@ -42,6 +41,32 @@ class Hackathon17Tests {
         build.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
 
+    @Test
+    fun test_for_build_finishing() {
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        val build = awaitState(triggeredBuild.id, "finished", 60000)
+        println(build)
+        println(build.state)
+    }
+
+    private fun awaitState(id: Int, buildState: String, timeoutMsec: Long): Build {
+        val curTime = System.currentTimeMillis()
+        var b: Build? = null
+        var state: String? = null
+        while (buildState != state && System.currentTimeMillis() - curTime < timeoutMsec) {
+            try {
+                b = teamcity.build(BuildId(id.toString()))
+                state = b.state
+            } catch (e: KotlinNullPointerException) {
+            }
+            Thread.sleep(1000)
+        }
+        if (buildState != state) {
+            throw RuntimeException("Timeout")
+        }
+        return b!!
+    }
+
     private fun getBuild(id:Int): Build {
         // get build by build id
         var flag = false
@@ -62,5 +87,4 @@ class Hackathon17Tests {
         buildStatus?.let { println(it) }
         return b!!
     }
-
 }
