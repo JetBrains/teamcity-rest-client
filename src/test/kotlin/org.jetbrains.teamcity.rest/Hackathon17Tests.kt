@@ -28,4 +28,27 @@ class Hackathon17Tests {
         println(build)
     }
 
+    @Test
+    fun test_run_build_and_get_info() {
+        // trigger build -> Get triggered build from TC
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        // get build by build id
+        var flag = false
+        var buildNumber: String? = null
+        var b: Build? = null
+        var attempts = 10
+
+        while (!flag && attempts-- > 0) {
+            try {
+                b = teamcity.build(BuildId(triggeredBuild.id.toString()))
+                buildNumber = b.buildNumber
+                flag = true
+            } catch (e: KotlinNullPointerException) {
+                Thread.sleep(1000)
+            }
+        }
+        b?.let { println(it) }
+        buildNumber?.let { println(it) }
+    }
+
 }
