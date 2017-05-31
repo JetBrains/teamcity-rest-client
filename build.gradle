@@ -30,7 +30,7 @@ dependencies {
     testCompile 'org.slf4j:slf4j-log4j12:1.7.12'
 }
 
-group = 'org.jetbrains.teamcity'
+group = 'org.teamcity.buildPipelines'
 if (hasProperty("buildNumber")) {
     version = "$buildNumber"
 }
