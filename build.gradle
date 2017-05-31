@@ -47,6 +47,17 @@ artifacts {
     archives sourceJar
 }
 publishing {
+
+    if (version ==~ /([\d]+\.?)+/ ) {
+        repositories {
+            maven {
+                // change to point to your repo, e.g. http://my.org/repo
+                url "http://repo.labs.intellij.net/hackathon2017-teamcity-pipelines"
+            }
+        }
+    }
+
+
     publications {
         mavenJava(MavenPublication) {
             from components.java
