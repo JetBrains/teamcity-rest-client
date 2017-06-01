@@ -76,9 +76,13 @@ internal interface TeamCityService {
     @POST("/app/rest/buildQueue")
     fun triggerBuild(@Body value: TriggerRequest): TriggeredBuildBean
 
+    @Headers("Accept: application/json")
+    @POST("/app/rest/builds/id:{id}")
+    fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequest): Response
+
     @GET("/app/rest/testOccurrences")
     fun tests(@Query("locator") locator: String): Response
-    
+
 }
 
 internal class ProjectsBean {

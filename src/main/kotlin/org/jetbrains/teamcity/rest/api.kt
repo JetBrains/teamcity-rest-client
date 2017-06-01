@@ -75,6 +75,8 @@ class TriggerRequest(val buildType: BuildType, parameters: Map<String, String> =
     constructor(build: Build) : this(BuildType(build.buildTypeId), build.fetchParameters().associate { it.name to if (it.value == null) "" else it.value!! })
 }
 
+data class BuildCancelRequest(val comment: String = "", val readdIntoQueue: Boolean = false)
+
 data class Parameters(val property: List<Property> = emptyList())
 
 data class Property(val name: String, val value: String)
@@ -226,6 +228,7 @@ interface TriggeredBuild {
 
 interface BuildQueue {
     fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild
+    fun cancelBuild(id: BuildId, cancelRequest: BuildCancelRequest = BuildCancelRequest())
 }
 
 interface BuildResults {

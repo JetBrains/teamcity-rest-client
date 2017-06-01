@@ -461,6 +461,10 @@ private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
     override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
           return TriggeredBuildImpl(service.triggerBuild(triggerRequest))
     }
+
+    override fun cancelBuild(id: BuildId, cancelRequest: BuildCancelRequest) {
+        service.cancelBuild(id.stringId, cancelRequest)
+    }
 }
 
 private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
