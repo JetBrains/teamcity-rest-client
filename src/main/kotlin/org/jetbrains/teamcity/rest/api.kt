@@ -139,6 +139,7 @@ interface Build {
 
     fun fetchTriggeredInfo(): TriggeredInfo?
 
+    //TODO: support paging!
     fun fetchTests() : List<TestInfo>
 
     fun addTag(tag: String)
