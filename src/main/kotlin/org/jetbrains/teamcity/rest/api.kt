@@ -69,6 +69,8 @@ data class VcsRootId(val stringId: String)
 
 class TriggerRequest(val buildType: BuildType, parameters: Map<String, String> = hashMapOf()) {
     val properties: Parameters = Parameters(parameters.map { entry -> Property(entry.key, entry.value) }.toList())
+
+    constructor(build: Build) : this(BuildType(build.buildTypeId), build.fetchParameters().associate { it.name to if (it.value == null) "" else it.value!! })
 }
 
 data class Parameters(val property: List<Property> = emptyList())

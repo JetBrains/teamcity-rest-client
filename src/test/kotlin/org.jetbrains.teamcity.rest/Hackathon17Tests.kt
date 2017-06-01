@@ -49,6 +49,18 @@ class Hackathon17Tests {
         println(build.state)
     }
 
+    //@Test
+    fun test_trigger_from_build() {
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(BuildType(buildTypeID.stringId), mapOf("a" to "b")))
+        val build = getBuild(triggeredBuild.id)
+
+
+        val newTriggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(build))
+        val newBuild = awaitState(newTriggeredBuild.id, "finished", 60000)
+        println(newBuild)
+        newBuild.fetchParameters().forEach { println("${it.name}=${it.value}") }
+    }
+
     private fun awaitState(id: Int, buildState: String, timeoutMsec: Long): Build {
         val curTime = System.currentTimeMillis()
         var b: Build? = null
