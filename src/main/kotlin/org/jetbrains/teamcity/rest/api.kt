@@ -89,6 +89,8 @@ interface BuildConfiguration {
 
     fun fetchBuildTriggers(): List<Trigger>
 
+    fun fetchBuildArtifactDependencies(): List<ArtifactDependency>
+
     fun setParameter(name: String, value: String)
 }
 
@@ -132,6 +134,12 @@ interface Build {
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
+}
+
+interface BuildType{
+    val id: BuildConfigurationId
+    val name: String
+    val projectId: ProjectId
 }
 
 interface Change {
@@ -187,6 +195,16 @@ interface TriggeredInfo {
 interface Trigger{
     val id: String
     val type: String
+
+    fun fetchProperties(): List<Parameter>
+}
+
+interface ArtifactDependency{
+    val id: String
+    val type: String
+    val disabled: Boolean
+    val inherited: Boolean
+    val sourceBuildType: BuildType
 
     fun fetchProperties(): List<Parameter>
 }

@@ -195,6 +195,9 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTriggers(): List<Trigger> = service.buildTypeTriggers(id.stringId).trigger!!.map { TriggerImpl(it) }
 
+    override fun fetchBuildArtifactDependencies():
+            List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId).`artifact-dependency`!!.map { ArtifactDependencyImpl(it) }
+
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         service.setBuildTypeParameter(id.stringId, name, TypedString(value))
@@ -271,6 +274,25 @@ private class TriggerImpl(private val bean: TriggerBean) : Trigger {
 
     override val type: String
         get() = bean.type!!
+
+    override fun fetchProperties(): List<Parameter> = bean.properties?.property!!.map { ParameterImpl(it) }
+}
+
+private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean) : ArtifactDependency {
+    override val id: String
+        get() = bean.id!!
+
+    override val type: String
+        get() = bean.type!!
+
+    override val disabled: Boolean
+        get() = bean.disabled!!
+
+    override val inherited: Boolean
+        get() = bean.inherited!!
+
+    override val sourceBuildType: BuildType
+        get() = BuildTypeImpl(bean.`source-buildType`)
 
     override fun fetchProperties(): List<Parameter> = bean.properties?.property!!.map { ParameterImpl(it) }
 }
@@ -394,6 +416,17 @@ private class BuildImpl(private val bean: BuildBean,
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
+}
+
+private class BuildTypeImpl(private val bean: BuildTypeBean) : BuildType {
+    override val id: BuildConfigurationId
+        get() = BuildConfigurationId(bean.id!!)
+
+    override val name: String
+        get() = bean.name!!
+
+    override val projectId: ProjectId
+        get() = ProjectId(bean.projectId!!)
 }
 
 private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
