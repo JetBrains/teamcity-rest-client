@@ -138,6 +138,8 @@ interface Build {
 
     fun fetchTriggeredInfo(): TriggeredInfo?
 
+    fun fetchTests() : List<TestInfo>
+
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
     fun unpin(comment: String = "unpinned via REST API")
@@ -190,6 +192,20 @@ interface Revision {
     val version: String
     val vcsBranchName: String
     val vcsRoot: VcsRoot
+}
+
+enum class TestStatus {
+  SUCCESSFUL,
+  IGNORED,
+  FAILED,
+
+  UNKNOWN,
+}
+
+interface TestInfo {
+    val name : String
+    val status: TestStatus
+    val duration: Long
 }
 
 interface TriggeredInfo {

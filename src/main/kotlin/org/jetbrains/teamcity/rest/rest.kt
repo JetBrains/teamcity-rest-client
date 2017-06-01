@@ -24,6 +24,10 @@ internal interface TeamCityService {
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/testOccurrences/")
+    fun tests(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
     fun vcsRoots(): VcsRootListBean
 
@@ -207,4 +211,29 @@ internal class RevisionBean {
     var version: String? = null
     var vcsBranchName: String? = null
     var `vcs-root-instance`: VcsRootBean? = null
+}
+
+
+internal open class TestOccurrencesBean {
+  var testOccurrence: List<TestOccurrence> = ArrayList()
+}
+
+/**
+ * <testOccurrence
+ *   id="id:371,build:(id:18867332)"
+ *   name="org.jetbrains.teamcity.buildPipelines.generated.TestModule_Avengers.sapien_sed_bibendum"
+ *   status="SUCCESS"
+ *   duration="26"
+ *   href="/guestAuth/app/rest/testOccurrences/id:371,build:(id:18867332)"
+ *   />
+ *
+ *   or
+ *
+ *   ...  status="UNKNOWN" ignored="true" duration="1"
+ */
+internal open class TestOccurrence {
+  var name : String? = null
+  var status: String? = null
+  var duration: Long? = null
+  var ignored: Boolean? = null
 }

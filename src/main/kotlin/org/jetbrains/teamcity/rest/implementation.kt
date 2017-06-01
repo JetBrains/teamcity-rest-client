@@ -328,6 +328,21 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let {TriggeredImpl(it, service)}
 
+    override fun fetchTests() = service.tests(locator = "build:(id:${id.stringId})", fields = null).testOccurrence.map {
+        object : TestInfo {
+            override val name = it.name!!
+            override val status = when {
+                it.ignored == true -> TestStatus.IGNORED
+                it.status == "FAILURE" -> TestStatus.FAILED
+                it.status == "SUCCESS" -> TestStatus.SUCCESSFUL
+                else -> TestStatus.UNKNOWN
+            }
+            override val duration = it.duration ?: 1L
+
+            override fun toString() = "Test{name=$name, status=$status, duration=$duration}"
+        }
+    }
+
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
     override fun fetchRevisions(): List<Revision> = fullBuildBean.revisions!!.revision!!.map { RevisionImpl(it) }
