@@ -87,13 +87,15 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
+    fun fetchBuildTriggers(): List<Trigger>
+
     fun setParameter(name: String, value: String)
 }
 
 interface Parameter {
     val name: String
     val value: String?
-    val own: Boolean
+    val own: Boolean?
 }
 
 interface Branch {
@@ -180,4 +182,11 @@ interface Revision {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+}
+
+interface Trigger{
+    val id: String
+    val type: String
+
+    fun fetchProperties(): List<Parameter>
 }

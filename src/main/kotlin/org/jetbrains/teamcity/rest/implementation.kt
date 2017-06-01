@@ -193,6 +193,8 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
+    override fun fetchBuildTriggers(): List<Trigger> = service.buildTypeTriggers(id.stringId).trigger!!.map { TriggerImpl(it) }
+
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         service.setBuildTypeParameter(id.stringId, name, TypedString(value))
@@ -259,8 +261,18 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val value: String?
         get() = bean.value!!
 
-    override val own: Boolean
+    override val own: Boolean?
         get() = bean.own
+}
+
+private class TriggerImpl(private val bean: TriggerBean) : Trigger {
+    override val id: String
+        get() = bean.id!!
+
+    override val type: String
+        get() = bean.type!!
+
+    override fun fetchProperties(): List<Parameter> = bean.properties?.property!!.map { ParameterImpl(it) }
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {
