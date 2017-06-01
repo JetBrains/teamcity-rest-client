@@ -72,9 +72,15 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var number: String? = null
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun buildNumber(buildNumber: String): BuildLocator {
+        this.number = buildNumber
         return this
     }
 
@@ -119,6 +125,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     override fun list(): List<Build> {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
+                number?.let {"number:$it"},
                 status?.name?.let {"status:$it"},
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
