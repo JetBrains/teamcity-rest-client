@@ -1,7 +1,6 @@
 package org.jetbrains.teamcity.rest
 
 import org.junit.Before
-import org.junit.Test
 
 /**
  * Created with IntelliJ IDEA.
@@ -23,20 +22,20 @@ class Hackathon17Tests {
 
     //@Test
     fun test_run_build() {
-        val build = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        val build = teamcity.buildQueue().triggerBuild(TriggerRequest(BuildType(buildTypeID.stringId)))
         println(build)
     }
 
     //@Test
     fun test_run_build_and_get_info() {
         // trigger build -> Get triggered build from TC
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(BuildType(buildTypeID.stringId)))
         getBuild(triggeredBuild.id)
     }
 
     //@Test
     fun run_with_parameters() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID, mapOf("a" to "b")))
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(BuildType(buildTypeID.stringId), mapOf("a" to "b")))
         val build = getBuild(triggeredBuild.id)
         build.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
@@ -44,7 +43,7 @@ class Hackathon17Tests {
 
     //@Test
     fun test_for_build_finishing() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(BuildType(buildTypeID.stringId)))
         val build = awaitState(triggeredBuild.id, "finished", 60000)
         println(build)
         println(build.state)

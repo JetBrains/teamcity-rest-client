@@ -67,7 +67,15 @@ data class BuildConfigurationId(val stringId: String)
 
 data class VcsRootId(val stringId: String)
 
-data class TriggerRequest(val buildConfigurationId: BuildConfigurationId, val parameters: Map<String, String> = emptyMap())
+class TriggerRequest(val buildType: BuildType, parameters: Map<String, String> = hashMapOf()) {
+    val properties: Parameters = Parameters(parameters.map { entry -> Property(entry.key, entry.value) }.toList())
+}
+
+data class Parameters(val property: List<Property> = emptyList())
+
+data class Property(val name: String, val value: String)
+
+data class BuildType(val id: String)
 
 interface Project {
     val id: ProjectId

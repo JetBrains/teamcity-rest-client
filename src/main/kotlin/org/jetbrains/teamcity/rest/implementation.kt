@@ -3,7 +3,6 @@ package org.jetbrains.teamcity.rest
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
-import retrofit.mime.TypedByteArray
 import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
 import java.io.File
@@ -419,16 +418,7 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
 
 private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
     override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
-        val params = StringBuilder()
-        if (!triggerRequest.parameters.isEmpty()) {
-            params.append("<properties>")
-            triggerRequest.parameters.forEach { params.append("<property name=\"${it.key}\" value=\"${it.value}\"/>") }
-            params.append("</properties>")
-        }
-
-
-        return TriggeredBuildImpl(service.triggerBuild(TypedByteArray("application/xml",
-                ("<build><buildType id=\"${triggerRequest.buildConfigurationId.stringId}\"/>$params</build>").toByteArray())))
+          return TriggeredBuildImpl(service.triggerBuild(triggerRequest))
     }
 }
 
