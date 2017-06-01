@@ -61,6 +61,11 @@ class Hackathon17Tests {
         newBuild.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
 
+    //@Test
+    fun test_test_occurrences() {
+        teamcity.buildResults().tests(BuildId(75.toString()))
+    }
+
     private fun awaitState(id: Int, buildState: String, timeoutMsec: Long): Build {
         val curTime = System.currentTimeMillis()
         var b: Build? = null

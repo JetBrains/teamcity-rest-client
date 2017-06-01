@@ -16,6 +16,7 @@ abstract class TeamCityInstance {
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
     abstract fun buildQueue(): BuildQueue
+    abstract fun buildResults(): BuildResults
 
     companion object {
         @JvmStatic
@@ -204,4 +205,8 @@ interface TriggeredBuild {
 
 interface BuildQueue {
     fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild
+}
+
+interface BuildResults {
+    fun tests(id: BuildId)
 }
