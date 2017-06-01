@@ -131,6 +131,7 @@ internal open class BuildBean {
 
     var properties: ParametersBean? = ParametersBean()
     var webUrl: String? = null
+    var buildType: BuildTypeBean? = BuildTypeBean()
 }
 
 internal class BuildTypeBean {

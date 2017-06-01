@@ -124,6 +124,7 @@ interface Build {
     val branch : Branch
     val state: String
     val webUrl: String
+    val name: String
 
     fun fetchStatusText(): String
     fun fetchQueuedDate(): Date
