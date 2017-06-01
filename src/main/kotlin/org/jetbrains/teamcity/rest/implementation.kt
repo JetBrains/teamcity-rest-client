@@ -64,6 +64,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun rootProject(): Project = project(ProjectId("_Root"))
 
     override fun buildQueue(): BuildQueue = BuildQueueImpl(service)
+
+    override fun buildResults(): BuildResults = BuildResultsImpl(service)
 }
 
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
@@ -440,6 +442,12 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
 private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
     override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
           return TriggeredBuildImpl(service.triggerBuild(triggerRequest))
+    }
+}
+
+private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
+    override fun tests(id: BuildId) {
+        service.tests("build:${id.stringId}")
     }
 }
 
