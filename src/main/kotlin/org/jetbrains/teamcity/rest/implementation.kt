@@ -7,6 +7,7 @@ import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -414,13 +415,27 @@ private class BuildImpl(private val bean: BuildBean,
         LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
 
         output.parentFile.mkdirs()
-        val response = service.artifactContent(id.stringId, artifactPath)
-        val input = response.body.`in`()
-        BufferedOutputStream(FileOutputStream(output)).use {
-            input.copyTo(it)
+        FileOutputStream(output).use {
+            downloadArtifactImpl(artifactPath, it)
         }
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
+
+    override fun downloadArtifact(artifactPath: String, output: OutputStream) {
+        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
+
+        downloadArtifactImpl(artifactPath, output)
+
+        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
+
+    private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
+        val response = service.artifactContent(id.stringId, artifactPath)
+        val input = response.body.`in`()
+        BufferedOutputStream(output).use {
+            input.copyTo(it)
+        }
     }
 }
 

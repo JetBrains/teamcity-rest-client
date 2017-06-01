@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
+import java.io.OutputStream
 import java.util.*
 
 abstract class TeamCityInstance {
@@ -148,6 +149,7 @@ interface Build {
     fun getArtifacts(parentPath: String = ""): List<BuildArtifact>
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
+    fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
 }
 
