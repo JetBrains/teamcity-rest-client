@@ -328,7 +328,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let {TriggeredImpl(it, service)}
 
-    override fun fetchTests() = service.tests(locator = "build:(id:${id.stringId})", fields = null).testOccurrence.map {
+    override fun fetchTests() = service.tests(locator = "build:(id:${id.stringId})", fields = TestOccurrence.filter).testOccurrence.map {
         object : TestInfo {
             override val name = it.name!!
             override val status = when {
@@ -339,7 +339,13 @@ private class BuildImpl(private val bean: BuildBean,
             }
             override val duration = it.duration ?: 1L
 
-            override fun toString() = "Test{name=$name, status=$status, duration=$duration}"
+            override val details = when (status) {
+                TestStatus.IGNORED -> it.ignoreDetails
+                TestStatus.FAILED -> it.details
+                else -> null
+            } ?: ""
+
+            override fun toString() = "Test{name=$name, status=$status, duration=$duration, details=$details}"
         }
     }
 

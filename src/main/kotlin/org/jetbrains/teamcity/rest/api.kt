@@ -206,6 +206,7 @@ interface TestInfo {
     val name : String
     val status: TestStatus
     val duration: Long
+    val details : String
 }
 
 interface TriggeredInfo {

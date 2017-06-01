@@ -218,22 +218,15 @@ internal open class TestOccurrencesBean {
   var testOccurrence: List<TestOccurrence> = ArrayList()
 }
 
-/**
- * <testOccurrence
- *   id="id:371,build:(id:18867332)"
- *   name="org.jetbrains.teamcity.buildPipelines.generated.TestModule_Avengers.sapien_sed_bibendum"
- *   status="SUCCESS"
- *   duration="26"
- *   href="/guestAuth/app/rest/testOccurrences/id:371,build:(id:18867332)"
- *   />
- *
- *   or
- *
- *   ...  status="UNKNOWN" ignored="true" duration="1"
- */
 internal open class TestOccurrence {
-  var name : String? = null
-  var status: String? = null
-  var duration: Long? = null
-  var ignored: Boolean? = null
+    var name: String? = null
+    var status: String? = null
+    var ignored: Boolean? = null
+    var duration: Long? = null
+    var ignoreDetails: String? = null
+    var details: String? = null
+
+    companion object {
+        val filter = "testOccurrence(name,status,ignored,duration,ignoreDetails,details)"
+    }
 }
