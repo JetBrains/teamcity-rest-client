@@ -67,3 +67,7 @@ if (hasProperty("bintrayUser")) {
         }
     }
 }
+
+task wrapper(type: Wrapper) {
+    version = '3.5'
+}
