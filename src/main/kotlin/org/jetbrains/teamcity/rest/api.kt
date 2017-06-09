@@ -9,7 +9,7 @@ abstract class TeamCityInstance {
     abstract fun builds(): BuildLocator
 
     abstract fun build(id: BuildId): Build
-    abstract fun build(buildType: BuildConfigurationId, number: String): Build
+    abstract fun build(buildType: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
@@ -87,13 +87,17 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
+    fun fetchBuildTriggers(): List<Trigger>
+
+    fun fetchBuildArtifactDependencies(): List<ArtifactDependency>
+
     fun setParameter(name: String, value: String)
 }
 
 interface Parameter {
     val name: String
     val value: String?
-    val own: Boolean
+    val own: Boolean?
 }
 
 interface Branch {
@@ -180,4 +184,16 @@ interface Revision {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+}
+
+interface Trigger {
+    fun fetchDependsOnBuildConfiguration(): BuildConfigurationId
+    fun fetchProperties(): List<Parameter>
+}
+
+interface ArtifactDependency {
+    val disabled: Boolean
+    val sourceBuildConfiguration: BuildConfiguration
+
+    fun fetchProperties(): List<Parameter>
 }
