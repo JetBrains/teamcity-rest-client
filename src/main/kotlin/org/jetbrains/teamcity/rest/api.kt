@@ -9,7 +9,7 @@ abstract class TeamCityInstance {
     abstract fun builds(): BuildLocator
 
     abstract fun build(id: BuildId): Build
-    abstract fun build(buildType: BuildConfigurationId, number: String): Build
+    abstract fun build(buildType: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
@@ -136,12 +136,6 @@ interface Build {
     fun downloadArtifact(artifactPath: String, output: File)
 }
 
-interface BuildType{
-    val id: BuildConfigurationId
-    val name: String
-    val projectId: ProjectId
-}
-
 interface Change {
     val id: ChangeId
     val version: String
@@ -192,19 +186,14 @@ interface TriggeredInfo {
     val build: Build?
 }
 
-interface Trigger{
-    val id: String
-    val type: String
-
+interface Trigger {
+    fun fetchDependsOnBuildConfiguration(): BuildConfigurationId
     fun fetchProperties(): List<Parameter>
 }
 
-interface ArtifactDependency{
-    val id: String
-    val type: String
+interface ArtifactDependency {
     val disabled: Boolean
-    val inherited: Boolean
-    val sourceBuildType: BuildType
+    val sourceBuildConfiguration: BuildConfiguration
 
     fun fetchProperties(): List<Parameter>
 }

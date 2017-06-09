@@ -51,9 +51,11 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
-    override fun build(buildType: BuildConfigurationId, number: String): Build = BuildImpl(service.build(buildType.stringId, number), true, service)
+    override fun build(buildType: BuildConfigurationId, number: String):
+        Build? = BuildLocatorImpl(service, serverUrl).fromConfiguration(buildType).withNumber(number).latest()
 
-    override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
+    override fun buildConfiguration(id: BuildConfigurationId):
+            BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
 
@@ -66,6 +68,7 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
+    private var number: String? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
@@ -73,8 +76,13 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var includeAllBranches = false
     private var pinnedOnly = false
 
-    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
+    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    fun withNumber(buildNumber: String): BuildLocator {
+        this.number = buildNumber
         return this
     }
 
@@ -119,6 +127,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     override fun list(): List<Build> {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
+                number?.let {"number:$it"},
                 status?.name?.let {"status:$it"},
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
@@ -178,7 +187,8 @@ private class ProjectImpl(
     }
 }
 
-private class BuildConfigurationImpl(private val bean: BuildTypeBean, private val service: TeamCityService) : BuildConfiguration {
+private class BuildConfigurationImpl(private val bean: BuildTypeBean,
+                                     private val service: TeamCityService) : BuildConfiguration {
     override val name: String
         get() = bean.name!!
 
@@ -193,10 +203,14 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
-    override fun fetchBuildTriggers(): List<Trigger> = service.buildTypeTriggers(id.stringId).trigger!!.map { TriggerImpl(it) }
+    override fun fetchBuildTriggers(): List<Trigger> = service.buildTypeTriggers(id.stringId)
+                                                              .trigger!!.map { TriggerImpl(it) }
 
     override fun fetchBuildArtifactDependencies():
-            List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId).`artifact-dependency`!!.map { ArtifactDependencyImpl(it) }
+            List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId)
+                                              .`artifact-dependency`
+                                              ?.filter { it.disabled == false }
+                                              ?.map { ArtifactDependencyImpl(it, service) }.orEmpty()
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
@@ -269,32 +283,29 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
 }
 
 private class TriggerImpl(private val bean: TriggerBean) : Trigger {
-    override val id: String
-        get() = bean.id!!
 
-    override val type: String
-        get() = bean.type!!
+    override fun fetchDependsOnBuildConfiguration():
+            BuildConfigurationId = BuildConfigurationId(bean.properties
+                                                            ?.property
+                                                            ?.find { it.name == "dependsOn" }?.value!!)
 
-    override fun fetchProperties(): List<Parameter> = bean.properties?.property!!.map { ParameterImpl(it) }
+    override fun fetchProperties(): List<Parameter> = bean.properties
+                                                          ?.property
+                                                          ?.map { ParameterImpl(it) }.orEmpty()
 }
 
-private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean) : ArtifactDependency {
-    override val id: String
-        get() = bean.id!!
-
-    override val type: String
-        get() = bean.type!!
+private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
+                                     private val service: TeamCityService) : ArtifactDependency {
 
     override val disabled: Boolean
-        get() = bean.disabled!!
+        get() = bean.disabled ?: false
 
-    override val inherited: Boolean
-        get() = bean.inherited!!
+    override val sourceBuildConfiguration: BuildConfiguration
+        get() = BuildConfigurationImpl(bean.`source-buildType`, service)
 
-    override val sourceBuildType: BuildType
-        get() = BuildTypeImpl(bean.`source-buildType`)
-
-    override fun fetchProperties(): List<Parameter> = bean.properties?.property!!.map { ParameterImpl(it) }
+    override fun fetchProperties(): List<Parameter> = bean.properties
+                                                          ?.property
+                                                          ?.map { ParameterImpl(it) }.orEmpty()
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {
@@ -416,17 +427,6 @@ private class BuildImpl(private val bean: BuildBean,
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
-}
-
-private class BuildTypeImpl(private val bean: BuildTypeBean) : BuildType {
-    override val id: BuildConfigurationId
-        get() = BuildConfigurationId(bean.id!!)
-
-    override val name: String
-        get() = bean.name!!
-
-    override val projectId: ProjectId
-        get() = ProjectId(bean.projectId!!)
 }
 
 private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
