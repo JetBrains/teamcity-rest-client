@@ -116,7 +116,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         return limitResults(1).list().firstOrNull()
     }
 
-    override fun list(): List<Build> {
+    private fun buildLocatorString(): String {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
                 status?.name?.let {"status:$it"},
@@ -136,7 +136,11 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
-        val buildLocator = parameters.joinToString(",")
+        return parameters.joinToString(",")
+    }
+
+    override fun list(): List<Build> {
+        val buildLocator = buildLocatorString()
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
         return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
     }
