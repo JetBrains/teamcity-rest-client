@@ -66,6 +66,14 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun rootProject(): Project = project(ProjectId("_Root"))
 }
 
+private enum class BooleanQueryValue {
+    TRUE,
+    FALSE,
+    ANY;
+}
+
+private val FAILED_TO_START_QUERY_DEFAULT = BooleanQueryValue.FALSE
+
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String) : BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
     private var number: String? = null
@@ -75,6 +83,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var failedToStart: BooleanQueryValue = FAILED_TO_START_QUERY_DEFAULT
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -98,6 +107,21 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
 
     override fun withTag(tag: String): BuildLocator {
         tags.add(tag)
+        return this
+    }
+
+    override fun includeFailedToStart(): BuildLocator {
+        failedToStart = BooleanQueryValue.ANY
+        return this
+    }
+
+    override fun failedToStartOnly(): BuildLocator {
+        failedToStart = BooleanQueryValue.TRUE
+        return this
+    }
+
+    override fun excludeFailedToStart(): BuildLocator {
+        failedToStart = BooleanQueryValue.FALSE
         return this
     }
 
@@ -129,6 +153,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
                 number?.let {"number:$it"},
                 status?.name?.let {"status:$it"},
+                if (failedToStart != FAILED_TO_START_QUERY_DEFAULT) "failedToStart:${failedToStart}" else null,
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
@@ -356,6 +381,8 @@ private data class BranchImpl(
         override val name: String?,
         override val isDefault: Boolean) : Branch
 
+private val FAILED_TO_START_DEFAULT = false
+
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,
                         private val service: TeamCityService) : Build {
@@ -374,12 +401,22 @@ private class BuildImpl(private val bean: BuildBean,
     override val branch: Branch
         get() = BranchImpl(bean.branchName, bean.isDefaultBranch ?: (bean.branchName == null))
 
+    override val failedToStart: Boolean
+        get() = bean.failedToStart ?: FAILED_TO_START_DEFAULT
+
     val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else service.build(id.stringId)
     }
 
     override fun toString(): String {
-        return "Build{id=$id, buildTypeId=$buildTypeId, buildNumber=$buildNumber, status=$status, branch=$branch}"
+        return "Build{" +
+                "id=$id, " +
+                "buildTypeId=$buildTypeId, " +
+                "buildNumber=$buildNumber, " +
+                "status=$status, " +
+                "branch=$branch, " +
+                "failedToStart=$failedToStart" +
+                "}"
     }
 
     override fun fetchStatusText(): String = fullBuildBean.statusText!!

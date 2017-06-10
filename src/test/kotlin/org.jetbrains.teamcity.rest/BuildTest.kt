@@ -41,4 +41,47 @@ class BuildTest {
 
         build.fetchStatusText()
     }
+
+    @Test
+    fun test_failed_to_start_build() {
+        fun getBuildWithFailedToStart(failedToStart: Boolean?): Build? {
+            val locator = publicInstance().builds()
+                    .fromConfiguration(compileExamplesConfiguration)
+                    .limitResults(1)
+
+            when (failedToStart) {
+                true -> locator.failedToStartOnly()
+                false -> locator.excludeFailedToStart()
+                null -> locator.includeFailedToStart()
+            }
+
+            return locator.list().firstOrNull()
+        }
+
+        val failedToStartBuild = getBuildWithFailedToStart(true)
+        println("Failed to start: $failedToStartBuild")
+        if (failedToStartBuild != null) {
+            Assert.assertEquals("Bad failedToStart value", true, failedToStartBuild.failedToStart)
+        }
+
+        val normaBuild = getBuildWithFailedToStart(false)
+        println("Normal build: $normaBuild")
+        if (normaBuild != null) {
+            Assert.assertEquals("Bad failedToStart value", false, normaBuild.failedToStart)
+        }
+
+        val anyBuild = getBuildWithFailedToStart(null)
+        println("First build: $anyBuild")
+        if (failedToStartBuild != null || normaBuild != null) {
+            Assert.assertNotNull(anyBuild)
+
+            val failedToStartId = failedToStartBuild?.id?.stringId?.toInt() ?: 0
+            val normalId = normaBuild?.id?.stringId?.toInt() ?: 0
+            val maxId = Math.max(failedToStartId, normalId)
+
+            val anyId = anyBuild!!.id.stringId.toInt()
+
+            Assert.assertEquals("Wrong build id for query with any failedToStart value", maxId, anyId)
+        }
+    }
 }
