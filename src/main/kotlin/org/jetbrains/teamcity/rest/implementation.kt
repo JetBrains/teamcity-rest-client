@@ -65,6 +65,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 }
 
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
+    private var buildId: BuildId? = null
+    private var buildNumber: String? = null
     private var buildConfigurationId: BuildConfigurationId? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
@@ -72,6 +74,17 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var sinceBuild: BuildLocatorImpl? = null
+
+    override fun withId(buildId: BuildId): BuildLocator {
+        this.buildId = buildId
+        return this
+    }
+
+    override fun withNumber(number: String): BuildLocator {
+        this.buildNumber = number
+        return this
+    }
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
@@ -118,6 +131,8 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
 
     private fun buildLocatorString(): String {
         val parameters = listOf(
+                buildId?.let { "id:${it.stringId}" },
+                buildNumber?.let { "number:$it" },
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
                 status?.name?.let {"status:$it"},
                 if (!tags.isEmpty())
@@ -129,7 +144,9 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
                 if (!includeAllBranches)
                     branch?.let {"branch:$it"}
                 else
-                    "branch:default:any"
+                    "branch:default:any",
+
+                sinceBuild?.let { "sinceBuild:(${it.buildLocatorString()})" }
         ).filterNotNull()
 
         if (parameters.isEmpty()) {
@@ -143,6 +160,12 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
         val buildLocator = buildLocatorString()
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
         return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
+    }
+
+    override fun withSinceBuild(locator: BuildLocator): BuildLocator {
+        this.sinceBuild = (locator as? BuildLocatorImpl) ?:
+                throw IllegalArgumentException("Only ${BuildLocatorImpl::class} supported now")
+        return this
     }
 
     override fun pinnedOnly(): BuildLocator {
