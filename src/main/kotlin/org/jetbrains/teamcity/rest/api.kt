@@ -87,6 +87,8 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
+    fun fetchBuildTriggers(): List<Trigger>
+
     fun setParameter(name: String, value: String)
 }
 
@@ -180,4 +182,9 @@ interface Revision {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+}
+
+interface Trigger {
+    fun fetchDependsOnBuildConfiguration(): BuildConfigurationId
+    fun fetchProperties(): List<Parameter>
 }
