@@ -9,7 +9,7 @@ abstract class TeamCityInstance {
     abstract fun builds(): BuildLocator
 
     abstract fun build(id: BuildId): Build
-    abstract fun build(buildType: BuildConfigurationId, number: String): Build
+    abstract fun build(buildType: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
