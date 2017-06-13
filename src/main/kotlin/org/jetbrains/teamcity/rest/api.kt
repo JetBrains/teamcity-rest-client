@@ -87,6 +87,8 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
+    fun fetchBuildArtifactDependencies(): List<ArtifactDependency>
+
     fun setParameter(name: String, value: String)
 }
 
@@ -180,4 +182,11 @@ interface Revision {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+}
+
+interface ArtifactDependency {
+    val disabled: Boolean
+    val sourceBuildConfiguration: BuildConfiguration
+
+    fun fetchProperties(): List<Parameter>
 }

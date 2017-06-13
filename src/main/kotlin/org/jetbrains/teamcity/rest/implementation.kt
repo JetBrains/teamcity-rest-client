@@ -193,6 +193,12 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
+    override fun fetchBuildArtifactDependencies():
+            List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId)
+                                              .`artifact-dependency`
+                                              ?.filter { it.disabled == false }
+                                              ?.map { ArtifactDependencyImpl(it, service) }.orEmpty()
+
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         service.setBuildTypeParameter(id.stringId, name, TypedString(value))
@@ -261,6 +267,20 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
 
     override val own: Boolean
         get() = bean.own
+}
+
+private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
+                                     private val service: TeamCityService) : ArtifactDependency {
+
+    override val disabled: Boolean
+        get() = bean.disabled ?: false
+
+    override val sourceBuildConfiguration: BuildConfiguration
+        get() = BuildConfigurationImpl(bean.`source-buildType`, service)
+
+    override fun fetchProperties(): List<Parameter> = bean.properties
+                                                          ?.property
+                                                          ?.map { ParameterImpl(it) }.orEmpty()
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {
