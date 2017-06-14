@@ -16,7 +16,9 @@ fun setupLog4jDebug() {
     Logger.getLogger("org.apache.http").level = Level.ERROR
 }
 
-fun publicInstance() = TeamCityInstance.guestAuth("https://teamcity.jetbrains.com").withLogResponses()
+val publicInstanceUrl = "https://teamcity.jetbrains.com"
+
+fun publicInstance() = TeamCityInstance.guestAuth(publicInstanceUrl).withLogResponses()
 
 fun customInstance(serverUrl: String, username: String, password: String) = TeamCityInstance
         .httpAuth(serverUrl, username, password)
