@@ -87,7 +87,7 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
-    fun fetchBuildTriggers(): List<Trigger>
+    fun fetchBuildDependencyTriggers(): List<BuildDependencyTrigger>
 
     fun setParameter(name: String, value: String)
 }
@@ -184,7 +184,7 @@ interface TriggeredInfo {
     val build: Build?
 }
 
-interface Trigger {
-    fun fetchDependsOnBuildConfiguration(): BuildConfigurationId
-    fun fetchProperties(): List<Parameter>
+interface BuildDependencyTrigger {
+    val dependsOnBuildConfiguration: BuildConfigurationId
+    val properties: List<Parameter>
 }

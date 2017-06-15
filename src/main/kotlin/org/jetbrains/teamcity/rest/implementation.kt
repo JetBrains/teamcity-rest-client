@@ -193,8 +193,11 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
-    override fun fetchBuildTriggers(): List<Trigger> = service.buildTypeTriggers(id.stringId)
-                                                              .trigger!!.map { TriggerImpl(it) }
+    override fun fetchBuildDependencyTriggers():
+            List<BuildDependencyTrigger> = service.buildTypeTriggers(id.stringId)
+                                                  .trigger
+                                                  ?.filter { it.type == "buildDependencyTrigger" }
+                                                  ?.map { BuildDependencyTriggerImpl(it) }.orEmpty()
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
@@ -266,16 +269,12 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
         get() = bean.own
 }
 
-private class TriggerImpl(private val bean: TriggerBean) : Trigger {
+private class BuildDependencyTriggerImpl(private val bean: TriggerBean) : BuildDependencyTrigger {
+    override val dependsOnBuildConfiguration: BuildConfigurationId
+        get() = BuildConfigurationId(bean.properties?.property?.find { it.name == "dependsOn" }?.value!!)
 
-    override fun fetchDependsOnBuildConfiguration():
-            BuildConfigurationId = BuildConfigurationId(bean.properties
-                                                            ?.property
-                                                            ?.find { it.name == "dependsOn" }?.value!!)
-
-    override fun fetchProperties(): List<Parameter> = bean.properties
-                                                          ?.property
-                                                          ?.map { ParameterImpl(it) }.orEmpty()
+    override val properties: List<Parameter>
+        get() = bean.properties?.property?.map { ParameterImpl(it) }.orEmpty()
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {
