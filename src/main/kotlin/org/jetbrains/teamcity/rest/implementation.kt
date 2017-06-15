@@ -272,15 +272,22 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
 private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
                                      private val service: TeamCityService) : ArtifactDependency {
 
-    override val disabled: Boolean
-        get() = bean.disabled ?: false
-
-    override val sourceBuildConfiguration: BuildConfiguration
+    override val dependsOnBuildConfiguration: BuildConfiguration
         get() = BuildConfigurationImpl(bean.`source-buildType`, service)
 
-    override fun fetchProperties(): List<Parameter> = bean.properties
-                                                          ?.property
-                                                          ?.map { ParameterImpl(it) }.orEmpty()
+    override val branch: String?
+        get () = findPropertyByName("revisionBranch")
+
+    override val pathRules: String
+        get() = findPropertyByName("pathRules")!!
+
+    override val cleanDestinationDirectory: Boolean
+        get() = findPropertyByName("cleanDestinationDirectory")!!.toBoolean()
+
+    fun findPropertyByName(name: String): String? {
+        return bean.properties?.property?.find { it.name == name }?.value
+    }
+
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {

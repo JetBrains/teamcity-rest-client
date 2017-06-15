@@ -185,8 +185,8 @@ interface TriggeredInfo {
 }
 
 interface ArtifactDependency {
-    val disabled: Boolean
-    val sourceBuildConfiguration: BuildConfiguration
-
-    fun fetchProperties(): List<Parameter>
+    val dependsOnBuildConfiguration: BuildConfiguration
+    val branch : String?
+    val pathRules: String
+    val cleanDestinationDirectory: Boolean
 }
