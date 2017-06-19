@@ -51,9 +51,11 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
-    override fun build(buildType: BuildConfigurationId, number: String): Build = BuildImpl(service.build(buildType.stringId, number), true, service)
+    override fun build(buildType: BuildConfigurationId, number: String):
+        Build? = BuildLocatorImpl(service, serverUrl).fromConfiguration(buildType).withNumber(number).latest()
 
-    override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
+    override fun buildConfiguration(id: BuildConfigurationId):
+            BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
 
@@ -66,6 +68,7 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
+    private var number: String? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
@@ -73,8 +76,13 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     private var includeAllBranches = false
     private var pinnedOnly = false
 
-    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
+    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    fun withNumber(buildNumber: String): BuildLocator {
+        this.number = buildNumber
         return this
     }
 
@@ -119,6 +127,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
     override fun list(): List<Build> {
         val parameters = listOf(
                 buildConfigurationId?.stringId?.let {"buildType:$it"},
+                number?.let {"number:$it"},
                 status?.name?.let {"status:$it"},
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
@@ -178,7 +187,8 @@ private class ProjectImpl(
     }
 }
 
-private class BuildConfigurationImpl(private val bean: BuildTypeBean, private val service: TeamCityService) : BuildConfiguration {
+private class BuildConfigurationImpl(private val bean: BuildTypeBean,
+                                     private val service: TeamCityService) : BuildConfiguration {
     override val name: String
         get() = bean.name!!
 

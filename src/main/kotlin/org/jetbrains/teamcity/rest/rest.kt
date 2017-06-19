@@ -16,10 +16,6 @@ internal interface TeamCityService {
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds/buildType:{buildType},number:{number}")
-    fun build(@Path("buildType") buildType: String, @Path("number") number: String): BuildBean
-
-    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
