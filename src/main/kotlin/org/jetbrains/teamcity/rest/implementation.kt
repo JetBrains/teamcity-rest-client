@@ -193,7 +193,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
-    override fun fetchBuildArtifactDependencies():
+    override fun fetchArtifactDependencies():
             List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId)
                                               .`artifact-dependency`
                                               ?.filter { it.disabled == false }
@@ -278,16 +278,37 @@ private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
     override val branch: String?
         get () = findPropertyByName("revisionBranch")
 
-    override val pathRules: String
-        get() = findPropertyByName("pathRules")!!
+    override val artifactRules: List<ArtifactRule>
+        get() = findPropertyByName("pathRules")!!.split(' ').map { ArtifactRuleImpl(it) }
 
     override val cleanDestinationDirectory: Boolean
         get() = findPropertyByName("cleanDestinationDirectory")!!.toBoolean()
 
-    fun findPropertyByName(name: String): String? {
+    private fun findPropertyByName(name: String): String? {
         return bean.properties?.property?.find { it.name == name }?.value
     }
 
+}
+
+internal class ArtifactRuleImpl(private val pathRule: String) : ArtifactRule {
+    override val rule: String
+        get() = pathRule
+
+    override val include: Boolean
+        get() = pathRule.substring(0, 2) != "-:"
+
+    override val sourcePath: String
+        get() = pathRule.substringBefore("=>").substringBefore("!").substringAfter(":")
+
+    override val archivePath: String?
+        get() = pathRule.substringBefore("=>").substringAfter("!", "").let { path ->
+            return if (path != "") path else null
+        }
+
+    override val destinationPath: String?
+        get() = pathRule.substringAfter("=>", "").let { path ->
+            return if (path != "") path else null
+        }
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {

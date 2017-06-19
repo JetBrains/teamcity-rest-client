@@ -87,7 +87,7 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
-    fun fetchBuildArtifactDependencies(): List<ArtifactDependency>
+    fun fetchArtifactDependencies(): List<ArtifactDependency>
 
     fun setParameter(name: String, value: String)
 }
@@ -187,6 +187,14 @@ interface TriggeredInfo {
 interface ArtifactDependency {
     val dependsOnBuildConfiguration: BuildConfiguration
     val branch : String?
-    val pathRules: String
+    val artifactRules: List<ArtifactRule>
     val cleanDestinationDirectory: Boolean
+}
+
+interface ArtifactRule {
+    val rule: String
+    val include: Boolean
+    val sourcePath: String
+    val archivePath: String?
+    val destinationPath: String?
 }
