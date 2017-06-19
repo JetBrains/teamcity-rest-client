@@ -193,11 +193,11 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean, private va
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
-    override fun fetchBuildDependencyTriggers():
-            List<BuildDependencyTrigger> = service.buildTypeTriggers(id.stringId)
-                                                  .trigger
-                                                  ?.filter { it.type == "buildDependencyTrigger" }
-                                                  ?.map { BuildDependencyTriggerImpl(it) }.orEmpty()
+    override fun fetchFinishBuildTriggers():
+            List<FinishBuildTrigger> = service.buildTypeTriggers(id.stringId)
+                                              .trigger
+                                              ?.filter { it.type == "buildDependencyTrigger" }
+                                              ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
@@ -269,12 +269,31 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
         get() = bean.own
 }
 
-private class BuildDependencyTriggerImpl(private val bean: TriggerBean) : BuildDependencyTrigger {
-    override val dependsOnBuildConfiguration: BuildConfigurationId
+private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuildTrigger {
+    override val initiatedBuildConfiguration: BuildConfigurationId
         get() = BuildConfigurationId(bean.properties?.property?.find { it.name == "dependsOn" }?.value!!)
 
-    override val properties: List<Parameter>
-        get() = bean.properties?.property?.map { ParameterImpl(it) }.orEmpty()
+    override val afterSuccessfulBuildOnly: Boolean
+        get() = bean.properties?.property?.find { it.name == "afterSuccessfulBuildOnly" }?.value?.toBoolean() ?: false
+
+    override val branchFilter: List<BranchRule>
+        get() = bean.properties
+                    ?.property
+                    ?.find { it.name == "branchFilter" }
+                    ?.value
+                    ?.split(" ")
+                    ?.map { BranchRuleImpl(it) }.orEmpty()
+}
+
+internal class BranchRuleImpl(private val branchRule: String) : BranchRule {
+    override val rule: String
+        get() = branchRule
+
+    override val include: Boolean
+        get() = branchRule.substring(0, 2) != "-:"
+
+    override val name: String
+        get() = branchRule.substringAfter(":")
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {

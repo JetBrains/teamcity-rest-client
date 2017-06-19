@@ -87,7 +87,7 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
-    fun fetchBuildDependencyTriggers(): List<BuildDependencyTrigger>
+    fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
 
     fun setParameter(name: String, value: String)
 }
@@ -184,7 +184,14 @@ interface TriggeredInfo {
     val build: Build?
 }
 
-interface BuildDependencyTrigger {
-    val dependsOnBuildConfiguration: BuildConfigurationId
-    val properties: List<Parameter>
+interface FinishBuildTrigger {
+    val initiatedBuildConfiguration: BuildConfigurationId
+    val afterSuccessfulBuildOnly: Boolean
+    val branchFilter: List<BranchRule>
+}
+
+interface BranchRule {
+    val rule: String
+    val include: Boolean
+    val name: String
 }
