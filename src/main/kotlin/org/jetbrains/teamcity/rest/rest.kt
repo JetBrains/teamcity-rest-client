@@ -16,10 +16,6 @@ internal interface TeamCityService {
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds/buildType:{buildType},number:{number}")
-    fun build(@Path("buildType") buildType: String, @Path("number") number: String): BuildBean
-
-    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
@@ -65,6 +61,9 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/buildTypes/id:{id}/triggers")
     fun buildTypeTriggers(@Path("id") buildTypeId: String): TriggersBean
+
+    @GET("/app/rest/buildTypes/id:{id}/artifact-dependencies")
+    fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): ArtifactDependenciesBean
 
     @PUT("/app/rest/projects/id:{id}/parameters/{name}")
     fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: TypedString): Response
@@ -150,6 +149,18 @@ internal class TriggerBean {
 
 internal class TriggersBean {
     var trigger: List<TriggerBean>? = ArrayList()
+
+internal class ArtifactDependencyBean{
+    var id: String? = null
+    var type: String? = null
+    var disabled: Boolean? = false
+    var inherited: Boolean? = false
+    var properties: ParametersBean? = ParametersBean()
+    var `source-buildType`: BuildTypeBean = BuildTypeBean()
+}
+
+internal class ArtifactDependenciesBean{
+    var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
 }
 
 internal class ProjectBean {

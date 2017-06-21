@@ -9,7 +9,7 @@ abstract class TeamCityInstance {
     abstract fun builds(): BuildLocator
 
     abstract fun build(id: BuildId): Build
-    abstract fun build(buildType: BuildConfigurationId, number: String): Build
+    abstract fun build(buildType: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
@@ -88,6 +88,8 @@ interface BuildConfiguration {
     fun fetchBuildTags(): List<String>
 
     fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
+
+    fun fetchArtifactDependencies(): List<ArtifactDependency>
 
     fun setParameter(name: String, value: String)
 }
@@ -189,4 +191,26 @@ interface FinishBuildTrigger {
     val afterSuccessfulBuildOnly: Boolean
     val includedBranchPatterns: Set<String>
     val excludedBranchPatterns: Set<String>
+
+interface ArtifactDependency {
+    val dependsOnBuildConfiguration: BuildConfiguration
+    val branch: String?
+    val artifactRules: List<ArtifactRule>
+    val cleanDestinationDirectory: Boolean
+}
+
+interface ArtifactRule {
+    val include: Boolean
+    /**
+     * Specific file, directory, or wildcards to match multiple files can be used. Ant-like wildcards are supported.
+     */
+    val sourcePath: String
+    /**
+     * Follows general rules for sourcePath: ant-like wildcards are allowed.
+     */
+    val archivePath: String?
+    /**
+     * Destination directory where files are to be placed.
+     */
+    val destinationPath: String?
 }
