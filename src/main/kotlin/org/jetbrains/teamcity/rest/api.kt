@@ -87,6 +87,8 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
+    fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
+
     fun fetchArtifactDependencies(): List<ArtifactDependency>
 
     fun setParameter(name: String, value: String)
@@ -183,6 +185,12 @@ interface TriggeredInfo {
     val user: User?
     val build: Build?
 }
+
+interface FinishBuildTrigger {
+    val initiatedBuildConfiguration: BuildConfigurationId
+    val afterSuccessfulBuildOnly: Boolean
+    val includedBranchPatterns: Set<String>
+    val excludedBranchPatterns: Set<String>
 
 interface ArtifactDependency {
     val dependsOnBuildConfiguration: BuildConfiguration

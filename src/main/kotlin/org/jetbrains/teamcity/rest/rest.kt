@@ -59,6 +59,9 @@ internal interface TeamCityService {
     fun buildTypeTags(@Path("id") buildTypeId: String): TagsBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/buildTypes/id:{id}/triggers")
+    fun buildTypeTriggers(@Path("id") buildTypeId: String): TriggersBean
+
     @GET("/app/rest/buildTypes/id:{id}/artifact-dependencies")
     fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): ArtifactDependenciesBean
 
@@ -137,6 +140,15 @@ internal class TagBean {
 internal class TagsBean {
     var tag: List<TagBean>? = ArrayList()
 }
+
+internal class TriggerBean {
+    var id: String? = null
+    var type: String? = null
+    var properties: ParametersBean? = ParametersBean()
+}
+
+internal class TriggersBean {
+    var trigger: List<TriggerBean>? = ArrayList()
 
 internal class ArtifactDependencyBean{
     var id: String? = null

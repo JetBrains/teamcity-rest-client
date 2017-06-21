@@ -203,6 +203,12 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
 
     override fun fetchBuildTags(): List<String> = service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
+    override fun fetchFinishBuildTriggers():
+            List<FinishBuildTrigger> = service.buildTypeTriggers(id.stringId)
+                                              .trigger
+                                              ?.filter { it.type == "buildDependencyTrigger" }
+                                              ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
+
     override fun fetchArtifactDependencies():
             List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId)
                                               .`artifact-dependency`
@@ -278,6 +284,26 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val own: Boolean
         get() = bean.own
 }
+
+private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuildTrigger {
+    override val initiatedBuildConfiguration: BuildConfigurationId
+        get() = BuildConfigurationId(bean.properties?.property?.find { it.name == "dependsOn" }?.value!!)
+
+    override val afterSuccessfulBuildOnly: Boolean
+        get() = bean.properties?.property?.find { it.name == "afterSuccessfulBuildOnly" }?.value?.toBoolean() ?: false
+
+    private val branchPatterns: List<String>
+        get() = bean.properties
+                    ?.property
+                    ?.find { it.name == "branchFilter" }
+                    ?.value
+                    ?.split(" ").orEmpty()
+
+    override val includedBranchPatterns: Set<String>
+        get() = HashSet(branchPatterns.filter { !it.startsWith("-:") }.map { it.substringAfter(":") })
+
+    override val excludedBranchPatterns: Set<String>
+        get() = HashSet(branchPatterns.filter { it.startsWith("-:") }.map { it.substringAfter(":") })
 
 private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
                                      private val service: TeamCityService) : ArtifactDependency {
