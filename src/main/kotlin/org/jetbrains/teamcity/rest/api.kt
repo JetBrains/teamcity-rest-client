@@ -187,14 +187,6 @@ interface TriggeredInfo {
 interface FinishBuildTrigger {
     val initiatedBuildConfiguration: BuildConfigurationId
     val afterSuccessfulBuildOnly: Boolean
-    val branchFilter: List<BranchRule>
-}
-
-interface BranchRule {
-    val include: Boolean
-    /**
-     * Branch name matched by branch specification (i.e. displayed for a build in TeamCity UI).
-     * Wildcard character ('*') can also be used.
-     */
-    val branchPattern: String
+    val includedBranchPatterns: Set<String>
+    val excludedBranchPatterns: Set<String>
 }

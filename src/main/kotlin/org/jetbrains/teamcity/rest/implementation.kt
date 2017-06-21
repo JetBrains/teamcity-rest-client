@@ -276,21 +276,18 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
     override val afterSuccessfulBuildOnly: Boolean
         get() = bean.properties?.property?.find { it.name == "afterSuccessfulBuildOnly" }?.value?.toBoolean() ?: false
 
-    override val branchFilter: List<BranchRule>
+    private val branchPatterns: List<String>
         get() = bean.properties
                     ?.property
                     ?.find { it.name == "branchFilter" }
                     ?.value
-                    ?.split(" ")
-                    ?.map { BranchRuleImpl(it) }.orEmpty()
-}
+                    ?.split(" ").orEmpty()
 
-internal class BranchRuleImpl(private val branchRule: String) : BranchRule {
-    override val include: Boolean
-        get() = !branchRule.startsWith("-:")
+    override val includedBranchPatterns: Set<String>
+        get() = HashSet(branchPatterns.filter { !it.startsWith("-:") }.map { it.substringAfter(":") })
 
-    override val branchPattern: String
-        get() = branchRule.substringAfter(":")
+    override val excludedBranchPatterns: Set<String>
+        get() = HashSet(branchPatterns.filter { it.startsWith("-:") }.map { it.substringAfter(":") })
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {
