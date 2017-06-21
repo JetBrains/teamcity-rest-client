@@ -31,6 +31,9 @@ interface VcsRootLocator {
 }
 
 interface BuildLocator {
+    fun withId(buildId: BuildId): BuildLocator
+    fun withNumber(number: String): BuildLocator
+
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
 
     /**
@@ -47,6 +50,8 @@ interface BuildLocator {
      * By default only builds from the default branch are returned, call this method to include builds from all branches.
      */
     fun withAllBranches() : BuildLocator
+
+    fun withSinceBuild(locator: BuildLocator): BuildLocator
 
     fun pinnedOnly(): BuildLocator
 
