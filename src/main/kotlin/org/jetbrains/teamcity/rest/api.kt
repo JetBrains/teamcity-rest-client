@@ -87,6 +87,8 @@ interface BuildConfiguration {
 
     fun fetchBuildTags(): List<String>
 
+    fun fetchArtifactDependencies(): List<ArtifactDependency>
+
     fun setParameter(name: String, value: String)
 }
 
@@ -180,4 +182,27 @@ interface Revision {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+}
+
+interface ArtifactDependency {
+    val dependsOnBuildConfiguration: BuildConfiguration
+    val branch: String?
+    val artifactRules: List<ArtifactRule>
+    val cleanDestinationDirectory: Boolean
+}
+
+interface ArtifactRule {
+    val include: Boolean
+    /**
+     * Specific file, directory, or wildcards to match multiple files can be used. Ant-like wildcards are supported.
+     */
+    val sourcePath: String
+    /**
+     * Follows general rules for sourcePath: ant-like wildcards are allowed.
+     */
+    val archivePath: String?
+    /**
+     * Destination directory where files are to be placed.
+     */
+    val destinationPath: String?
 }

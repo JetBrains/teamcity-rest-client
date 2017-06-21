@@ -19,6 +19,7 @@ class BranchesTest {
       Assert.assertTrue(it.branch.isDefault)
     }
   }
+
   @Test
   fun test_list_works() {
     kotlinBuilds()
