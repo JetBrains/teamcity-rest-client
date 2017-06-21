@@ -300,10 +300,10 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
                     ?.split(" ").orEmpty()
 
     override val includedBranchPatterns: Set<String>
-        get() = HashSet(branchPatterns.filter { !it.startsWith("-:") }.map { it.substringAfter(":") })
+        get() = branchPatterns.filter { !it.startsWith("-:") }.mapTo(HashSet()) { it.substringAfter(":") }
 
     override val excludedBranchPatterns: Set<String>
-        get() = HashSet(branchPatterns.filter { it.startsWith("-:") }.map { it.substringAfter(":") })
+        get() = branchPatterns.filter { it.startsWith("-:") }.mapTo(HashSet()) { it.substringAfter(":") }
 }
 
 private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
