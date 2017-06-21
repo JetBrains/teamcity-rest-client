@@ -4,7 +4,7 @@ import java.io.File
 import java.util.*
 
 abstract class TeamCityInstance {
-    abstract fun withLogResponses() : TeamCityInstance
+    abstract fun withLogResponses(): TeamCityInstance
 
     abstract fun builds(): BuildLocator
 
@@ -36,7 +36,7 @@ interface BuildLocator {
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
      */
-    fun withAnyStatus() : BuildLocator
+    fun withAnyStatus(): BuildLocator
 
     fun withStatus(status: BuildStatus): BuildLocator
     fun withTag(tag: String): BuildLocator
@@ -46,7 +46,7 @@ interface BuildLocator {
     /**
      * By default only builds from the default branch are returned, call this method to include builds from all branches.
      */
-    fun withAllBranches() : BuildLocator
+    fun withAllBranches(): BuildLocator
 
     fun pinnedOnly(): BuildLocator
 
@@ -101,8 +101,8 @@ interface Parameter {
 }
 
 interface Branch {
-    val name : String?
-    val isDefault : Boolean
+    val name: String?
+    val isDefault: Boolean
 }
 
 interface Build {
@@ -110,7 +110,7 @@ interface Build {
     val buildTypeId: String
     val buildNumber: String
     val status: BuildStatus
-    val branch : Branch
+    val branch: Branch
 
     fun fetchStatusText(): String
     fun fetchQueuedDate(): Date

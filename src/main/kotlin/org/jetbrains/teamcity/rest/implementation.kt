@@ -29,7 +29,7 @@ internal fun createHttpAuthInstance(serverUrl: String, username: String, passwor
 internal class TeamCityInstanceImpl(private val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
-                                    private val logResponses : Boolean) : TeamCityInstance() {
+                                    private val logResponses: Boolean) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
 
     private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
@@ -51,8 +51,8 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
-    override fun build(buildType: BuildConfigurationId, number: String):
-        Build? = BuildLocatorImpl(service, serverUrl).fromConfiguration(buildType).withNumber(number).latest()
+    override fun build(buildType: BuildConfigurationId, number: String): Build?
+            = BuildLocatorImpl(service, serverUrl).fromConfiguration(buildType).withNumber(number).latest()
 
     override fun buildConfiguration(id: BuildConfigurationId):
             BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
@@ -66,7 +66,7 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun rootProject(): Project = project(ProjectId("_Root"))
 }
 
-private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String): BuildLocator {
+private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String) : BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
     private var number: String? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
@@ -221,7 +221,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
     }
 }
 
-private class VcsRootLocatorImpl(private val service: TeamCityService): VcsRootLocator {
+private class VcsRootLocatorImpl(private val service: TeamCityService) : VcsRootLocator {
 
     override fun list(): List<VcsRoot> {
         return service.vcsRoots().vcsRoot.map(::VcsRootImpl)
@@ -354,7 +354,7 @@ private class RevisionImpl(private val bean: RevisionBean) : Revision {
 
 private data class BranchImpl(
         override val name: String?,
-        override val isDefault: Boolean): Branch
+        override val isDefault: Boolean) : Branch
 
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,

@@ -151,7 +151,7 @@ internal class TriggersBean {
     var trigger: List<TriggerBean>? = ArrayList()
 }
 
-internal class ArtifactDependencyBean{
+internal class ArtifactDependencyBean {
     var id: String? = null
     var type: String? = null
     var disabled: Boolean? = false
@@ -160,7 +160,7 @@ internal class ArtifactDependencyBean{
     var `source-buildType`: BuildTypeBean = BuildTypeBean()
 }
 
-internal class ArtifactDependenciesBean{
+internal class ArtifactDependenciesBean {
     var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
 }
 
