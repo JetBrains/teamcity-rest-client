@@ -291,11 +291,8 @@ private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
 }
 
 internal class ArtifactRuleImpl(private val pathRule: String) : ArtifactRule {
-    override val rule: String
-        get() = pathRule
-
     override val include: Boolean
-        get() = pathRule.substring(0, 2) != "-:"
+        get() = !pathRule.startsWith("-:")
 
     override val sourcePath: String
         get() = pathRule.substringBefore("=>").substringBefore("!").substringAfter(":")

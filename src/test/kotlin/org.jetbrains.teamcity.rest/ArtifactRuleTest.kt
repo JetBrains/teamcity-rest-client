@@ -14,21 +14,6 @@ class ArtifactRuleTest {
     fun setupLog4j() { setupLog4jDebug() }
 
     @Test
-    fun test_rule_parameter() {
-        var artifactRule = ArtifactRuleImpl("-:$sourcePath")
-        assertEquals(artifactRule.rule, "-:$sourcePath")
-
-        artifactRule = ArtifactRuleImpl("$sourcePath!$archivePath")
-        assertEquals(artifactRule.rule, "$sourcePath!$archivePath")
-
-        artifactRule = ArtifactRuleImpl("$sourcePath=>$destinationPath")
-        assertEquals(artifactRule.rule, "$sourcePath=>$destinationPath")
-
-        artifactRule = ArtifactRuleImpl("+:$sourcePath!$archivePath=>$destinationPath")
-        assertEquals(artifactRule.rule, "+:$sourcePath!$archivePath=>$destinationPath")
-    }
-
-    @Test
     fun test_include_parameter() {
         var artifactRule = ArtifactRuleImpl("$sourcePath=>$destinationPath")
         assertTrue(artifactRule.include)
