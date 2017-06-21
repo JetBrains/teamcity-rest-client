@@ -191,6 +191,7 @@ interface FinishBuildTrigger {
     val afterSuccessfulBuildOnly: Boolean
     val includedBranchPatterns: Set<String>
     val excludedBranchPatterns: Set<String>
+}
 
 interface ArtifactDependency {
     val dependsOnBuildConfiguration: BuildConfiguration

@@ -304,6 +304,7 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
 
     override val excludedBranchPatterns: Set<String>
         get() = HashSet(branchPatterns.filter { it.startsWith("-:") }.map { it.substringAfter(":") })
+}
 
 private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
                                      private val service: TeamCityService) : ArtifactDependency {

@@ -149,6 +149,7 @@ internal class TriggerBean {
 
 internal class TriggersBean {
     var trigger: List<TriggerBean>? = ArrayList()
+}
 
 internal class ArtifactDependencyBean{
     var id: String? = null
