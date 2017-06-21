@@ -305,7 +305,7 @@ internal class ArtifactRuleImpl(private val pathRule: String) : ArtifactRule {
         get() = !pathRule.startsWith("-:")
 
     override val sourcePath: String
-        get() = pathRule.removePrefix("-:").substringBefore("=>").substringBefore("!")
+        get() = pathRule.substringBefore("=>").substringBefore("!").substringAfter(":")
 
     override val archivePath: String?
         get() = pathRule.substringBefore("=>").substringAfter("!", "").let { if (it != "") it else null }
