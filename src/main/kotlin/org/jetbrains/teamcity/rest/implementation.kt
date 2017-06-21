@@ -305,17 +305,13 @@ internal class ArtifactRuleImpl(private val pathRule: String) : ArtifactRule {
         get() = !pathRule.startsWith("-:")
 
     override val sourcePath: String
-        get() = pathRule.substringBefore("=>").substringBefore("!").substringAfter(":")
+        get() = pathRule.removePrefix("-:").substringBefore("=>").substringBefore("!")
 
     override val archivePath: String?
-        get() = pathRule.substringBefore("=>").substringAfter("!", "").let { path ->
-            return if (path != "") path else null
-        }
+        get() = pathRule.substringBefore("=>").substringAfter("!", "").let { if (it != "") it else null }
 
     override val destinationPath: String?
-        get() = pathRule.substringAfter("=>", "").let { path ->
-            return if (path != "") path else null
-        }
+        get() = pathRule.substringAfter("=>", "").let { if (it != "") it else null }
 }
 
 private class RevisionImpl(private val bean: RevisionBean) : Revision {
