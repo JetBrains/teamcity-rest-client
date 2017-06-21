@@ -191,7 +191,10 @@ interface FinishBuildTrigger {
 }
 
 interface BranchRule {
-    val rule: String
     val include: Boolean
-    val name: String
+    /**
+     * Branch name matched by branch specification (i.e. displayed for a build in TeamCity UI).
+     * Wildcard character ('*') can also be used.
+     */
+    val branchPattern: String
 }

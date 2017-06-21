@@ -15,26 +15,23 @@ class BranchRuleTest {
     fun test_branchRule_without_sign() {
         val branchRule = BranchRuleImpl("$branchName")
 
-        assertEquals(branchRule.rule, "$branchName")
         assertTrue(branchRule.include)
-        assertEquals(branchRule.name, branchName)
+        assertEquals(branchRule.branchPattern, branchName)
     }
 
     @Test
     fun test_branchRule_with_include_sign() {
         val branchRule = BranchRuleImpl("+:$branchName")
 
-        assertEquals(branchRule.rule, "+:$branchName")
         assertTrue(branchRule.include)
-        assertEquals(branchRule.name, branchName)
+        assertEquals(branchRule.branchPattern, branchName)
     }
 
     @Test
     fun test_branchRule_with_exclude_sign() {
         val branchRule = BranchRuleImpl("-:$branchName")
 
-        assertEquals(branchRule.rule, "-:$branchName")
         assertFalse(branchRule.include)
-        assertEquals(branchRule.name, branchName)
+        assertEquals(branchRule.branchPattern, branchName)
     }
 }

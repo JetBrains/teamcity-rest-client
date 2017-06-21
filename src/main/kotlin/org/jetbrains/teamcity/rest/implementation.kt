@@ -286,13 +286,10 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
 }
 
 internal class BranchRuleImpl(private val branchRule: String) : BranchRule {
-    override val rule: String
-        get() = branchRule
-
     override val include: Boolean
-        get() = branchRule.substring(0, 2) != "-:"
+        get() = !branchRule.startsWith("-:")
 
-    override val name: String
+    override val branchPattern: String
         get() = branchRule.substringAfter(":")
 }
 
