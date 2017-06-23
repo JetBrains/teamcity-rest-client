@@ -1,5 +1,9 @@
 package org.jetbrains.teamcity.rest
 
+import com.jakewharton.retrofit.Ok3Client
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Response
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
@@ -26,6 +30,24 @@ internal fun createHttpAuthInstance(serverUrl: String, username: String, passwor
     return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization, false)
 }
 
+private class RetryInterceptor : Interceptor {
+
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        var response = chain.proceed(request)
+
+        var tryCount = 0
+        while (!response.isSuccessful && tryCount < 3) {
+            tryCount++
+            LOG.warn("Request ${request.url()} is not successful, $tryCount sec waiting [$tryCount retry]")
+            Thread.sleep((tryCount * 1000).toLong())
+            response = chain.proceed(request)
+        }
+
+        return response
+    }
+}
+
 internal class TeamCityInstanceImpl(private val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
@@ -34,7 +56,12 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
 
+    private var client = OkHttpClient.Builder()
+            .addInterceptor(RetryInterceptor())
+            .build()
+
     private val service = RestAdapter.Builder()
+            .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
             .setLog({ RestLOG.debug(it) })
             .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
