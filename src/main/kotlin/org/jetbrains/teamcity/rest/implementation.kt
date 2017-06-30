@@ -153,17 +153,17 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
 
     override fun list(): List<Build> {
         val parameters = listOf(
-                buildConfigurationId?.stringId?.let {"buildType:$it"},
-                number?.let {"number:$it"},
-                status?.name?.let {"status:$it"},
+                buildConfigurationId?.stringId?.let { "buildType:$it" },
+                number?.let { "number:$it" },
+                status?.name?.let { "status:$it" },
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
-                count?.let {"count:$it"},
+                count?.let { "count:$it" },
 
                 if (!includeAllBranches)
-                    branch?.let {"branch:$it"}
+                    branch?.let { "branch:$it" }
                 else
                     "branch:default:any"
         ).filterNotNull()
@@ -413,8 +413,8 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
-    override fun fetchPinInfo() = fullBuildBean.pinInfo?.let {PinInfoImpl(it)}
-    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let {TriggeredImpl(it, service)}
+    override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it) }
+    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, service) }
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
