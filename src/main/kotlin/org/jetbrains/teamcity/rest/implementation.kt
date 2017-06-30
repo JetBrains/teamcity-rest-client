@@ -39,7 +39,6 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
             .setLog({ RestLOG.debug(it) })
             .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor({ request ->
-                request.addHeader("Accept", "application/json")
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }

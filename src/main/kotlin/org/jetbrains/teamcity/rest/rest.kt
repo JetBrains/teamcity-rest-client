@@ -62,6 +62,7 @@ internal interface TeamCityService {
     @GET("/app/rest/buildTypes/id:{id}/triggers")
     fun buildTypeTriggers(@Path("id") buildTypeId: String): TriggersBean
 
+    @Headers("Accept: application/json")
     @GET("/app/rest/buildTypes/id:{id}/artifact-dependencies")
     fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): ArtifactDependenciesBean
 
