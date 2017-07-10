@@ -40,11 +40,11 @@ internal interface TeamCityService {
 
     @Streaming
     @GET("/app/rest/builds/id:{id}/artifacts/content/{path}")
-    fun artifactContent(@Path("id") buildId: String, @Path("path") artifactPath: String): Response
+    fun artifactContent(@Path("id") buildId: String, @Path("path", encode = false) artifactPath: String): Response
 
     @Headers("Accept: application/json")
     @GET("/app/rest/builds/id:{id}/artifacts/children/{path}")
-    fun artifactChildren(@Path("id") buildId: String, @Path("path") artifactPath: String): ArtifactFileListBean
+    fun artifactChildren(@Path("id") buildId: String, @Path("path", encode = false) artifactPath: String): ArtifactFileListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/projects/id:{id}")
