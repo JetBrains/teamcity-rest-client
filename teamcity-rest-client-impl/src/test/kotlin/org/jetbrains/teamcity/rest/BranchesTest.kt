@@ -1,6 +1,5 @@
 package org.jetbrains.teamcity.rest
 
-import org.apache.log4j.*
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test

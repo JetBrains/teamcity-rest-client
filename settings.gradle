@@ -1,2 +1,5 @@
 rootProject.name = 'teamcity-rest-client'
 
+
+include 'teamcity-rest-client-api'
+include 'teamcity-rest-client-impl'

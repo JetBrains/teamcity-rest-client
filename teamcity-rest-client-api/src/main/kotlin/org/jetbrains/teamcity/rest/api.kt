@@ -17,12 +17,22 @@ abstract class TeamCityInstance {
     abstract fun rootProject(): Project
 
     companion object {
-        @JvmStatic
-        fun guestAuth(serverUrl: String): TeamCityInstance = createGuestAuthInstance(serverUrl)
+        private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
 
         @JvmStatic
+        @Deprecated("Use [TeamCityInstanceFactory] class instead", ReplaceWith("TeamCityInstanceFactory.guestAuth(serverUrl)", factoryFQN))
+        fun guestAuth(serverUrl: String): TeamCityInstance = TeamCityInstance::class.java.classLoader
+                .loadClass(factoryFQN)
+                .getMethod("guestAuth", String::class.java)
+                .invoke(null, serverUrl) as TeamCityInstance
+
+        @JvmStatic
+        @Deprecated("Use [TeamCityInstanceFactory] class instead", ReplaceWith("TeamCityInstanceFactory.httpAuth(serverUrl, username, password)", factoryFQN))
         fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
-                = createHttpAuthInstance(serverUrl, username, password)
+                = TeamCityInstance::class.java.classLoader
+                .loadClass(factoryFQN)
+                .getMethod("httpAuth", String::class.java, String::class.java, String::class.java)
+                .invoke(null, serverUrl, username, password) as TeamCityInstance
     }
 }
 
