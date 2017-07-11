@@ -41,4 +41,14 @@ class BuildTest {
 
         build.fetchStatusText()
     }
+
+    @Test
+    fun test_get_artifacts() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .limitResults(1)
+                .list().first()
+
+        build.getArtifacts("maven/org")
+    }
 }
