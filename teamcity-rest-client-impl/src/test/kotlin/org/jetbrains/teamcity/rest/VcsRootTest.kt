@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertNotNull
+import junit.framework.TestCase.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -18,8 +19,7 @@ class VcsRootTest {
     @Test
     fun access_to_vcs_root_requires_credential() {
         val vcsRootLocator = vcsRootsFromPublicInstance()
-        val vcsRootList = vcsRootLocator.list()
-        assertEquals(0, vcsRootList.size)
+        vcsRootLocator.list()
     }
 
     @Ignore("teamcity_connection.properties should be updated;" +
