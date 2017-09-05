@@ -49,41 +49,52 @@ dependencies {
     compile project(':teamcity-rest-client-impl')
 }
 
-allprojects {
-    group = 'org.jetbrains.teamcity'
-    if (hasProperty("buildNumber")) {
-        version = "$buildNumber"
-    }
-    apply plugin: 'maven-publish'
-    task sourceJar(type: Jar) {
+group = 'org.jetbrains.teamcity'
+if (hasProperty("buildNumber")) {
+    version = "$buildNumber"
+}
+
+apply plugin: 'maven-publish'
+
+task sourceJar(type: Jar) {
+    subprojects {
         from sourceSets.main.kotlin
     }
-    artifacts {
-        archives sourceJar
+}
+task mainJar(type: Jar) {
+    subprojects {
+        dependsOn it.classes
     }
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                from components.java
-                artifact sourceJar {
-                    classifier "sources"
-                }
+    subprojects {
+        from it.sourceSets.main.output
+    }
+}
+artifacts {
+    archives sourceJar, mainJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact mainJar
+            artifact sourceJar {
+                classifier "sources"
             }
         }
     }
-    if (hasProperty("bintrayUser")) {
-        bintray {
-            user = bintrayUser
-            key = bintrayApiKey
-            publish = true
-            publications = ['mavenJava']
-            pkg {
-                userOrg = 'jetbrains'
-                repo = "teamcity-rest-client"
-                name = "teamcity-rest-client"
-                version {
-                    name = "$buildNumber"
-                }
+}
+if (hasProperty("bintrayUser")) {
+    bintray {
+        user = bintrayUser
+        key = bintrayApiKey
+        publish = true
+        publications = ['mavenJava']
+        pkg {
+            userOrg = 'jetbrains'
+            repo = "teamcity-rest-client"
+            name = "teamcity-rest-client"
+            version {
+                name = "$buildNumber"
             }
         }
     }
