@@ -26,4 +26,20 @@ class ProjectTest {
         assertEquals("Compiler and Plugin", configuration.name)
         assertEquals(kotlinProject, configuration.projectId)
     }
+
+    @Test
+    fun `webUrl with default parameters`() {
+        val proj = publicInstance().project(kotlinProject)
+        kotlin.test.assertEquals(
+                "$publicInstanceUrl/project.html?projectId=${kotlinProject.stringId}",
+                proj.getWebUrl())
+    }
+
+    @Test
+    fun `webUrl with branch`() {
+        val proj = publicInstance().project(kotlinProject)
+        kotlin.test.assertEquals(
+                "$publicInstanceUrl/project.html?projectId=${kotlinProject.stringId}&branch=%3Cdefault%3E",
+                proj.getWebUrl(branch = "<default>"))
+    }
 }

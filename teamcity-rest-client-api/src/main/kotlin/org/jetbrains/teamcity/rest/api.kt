@@ -82,6 +82,11 @@ interface Project {
     val archived: Boolean
     val parentProjectId: ProjectId
 
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getWebUrl(branch: String? = null): String
+
     fun fetchChildProjects(): List<Project>
     fun fetchBuildConfigurations(): List<BuildConfiguration>
     fun fetchParameters(): List<Parameter>
@@ -94,6 +99,11 @@ interface BuildConfiguration {
     val name: String
     val projectId: ProjectId
     val paused: Boolean
+
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getWebUrl(branch: String? = null): String
 
     fun fetchBuildTags(): List<String>
 
@@ -121,6 +131,11 @@ interface Build {
     val buildNumber: String
     val status: BuildStatus
     val branch: Branch
+
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getWebUrl(): String
 
     fun fetchStatusText(): String
     fun fetchQueuedDate(): Date
@@ -153,6 +168,11 @@ interface Change {
     val user: User?
     val date: Date
     val comment: String
+
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 }
 
 interface User {

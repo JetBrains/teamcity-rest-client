@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class BuildTest {
     @Before
@@ -50,5 +51,18 @@ class BuildTest {
                 .list().first()
 
         build.getArtifacts("maven/org")
+    }
+
+    @Test
+    fun test_get_webUrl() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .limitResults(1)
+                .list().first()
+
+        assertEquals(
+                "$publicInstanceUrl/viewLog.html?tab=buildResultsDiv&buildId=${build.id.stringId}",
+                build.getWebUrl()
+        )
     }
 }
