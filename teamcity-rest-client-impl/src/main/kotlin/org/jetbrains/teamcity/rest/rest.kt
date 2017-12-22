@@ -134,7 +134,7 @@ internal class QueuedBuildListBean {
 internal open class QueuedBuildBean {
     var id: String? = null
     var buildTypeId: String? = null
-    var state: QueuedBuildStatus? = null
+    var state: String? = null
     var branchName: String? = null
     var defaultBranch: Boolean? = null
 

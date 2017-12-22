@@ -503,7 +503,11 @@ private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val ser
         get() = BuildConfigurationId(bean.buildTypeId!!)
 
     override val status: QueuedBuildStatus
-        get() = bean.state!!
+        get() = when (bean.state!!) {
+            "queued" -> QueuedBuildStatus.QUEUED
+            "finished" -> QueuedBuildStatus.FINISHED
+            else -> error("Unknown queued build status: " + bean.state)
+        }
 
     override val branch: Branch
         get() = object : Branch {
