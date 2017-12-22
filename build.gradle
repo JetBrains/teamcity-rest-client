@@ -39,6 +39,7 @@ configure(project(':teamcity-rest-client-impl')) {
 
         testCompile 'junit:junit:4.12'
         testCompile 'org.slf4j:slf4j-log4j12:1.7.12'
+        testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
 
         compile project(':teamcity-rest-client-api')
     }

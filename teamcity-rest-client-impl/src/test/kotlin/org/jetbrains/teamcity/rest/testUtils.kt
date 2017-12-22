@@ -18,9 +18,9 @@ fun setupLog4jDebug() {
 
 val publicInstanceUrl = "https://teamcity.jetbrains.com"
 
-fun publicInstance() = TeamCityInstance.guestAuth(publicInstanceUrl).withLogResponses()
+fun publicInstance() = TeamCityInstanceFactory.guestAuth(publicInstanceUrl).withLogResponses()
 
-fun customInstance(serverUrl: String, username: String, password: String) = TeamCityInstance
+fun customInstance(serverUrl: String, username: String, password: String) = TeamCityInstanceFactory
         .httpAuth(serverUrl, username, password)
         .withLogResponses()
 

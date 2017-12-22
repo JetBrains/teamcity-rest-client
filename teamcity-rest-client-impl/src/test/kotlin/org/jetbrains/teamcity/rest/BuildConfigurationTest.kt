@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class BuildConfigurationTest {
 
@@ -23,4 +24,19 @@ class BuildConfigurationTest {
         Assert.assertFalse(pausedBuildConfiguration.paused)
     }
 
+    @Test
+    fun `webUrl with default parameters`() {
+        val conf = publicInstance().buildConfiguration(compilerAndPluginConfiguration)
+        assertEquals(
+                "$publicInstanceUrl/viewType.html?buildTypeId=${compilerAndPluginConfiguration.stringId}",
+                conf.getWebUrl())
+    }
+
+    @Test
+    fun `webUrl with branch`() {
+        val conf = publicInstance().buildConfiguration(compilerAndPluginConfiguration)
+        assertEquals(
+                "$publicInstanceUrl/viewType.html?buildTypeId=${compilerAndPluginConfiguration.stringId}&branch=%3Cdefault%3E",
+                conf.getWebUrl(branch = "<default>"))
+    }
 }

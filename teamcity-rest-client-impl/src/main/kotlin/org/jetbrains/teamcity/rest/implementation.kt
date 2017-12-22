@@ -11,6 +11,7 @@ import retrofit.mime.TypedString
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -77,24 +78,24 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun builds(): BuildLocator = BuildLocatorImpl(service, serverUrl)
 
     override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
-        return service.queuedBuilds(if (projectId==null) null else "project:${projectId.stringId}").build.map { 
+        return service.queuedBuilds(if (projectId==null) null else "project:${projectId.stringId}").build.map {
             QueuedBuildImpl(it, service)
         }
     }
 
-    override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
+    override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service, serverUrl)
 
     override fun build(buildType: BuildConfigurationId, number: String): Build?
             = BuildLocatorImpl(service, serverUrl).fromConfiguration(buildType).withNumber(number).latest()
 
     override fun buildConfiguration(id: BuildConfigurationId):
-            BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service)
+            BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), service, serverUrl)
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
 
     override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId))
 
-    override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
+    override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service, serverUrl)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 }
@@ -180,7 +181,7 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
 
         val buildLocator = parameters.joinToString(",")
         LOG.debug("Retrieving builds from $serverUrl using query '$buildLocator'")
-        return service.builds(buildLocator).build.map { BuildImpl(it, false, service) }
+        return service.builds(buildLocator).build.map { BuildImpl(it, false, service, serverUrl) }
     }
 
     override fun pinnedOnly(): BuildLocator {
@@ -192,7 +193,11 @@ private class BuildLocatorImpl(private val service: TeamCityService, private val
 private class ProjectImpl(
         private val bean: ProjectBean,
         private val isFullProjectBean: Boolean,
-        private val service: TeamCityService) : Project {
+        private val service: TeamCityService,
+        private val serverUrl: String) : Project {
+
+    override fun getWebUrl(branch: String?): String =
+            getUserUrlPage(serverUrl, "project.html", projectId = id, branch = branch)
 
     override val id: ProjectId
         get() = ProjectId(bean.id!!)
@@ -210,8 +215,8 @@ private class ProjectImpl(
         if (isFullProjectBean) bean else service.project(id.stringId)
     }
 
-    override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { ProjectImpl(it, false, service) }
-    override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullProjectBean.buildTypes!!.buildType.map { BuildConfigurationImpl(it, service) }
+    override fun fetchChildProjects(): List<Project> = fullProjectBean.projects!!.project.map { ProjectImpl(it, false, service, serverUrl) }
+    override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullProjectBean.buildTypes!!.buildType.map { BuildConfigurationImpl(it, service, serverUrl) }
     override fun fetchParameters(): List<Parameter> = fullProjectBean.parameters!!.property!!.map { ParameterImpl(it) }
 
     override fun setParameter(name: String, value: String) {
@@ -221,7 +226,12 @@ private class ProjectImpl(
 }
 
 private class BuildConfigurationImpl(private val bean: BuildTypeBean,
-                                     private val service: TeamCityService) : BuildConfiguration {
+                                     private val service: TeamCityService,
+                                     private val serverUrl: String) : BuildConfiguration {
+    override fun getWebUrl(branch: String?): String =
+        getUserUrlPage(serverUrl, "viewType.html",
+                buildTypeId = id, branch = branch)
+
     override val name: String
         get() = bean.name!!
 
@@ -246,7 +256,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
             List<ArtifactDependency> = service.buildTypeArtifactDependencies(id.stringId)
                                               .`artifact-dependency`
                                               ?.filter { it.disabled == false }
-                                              ?.map { ArtifactDependencyImpl(it, service) }.orEmpty()
+                                              ?.map { ArtifactDependencyImpl(it, service, serverUrl) }.orEmpty()
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
@@ -261,7 +271,15 @@ private class VcsRootLocatorImpl(private val service: TeamCityService) : VcsRoot
     }
 }
 
-private class ChangeImpl(private val bean: ChangeBean) : Change {
+private class ChangeImpl(private val bean: ChangeBean,
+                         private val serverUrl: String) : Change {
+    override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
+            getUserUrlPage(
+                    serverUrl, "viewModification.html",
+                    modId = id,
+                    buildTypeId = specificBuildConfigurationId,
+                    personal = includePersonalBuilds)
+
     override val id: ChangeId
         get() = ChangeId(bean.id!!)
 
@@ -300,11 +318,13 @@ private class PinInfoImpl(bean: PinInfoBean) : PinInfo {
     override val time = teamCityServiceDateFormat.get().parse(bean.timestamp!!)
 }
 
-private class TriggeredImpl(private val bean: TriggeredBean, private val service: TeamCityService) : TriggeredInfo {
+private class TriggeredImpl(private val bean: TriggeredBean,
+                            private val service: TeamCityService,
+                            private val serverUrl: String) : TriggeredInfo {
     override val user: User?
         get() = if (bean.user != null) UserImpl(bean.user!!) else null
     override val build: Build?
-        get() = if (bean.build != null) BuildImpl(bean.build, false, service) else null
+        get() = if (bean.build != null) BuildImpl(bean.build, false, service, serverUrl) else null
 }
 
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
@@ -340,10 +360,11 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
 }
 
 private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
-                                     private val service: TeamCityService) : ArtifactDependency {
+                                     private val service: TeamCityService,
+                                     private val serverUrl: String) : ArtifactDependency {
 
     override val dependsOnBuildConfiguration: BuildConfiguration
-        get() = BuildConfigurationImpl(bean.`source-buildType`, service)
+        get() = BuildConfigurationImpl(bean.`source-buildType`, service, serverUrl)
 
     override val branch: String?
         get () = findPropertyByName("revisionBranch")
@@ -391,7 +412,15 @@ private data class BranchImpl(
 
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,
-                        private val service: TeamCityService) : Build {
+                        private val service: TeamCityService,
+                        private val serverUrl: String) : Build {
+    override fun getWebUrl(): String =
+            getUserUrlPage(
+                    serverUrl, "viewLog.html",
+                    buildId = id,
+                    tab = "buildResultsDiv"
+            )
+
     override val id: BuildId
         get() = BuildId(bean.id!!)
 
@@ -420,7 +449,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it) }
-    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, service) }
+    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, service, serverUrl) }
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
@@ -429,7 +458,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchChanges(): List<Change> = service.changes(
             "build:${id.stringId}",
             "change(id,version,username,user,date,comment)")
-            .change!!.map { ChangeImpl(it) }
+            .change!!.map { ChangeImpl(it, serverUrl) }
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")
@@ -540,4 +569,29 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()
+}
+
+private fun String.urlencode(): String = URLEncoder.encode(this, "UTF-8")
+
+private fun getUserUrlPage(serverUrl: String,
+                           pageName: String,
+                           tab: String? = null,
+                           projectId: ProjectId? = null,
+                           buildId: BuildId? = null,
+                           modId: ChangeId? = null,
+                           personal: Boolean? = null,
+                           buildTypeId: BuildConfigurationId? = null,
+                           branch: String? = null): String {
+    val params = mutableListOf<String>()
+
+    tab?.let { params.add("tab=" + tab.urlencode()) }
+    projectId?.let { params.add("projectId=" + projectId.stringId.urlencode()) }
+    buildId?.let { params.add("buildId=" + buildId.stringId.urlencode()) }
+    modId?.let { params.add("modId=" + modId.stringId.urlencode()) }
+    personal?.let { params.add("personal=" + if (personal) "true" else "false") }
+    buildTypeId?.let { params.add("buildTypeId=" + buildTypeId.stringId.urlencode()) }
+    branch?.let { params.add("branch=" + branch.urlencode()) }
+
+    return "${serverUrl.trimEnd('/')}/${pageName}" +
+            if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
 }
