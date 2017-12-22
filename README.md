@@ -11,3 +11,18 @@ build!!.downloadArtifacts("*.zip", File("out"))
 ```
 # Published on bintray
 https://bintray.com/jetbrains/teamcity-rest-client/teamcity-rest-client/view
+
+
+You can add the dependency in your build.gradle file:
+
+```gradle
+repositories {
+    jcenter()
+    maven { url "http://dl.bintray.com/jetbrains/teamcity-rest-client" }
+}
+
+dependencies {
+    ext.teamcity_client_version = '0.1.82'
+    compile "org.jetbrains.teamcity:teamcity-rest-client:$teamcity_client_version"
+}
+```
