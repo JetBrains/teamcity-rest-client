@@ -7,6 +7,7 @@ abstract class TeamCityInstance {
     abstract fun withLogResponses(): TeamCityInstance
 
     abstract fun builds(): BuildLocator
+    abstract fun queuedBuilds(projectId: ProjectId? = null): List<QueuedBuild>
 
     abstract fun build(id: BuildId): Build
     abstract fun build(buildType: BuildConfigurationId, number: String): Build?
@@ -144,6 +145,18 @@ interface Build {
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
+}
+
+interface QueuedBuild {
+    val id: BuildId
+    val buildConfigurationId: String
+    val status: QueuedBuildStatus
+    val branch : Branch
+}
+
+enum class QueuedBuildStatus {
+    queued,
+    finished
 }
 
 interface Change {
