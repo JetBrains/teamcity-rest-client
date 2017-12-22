@@ -499,7 +499,7 @@ private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val ser
     override val id: BuildId
         get() = BuildId(bean.id!!)
 
-    override val buildConfigurationId: String
+    override val buildTypeId: String
         get() = bean.buildTypeId!!
 
     override val status: QueuedBuildStatus

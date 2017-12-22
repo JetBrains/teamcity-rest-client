@@ -149,7 +149,7 @@ interface Build {
 
 interface QueuedBuild {
     val id: BuildId
-    val buildConfigurationId: String
+    val buildTypeId: String
     val status: QueuedBuildStatus
     val branch : Branch
 }
