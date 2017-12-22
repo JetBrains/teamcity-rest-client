@@ -45,10 +45,11 @@ class BuildTest {
     @Test
     fun test_get_artifacts() {
         val build = publicInstance().builds()
-                .fromConfiguration(compilerAndPluginConfiguration)
+                .fromConfiguration(kotlinDevCompilerAllPlugins)
                 .limitResults(1)
                 .list().first()
 
-        build.getArtifacts("maven/org")
+        val artifacts = build.getArtifacts("internal")
+        Assert.assertTrue(artifacts.any { it.fileName == "dependencies.properties"})
     }
 }

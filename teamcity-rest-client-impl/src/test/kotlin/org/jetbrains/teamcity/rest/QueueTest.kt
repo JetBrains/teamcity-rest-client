@@ -11,11 +11,17 @@ class QueueTest {
 
     @Test
     fun test_all() {
-        publicInstance().queuedBuilds().forEach { println(it) }
+        publicInstance().queuedBuilds().forEach {
+            it.toString() // toString prints all properties thus evaluating them
+            println(it)
+        }
     }
 
     @Test
     fun test_kotlin_dev() {
-        publicInstance().queuedBuilds(ProjectId("Kotlin_dev")).forEach { println(it) }
+        publicInstance().queuedBuilds(ProjectId("Kotlin_dev")).forEach {
+            it.toString() // toString prints all properties thus evaluating them
+            println(it)
+        }
     }
 }

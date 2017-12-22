@@ -21,9 +21,9 @@ class ProjectTest {
 
     @Test
     fun `build configuration by id`() {
-        val configuration = publicInstance().buildConfiguration(compilerAndPluginConfiguration)
-        assertEquals(compilerAndPluginConfiguration, configuration.id)
-        assertEquals("Compiler and Plugin", configuration.name)
+        val configuration = publicInstance().buildConfiguration(compileExamplesConfiguration)
+        assertEquals(compileExamplesConfiguration, configuration.id)
+        assertEquals("Compile Kotlin examples", configuration.name)
         assertEquals(kotlinProject, configuration.projectId)
     }
 }
