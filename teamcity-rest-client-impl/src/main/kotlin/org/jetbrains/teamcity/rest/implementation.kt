@@ -395,8 +395,8 @@ private class BuildImpl(private val bean: BuildBean,
     override val id: BuildId
         get() = BuildId(bean.id!!)
 
-    override val buildTypeId: String
-        get() = bean.buildTypeId!!
+    override val buildTypeId: BuildConfigurationId
+        get() = BuildConfigurationId(bean.buildTypeId!!)
 
     override val buildNumber: String
         get() = bean.number!!
@@ -499,8 +499,8 @@ private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val ser
     override val id: BuildId
         get() = BuildId(bean.id!!)
 
-    override val buildTypeId: String
-        get() = bean.buildTypeId!!
+    override val buildTypeId: BuildConfigurationId
+        get() = BuildConfigurationId(bean.buildTypeId!!)
 
     override val status: QueuedBuildStatus
         get() = bean.state!!
@@ -515,7 +515,7 @@ private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val ser
         }
 
     override fun toString(): String {
-        return "QueuedBuild{id=${bean.id}, typeId=${bean.buildTypeId}, state=${bean.state}, branch=${bean.branchName}}"
+        return "QueuedBuild{id=${id.stringId}, typeId=${buildTypeId.stringId}, state=$status, branch=${branch.name}, branchIsDefault=${branch.isDefault}"
     }
 }
 

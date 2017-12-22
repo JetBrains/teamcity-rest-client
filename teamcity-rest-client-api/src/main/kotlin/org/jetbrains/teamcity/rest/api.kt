@@ -118,7 +118,7 @@ interface Branch {
 
 interface Build {
     val id: BuildId
-    val buildTypeId: String
+    val buildTypeId: BuildConfigurationId
     val buildNumber: String
     val status: BuildStatus
     val branch: Branch
@@ -149,14 +149,14 @@ interface Build {
 
 interface QueuedBuild {
     val id: BuildId
-    val buildTypeId: String
+    val buildTypeId: BuildConfigurationId
     val status: QueuedBuildStatus
     val branch : Branch
 }
 
 enum class QueuedBuildStatus {
-    queued,
-    finished
+    QUEUED,
+    FINISHED
 }
 
 interface Change {
