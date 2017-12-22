@@ -22,7 +22,6 @@ repositories {
 }
 
 dependencies {
-    ext.teamcity_client_version = '0.1.82'
-    compile "org.jetbrains.teamcity:teamcity-rest-client:$teamcity_client_version"
+    compile "org.jetbrains.teamcity:teamcity-rest-client:0.1.82"
 }
 ```
