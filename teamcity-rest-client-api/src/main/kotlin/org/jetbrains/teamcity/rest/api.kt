@@ -17,6 +17,12 @@ abstract class TeamCityInstance {
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
 
+    abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
+    abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
+    abstract fun getWebUrl(buildId: BuildId): String
+    abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
+    abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+
     companion object {
         private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
 
@@ -70,6 +76,8 @@ interface BuildLocator {
 data class ProjectId(val stringId: String)
 
 data class BuildId(val stringId: String)
+
+data class QueuedBuildId(val stringId: String)
 
 data class ChangeId(val stringId: String)
 
@@ -163,10 +171,12 @@ interface Build {
 }
 
 interface QueuedBuild {
-    val id: BuildId
+    val id: QueuedBuildId
     val buildTypeId: BuildConfigurationId
     val status: QueuedBuildStatus
     val branch : Branch
+
+    fun getWebUrl(): String
 }
 
 enum class QueuedBuildStatus {

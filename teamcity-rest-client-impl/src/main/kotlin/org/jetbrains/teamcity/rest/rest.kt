@@ -13,7 +13,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/buildQueue")
-    fun queuedBuilds(@Query("locator") buildLocator: String?): QueuedBuildListBean    
+    fun queuedBuilds(@Query("locator") locator: String?): QueuedBuildListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/builds/id:{id}")
