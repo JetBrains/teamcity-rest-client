@@ -68,6 +68,8 @@ interface BuildLocator {
     fun pinnedOnly(): BuildLocator
 
     fun limitResults(count: Int): BuildLocator
+    
+    fun sinceDate(date: Date) : BuildLocator
 
     fun latest(): Build?
     fun list(): List<Build>

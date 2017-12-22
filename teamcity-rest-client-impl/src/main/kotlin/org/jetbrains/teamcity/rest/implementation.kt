@@ -125,6 +125,7 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
     private var number: String? = null
+    private var sinceDate: Date? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
@@ -162,6 +163,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun sinceDate(date: Date): BuildLocator {
+        this.sinceDate = date
+        return this
+    }
+
     override fun withAllBranches(): BuildLocator {
         if (branch != null) {
             LOG.warn("Branch is ignored because of #withAllBranches")
@@ -190,6 +196,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
                 count?.let { "count:$it" },
+
+                sinceDate?.let {"sinceDate:${teamCityServiceDateFormat.get().format(sinceDate)}"},
 
                 if (!includeAllBranches)
                     branch?.let { "branch:$it" }

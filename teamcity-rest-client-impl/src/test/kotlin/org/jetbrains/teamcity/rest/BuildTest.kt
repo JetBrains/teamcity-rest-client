@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import java.util.*
 import kotlin.test.assertEquals
 
 class BuildTest {
@@ -19,6 +20,22 @@ class BuildTest {
                 .list()
 
         println(builds.joinToString("\n"))
+    }
+    
+    @Test
+    fun since_date() {
+        val monthAgo = GregorianCalendar()
+        monthAgo.add(Calendar.MONTH, -1)
+        
+        val builds = publicInstance().builds()
+                .fromConfiguration(compileExamplesConfiguration)
+                .limitResults(3)
+                .sinceDate(monthAgo.time)
+                .list()
+
+        for (build in builds) {
+            assert(build.fetchStartDate() >= monthAgo.time)
+        }
     }
 
     @Test
