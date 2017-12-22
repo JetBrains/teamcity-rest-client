@@ -76,6 +76,12 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
 
     override fun builds(): BuildLocator = BuildLocatorImpl(service, serverUrl)
 
+    override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
+        return service.queuedBuilds(if (projectId==null) null else "project:${projectId.stringId}").build.map { 
+            QueuedBuildImpl(it, service)
+        }
+    }
+
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, service)
 
     override fun build(buildType: BuildConfigurationId, number: String): Build?
@@ -486,6 +492,30 @@ private class BuildImpl(private val bean: BuildBean,
         }
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
+}
+
+private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val service: TeamCityService) : QueuedBuild {
+    override val id: BuildId
+        get() = BuildId(bean.id!!)
+
+    override val buildConfigurationId: String
+        get() = bean.buildTypeId!!
+
+    override val status: QueuedBuildStatus
+        get() = bean.state!!
+
+    override val branch: Branch
+        get() = object : Branch {
+            override val isDefault: Boolean
+                get() = bean.defaultBranch ?: name == null
+
+            override val name: String?
+                get() = bean.branchName
+        }
+
+    override fun toString(): String {
+        return "QueuedBuild{id=${bean.id}, typeId=${bean.buildTypeId}, state=${bean.state}, branch=${bean.branchName}}"
     }
 }
 
