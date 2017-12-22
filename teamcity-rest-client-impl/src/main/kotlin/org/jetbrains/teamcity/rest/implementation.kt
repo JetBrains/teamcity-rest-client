@@ -91,6 +91,10 @@ internal class TeamCityInstanceImpl(private val serverUrl: String,
     override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, service)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
+
+    override fun buildQueueSize(): Int = service.buildQueue().build.size
+
+    override fun buildQueueSize(id: ProjectId) = service.buildQueue("project:${id.stringId}").build.size
 }
 
 private class BuildLocatorImpl(private val service: TeamCityService, private val serverUrl: String) : BuildLocator {

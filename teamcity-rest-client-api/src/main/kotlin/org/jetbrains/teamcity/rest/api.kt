@@ -15,6 +15,8 @@ abstract class TeamCityInstance {
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
+    abstract fun buildQueueSize(): Int
+    abstract fun buildQueueSize(id: ProjectId): Int
 
     companion object {
         private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
