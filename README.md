@@ -22,6 +22,6 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.teamcity:teamcity-rest-client:0.1.82"
+    compile "org.jetbrains.teamcity:teamcity-rest-client:PACKAGE_VERSION"
 }
 ```
