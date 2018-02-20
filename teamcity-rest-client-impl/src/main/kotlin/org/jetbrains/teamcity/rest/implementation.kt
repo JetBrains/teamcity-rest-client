@@ -12,6 +12,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URLEncoder
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -120,6 +121,10 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
                 modId = changeId,
                 buildTypeId = specificBuildConfigurationId,
                 personal = includePersonalBuilds)
+
+    override fun buildQueue(): BuildQueue = BuildQueueImpl(service)
+
+    override fun buildResults(): BuildResults = BuildResultsImpl(service)
 }
 
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
@@ -349,6 +354,15 @@ private class TriggeredImpl(private val bean: TriggeredBean,
         get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
 }
 
+private class TriggeredBuildImpl(private val bean: TriggeredBuildBean): TriggeredBuild {
+    override val id: Int
+        get() = bean.id!!
+    override val buildTypeId: String
+        get() = bean.buildTypeId!!
+    override fun toString() =
+            "TriggeredBuildImpl{id=$id, buildTypeId=$buildTypeId}"
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -448,8 +462,14 @@ private class BuildImpl(private val bean: BuildBean,
     override val status: BuildStatus
         get() = bean.status!!
 
+    override val state: String
+        get() = bean.state!!
+
     override val branch: Branch
         get() = BranchImpl(bean.branchName, bean.isDefaultBranch ?: (bean.branchName == null))
+
+    override val name: String
+        get() = bean.buildType!!.name!!
 
     val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else instance.service.build(id.stringId)
@@ -465,6 +485,27 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it) }
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
+
+    override fun fetchTests() = instance.service.tests(locator = "build:(id:${id.stringId})", fields = TestOccurrence.filter).testOccurrence.map {
+        object : TestInfo {
+            override val name = it.name!!
+            override val status = when {
+                it.ignored == true -> TestStatus.IGNORED
+                it.status == "FAILURE" -> TestStatus.FAILED
+                it.status == "SUCCESS" -> TestStatus.SUCCESSFUL
+                else -> TestStatus.UNKNOWN
+            }
+            override val duration = it.duration ?: 1L
+
+            override val details = when (status) {
+                TestStatus.IGNORED -> it.ignoreDetails
+                TestStatus.FAILED -> it.details
+                else -> null
+            } ?: ""
+
+            override fun toString() = "Test{name=$name, status=$status, duration=$duration, details=$details}"
+        }
+    }
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
@@ -529,13 +570,27 @@ private class BuildImpl(private val bean: BuildBean,
         LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
 
         output.parentFile.mkdirs()
-        val response = instance.service.artifactContent(id.stringId, artifactPath)
-        val input = response.body.`in`()
-        BufferedOutputStream(FileOutputStream(output)).use {
-            input.copyTo(it)
+        FileOutputStream(output).use {
+            downloadArtifactImpl(artifactPath, it)
         }
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
+
+    override fun downloadArtifact(artifactPath: String, output: OutputStream) {
+        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
+
+        downloadArtifactImpl(artifactPath, output)
+
+        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
+
+    private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
+        val response = instance.service.artifactContent(id.stringId, artifactPath)
+        val input = response.body.`in`()
+        BufferedOutputStream(output).use {
+            input.copyTo(it)
+        }
     }
 }
 
@@ -581,6 +636,22 @@ private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
 private class BuildArtifactImpl(private val build: Build, override val fileName: String, override val size: Long?, override val modificationTime: Date) : BuildArtifact {
     override fun download(output: File) {
         build.downloadArtifact(fileName, output)
+    }
+}
+
+private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
+    override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
+          return TriggeredBuildImpl(service.triggerBuild(triggerRequest))
+    }
+
+    override fun cancelBuild(id: BuildId, cancelRequest: BuildCancelRequest) {
+        service.cancelBuild(id.stringId, cancelRequest)
+    }
+}
+
+private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
+    override fun tests(id: BuildId) {
+        service.tests("build:${id.stringId}")
     }
 }
 

@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.1.4-3'
+    ext.kotlin_version = '1.2.21'
 
     repositories {
         mavenCentral()
@@ -50,9 +50,13 @@ dependencies {
     compile project(':teamcity-rest-client-impl')
 }
 
-group = 'org.jetbrains.teamcity'
-if (hasProperty("buildNumber")) {
+group = 'org.teamcity.buildPipelines'
+if (rootProject.hasProperty('teamcity')) {
+    version = rootProject['teamcity']['build.number']
+} else if (hasProperty("buildNumber")) {
     version = "$buildNumber"
+} else {
+    version = "SNAPSHOT"
 }
 
 apply plugin: 'maven-publish'
@@ -75,6 +79,17 @@ artifacts {
 }
 
 publishing {
+
+    if (version ==~ /([\d]+\.?)+/ ) {
+        repositories {
+            maven {
+                // change to point to your repo, e.g. http://my.org/repo
+                url "http://repo.labs.intellij.net/hackathon2017-teamcity-pipelines"
+            }
+        }
+    }
+
+
     publications {
         mavenJava(MavenPublication) {
             artifact mainJar
@@ -117,6 +132,6 @@ if (hasProperty("bintrayUser")) {
 }
 
 task wrapper(type: Wrapper) {
-  gradleVersion = '4.1'
+  gradleVersion = '4.5.1'
   distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }

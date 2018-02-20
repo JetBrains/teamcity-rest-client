@@ -24,6 +24,10 @@ internal interface TeamCityService {
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/testOccurrences/")
+    fun tests(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
     fun vcsRoots(): VcsRootListBean
 
@@ -75,6 +79,18 @@ internal interface TeamCityService {
 
     @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
     fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/buildQueue")
+    fun triggerBuild(@Body value: TriggerRequest): TriggeredBuildBean
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/builds/id:{id}")
+    fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequest): Response
+
+    @GET("/app/rest/testOccurrences")
+    fun tests(@Query("locator") locator: String): Response
+
 }
 
 internal class ProjectsBean {
@@ -110,6 +126,7 @@ internal open class BuildBean {
     var buildTypeId: String? = null
     var number: String? = null
     var status: BuildStatus? = null
+    var state: String? = null
     var branchName: String? = null
     var isDefaultBranch: Boolean? = null
 
@@ -125,6 +142,8 @@ internal open class BuildBean {
     var triggered: TriggeredBean? = null
 
     var properties: ParametersBean? = ParametersBean()
+    var webUrl: String? = null
+    var buildType: BuildTypeBean? = BuildTypeBean()
 }
 
 internal class QueuedBuildListBean {
@@ -234,6 +253,11 @@ internal class TriggeredBean {
     val build: BuildBean? = null
 }
 
+internal class TriggeredBuildBean {
+    val id: Int? = null
+    val buildTypeId: String? = null
+}
+
 internal class RevisionsBean {
     var revision: List<RevisionBean>? = ArrayList()
 }
@@ -242,4 +266,22 @@ internal class RevisionBean {
     var version: String? = null
     var vcsBranchName: String? = null
     var `vcs-root-instance`: VcsRootBean? = null
+}
+
+
+internal open class TestOccurrencesBean {
+  var testOccurrence: List<TestOccurrence> = ArrayList()
+}
+
+internal open class TestOccurrence {
+    var name: String? = null
+    var status: String? = null
+    var ignored: Boolean? = null
+    var duration: Long? = null
+    var ignoreDetails: String? = null
+    var details: String? = null
+
+    companion object {
+        val filter = "testOccurrence(name,status,ignored,duration,ignoreDetails,details)"
+    }
 }

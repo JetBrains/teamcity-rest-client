@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
+import java.io.OutputStream
 import java.util.*
 
 abstract class TeamCityInstance {
@@ -16,6 +17,8 @@ abstract class TeamCityInstance {
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
+    abstract fun buildQueue(): BuildQueue
+    abstract fun buildResults(): BuildResults
 
     abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
@@ -68,7 +71,7 @@ interface BuildLocator {
     fun pinnedOnly(): BuildLocator
 
     fun limitResults(count: Int): BuildLocator
-    
+
     fun sinceDate(date: Date) : BuildLocator
 
     fun latest(): Build?
@@ -86,6 +89,18 @@ data class ChangeId(val stringId: String)
 data class BuildConfigurationId(val stringId: String)
 
 data class VcsRootId(val stringId: String)
+
+class TriggerRequest(val buildTypeId: BuildConfigurationId, parameters: Map<String, String> = hashMapOf()) {
+    val properties: Parameters = Parameters(parameters.map { entry -> Property(entry.key, entry.value) }.toList())
+
+    constructor(build: Build) : this(build.buildTypeId, build.fetchParameters().associate { it.name to if (it.value == null) "" else it.value!! })
+}
+
+data class BuildCancelRequest(val comment: String = "", val readdIntoQueue: Boolean = false)
+
+data class Parameters(val property: List<Property> = emptyList())
+
+data class Property(val name: String, val value: String)
 
 interface Project {
     val id: ProjectId
@@ -142,6 +157,8 @@ interface Build {
     val buildNumber: String
     val status: BuildStatus
     val branch: Branch
+    val state: String
+    val name: String
 
     /**
      * Web UI URL for user, especially useful for error and log messages
@@ -163,12 +180,16 @@ interface Build {
 
     fun fetchTriggeredInfo(): TriggeredInfo?
 
+    //TODO: support paging!
+    fun fetchTests() : List<TestInfo>
+
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
     fun unpin(comment: String = "unpinned via REST API")
     fun getArtifacts(parentPath: String = ""): List<BuildArtifact>
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
+    fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
 }
 
@@ -236,6 +257,21 @@ interface Revision {
     val vcsRoot: VcsRoot
 }
 
+enum class TestStatus {
+  SUCCESSFUL,
+  IGNORED,
+  FAILED,
+
+  UNKNOWN,
+}
+
+interface TestInfo {
+    val name : String
+    val status: TestStatus
+    val duration: Long
+    val details : String
+}
+
 interface TriggeredInfo {
     val user: User?
     val build: Build?
@@ -269,4 +305,18 @@ interface ArtifactRule {
      * Destination directory where files are to be placed.
      */
     val destinationPath: String?
+}
+
+interface TriggeredBuild {
+    val id: Int
+    val buildTypeId: String
+}
+
+interface BuildQueue {
+    fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild
+    fun cancelBuild(id: BuildId, cancelRequest: BuildCancelRequest = BuildCancelRequest())
+}
+
+interface BuildResults {
+    fun tests(id: BuildId)
 }
