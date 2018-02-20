@@ -68,7 +68,7 @@ class BuildTest {
                 .list().first()
 
         val artifacts = build.getArtifacts("internal")
-        Assert.assertTrue(artifacts.any { it.fileName == "dependencies.properties"})
+        Assert.assertTrue(artifacts.any { it.fileName == "kotlin-formatter.jar"})
     }
 
     @Test
