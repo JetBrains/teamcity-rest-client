@@ -1,6 +1,5 @@
 package org.jetbrains.teamcity.rest
 
-import com.google.gson.annotations.SerializedName
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
@@ -82,11 +81,11 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @POST("/app/rest/buildQueue")
-    fun triggerBuild(@Body value: TriggerRequest): TriggeredBuildBean
+    fun triggerBuild(@Body value: TriggerBuildRequestBean): TriggeredBuildBean
 
     @Headers("Accept: application/json")
     @POST("/app/rest/builds/id:{id}")
-    fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequest): Response
+    fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
 
     @GET("/app/rest/testOccurrences")
     fun tests(@Query("locator") locator: String): Response
@@ -108,8 +107,7 @@ internal class ArtifactFileBean {
 }
 
 internal class VcsRootListBean {
-    @SerializedName("vcs-root")
-    var vcsRoot: List<VcsRootBean> = ArrayList()
+    var `vcs-root`: List<VcsRootBean> = ArrayList()
 }
 
 internal open class VcsRootBean {
@@ -165,7 +163,7 @@ internal class BuildTypeBean {
     var id: String? = null
     var name: String? = null
     var projectId: String? = null
-    var paused: Boolean = false
+    var paused: Boolean? = null
 }
 
 internal class BuildTypesBean {
@@ -178,6 +176,31 @@ internal class TagBean {
 
 internal class TagsBean {
     var tag: List<TagBean>? = ArrayList()
+}
+
+internal open class TriggerBuildRequestBean {
+    var branchName: String? = null
+    var personal: Boolean? = null
+    var triggeringOptions: TriggeringOptionsBean? = null
+
+    var properties: ParametersBean? = null
+    var buildType: BuildTypeBean? = null
+    var comment: CommentBean? = null
+
+//  TODO: lastChanges
+//    <lastChanges>
+//      <change id="modificationId"/>
+//    </lastChanges>
+}
+
+internal class TriggeringOptionsBean {
+    var cleanSources: Boolean? = null
+    var rebuildAllDependencies: Boolean? = null
+    var queueAtTop: Boolean? = null
+}
+
+internal class CommentBean {
+    var text: String? = null
 }
 
 internal class TriggerBean {
@@ -233,14 +256,23 @@ internal class UserBean {
     var name: String? = null
 }
 
-internal class ParametersBean {
+internal class ParametersBean() {
     var property: List<ParameterBean>? = ArrayList()
+
+    constructor(properties: List<ParameterBean>) : this() {
+        property = properties
+    }
 }
 
-internal class ParameterBean {
+internal class ParameterBean() {
     var name: String? = null
     var value: String? = null
-    var own: Boolean = false
+    var own: Boolean? = null
+
+    constructor(name: String, value: String) : this() {
+        this.name = name
+        this.value = value
+    }
 }
 
 internal class PinInfoBean {
@@ -268,6 +300,10 @@ internal class RevisionBean {
     var `vcs-root-instance`: VcsRootBean? = null
 }
 
+internal class BuildCancelRequestBean {
+    var comment: String = ""
+    var readdIntoQueue = false
+}
 
 internal open class TestOccurrencesBean {
   var testOccurrence: List<TestOccurrence> = ArrayList()

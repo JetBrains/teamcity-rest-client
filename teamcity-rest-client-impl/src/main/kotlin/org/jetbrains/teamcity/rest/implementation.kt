@@ -56,7 +56,7 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
                                     logResponses: Boolean) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
 
-    private val RestLOG = LoggerFactory.getLogger(LOG.name + ".rest")
+    private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
     private var client = OkHttpClient.Builder()
             .addInterceptor(RetryInterceptor())
@@ -65,7 +65,7 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
     internal val service = RestAdapter.Builder()
             .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
-            .setLog({ RestLOG.debug(it) })
+            .setLog({ restLog.debug(it) })
             .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor({ request ->
                 if (basicAuthHeader != null) {
@@ -77,11 +77,6 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
             .create(TeamCityService::class.java)
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
-
-    override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
-        val locator = if (projectId == null) null else "project:${projectId.stringId}"
-        return service.queuedBuilds(locator).build.map { QueuedBuildImpl(it, this) }
-    }
 
     override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, this)
 
@@ -122,7 +117,7 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
                 buildTypeId = specificBuildConfigurationId,
                 personal = includePersonalBuilds)
 
-    override fun buildQueue(): BuildQueue = BuildQueueImpl(service)
+    override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
     override fun buildResults(): BuildResults = BuildResultsImpl(service)
 }
@@ -192,7 +187,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun list(): List<Build> {
-        val parameters = listOf(
+        val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
                 number?.let { "number:$it" },
                 status?.name?.let { "status:$it" },
@@ -208,7 +203,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     branch?.let { "branch:$it" }
                 else
                     "branch:default:any"
-        ).filterNotNull()
+        )
 
         if (parameters.isEmpty()) {
             throw IllegalArgumentException("At least one parameter should be specified")
@@ -272,7 +267,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
         get() = BuildConfigurationId(bean.id!!)
 
     override val paused: Boolean
-        get() = bean.paused
+        get() = bean.paused!!
 
     override fun fetchBuildTags(): List<String> = instance.service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
@@ -298,7 +293,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
 private class VcsRootLocatorImpl(private val service: TeamCityService) : VcsRootLocator {
 
     override fun list(): List<VcsRoot> {
-        return service.vcsRoots().vcsRoot.map(::VcsRootImpl)
+        return service.vcsRoots().`vcs-root`.map(::VcsRootImpl)
     }
 }
 
@@ -354,24 +349,15 @@ private class TriggeredImpl(private val bean: TriggeredBean,
         get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
 }
 
-private class TriggeredBuildImpl(private val bean: TriggeredBuildBean): TriggeredBuild {
-    override val id: Int
-        get() = bean.id!!
-    override val buildTypeId: String
-        get() = bean.buildTypeId!!
-    override fun toString() =
-            "TriggeredBuildImpl{id=$id, buildTypeId=$buildTypeId}"
-}
-
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
 
-    override val value: String?
+    override val value: String
         get() = bean.value!!
 
     override val own: Boolean
-        get() = bean.own
+        get() = bean.own!!
 }
 
 private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuildTrigger {
@@ -639,13 +625,45 @@ private class BuildArtifactImpl(private val build: Build, override val fileName:
     }
 }
 
-private class BuildQueueImpl(private val service: TeamCityService): BuildQueue {
-    override fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild {
-          return TriggeredBuildImpl(service.triggerBuild(triggerRequest))
+private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQueue {
+    override fun triggerBuild(buildTypeId: BuildConfigurationId,
+                     parameters: Map<String, String>?,
+                     queueAtTop: Boolean?,
+                     cleanSources: Boolean?,
+                     rebuildAllDependencies: Boolean?,
+                     comment: String?,
+                     logicalBranchName: String?,
+                     personal: Boolean?): BuildId {
+        val request = TriggerBuildRequestBean()
+
+        request.buildType = BuildTypeBean().apply { id = buildTypeId.stringId }
+        request.branchName = logicalBranchName
+        comment.let { commentText -> request.comment = CommentBean().apply { text = commentText } }
+        request.personal = personal
+        request.triggeringOptions = TriggeringOptionsBean().apply {
+            this.cleanSources = cleanSources
+            this.rebuildAllDependencies = rebuildAllDependencies
+            this.queueAtTop = queueAtTop
+        }
+        parameters?.let {
+            val parametersBean = ParametersBean(it.map { ParameterBean(it.key, it.value) })
+            request.properties = parametersBean
+        }
+
+        val triggeredBuildBean = instance.service.triggerBuild(request)
+        return BuildId(triggeredBuildBean.id!!.toString())
     }
 
-    override fun cancelBuild(id: BuildId, cancelRequest: BuildCancelRequest) {
-        service.cancelBuild(id.stringId, cancelRequest)
+    override fun cancelBuild(id: BuildId, comment: String, reAddIntoQueue: Boolean) {
+        val request = BuildCancelRequestBean()
+        request.comment = comment
+        request.readdIntoQueue = reAddIntoQueue
+        instance.service.cancelBuild(id.stringId, request)
+    }
+
+    override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
+        val locator = if (projectId == null) null else "project:${projectId.stringId}"
+        return instance.service.queuedBuilds(locator).build.map { QueuedBuildImpl(it, instance) }
     }
 }
 

@@ -8,7 +8,6 @@ abstract class TeamCityInstance {
     abstract fun withLogResponses(): TeamCityInstance
 
     abstract fun builds(): BuildLocator
-    abstract fun queuedBuilds(projectId: ProjectId? = null): List<QueuedBuild>
 
     abstract fun build(id: BuildId): Build
     abstract fun build(buildType: BuildConfigurationId, number: String): Build?
@@ -90,18 +89,6 @@ data class BuildConfigurationId(val stringId: String)
 
 data class VcsRootId(val stringId: String)
 
-class TriggerRequest(val buildTypeId: BuildConfigurationId, parameters: Map<String, String> = hashMapOf()) {
-    val properties: Parameters = Parameters(parameters.map { entry -> Property(entry.key, entry.value) }.toList())
-
-    constructor(build: Build) : this(build.buildTypeId, build.fetchParameters().associate { it.name to if (it.value == null) "" else it.value!! })
-}
-
-data class BuildCancelRequest(val comment: String = "", val readdIntoQueue: Boolean = false)
-
-data class Parameters(val property: List<Property> = emptyList())
-
-data class Property(val name: String, val value: String)
-
 interface Project {
     val id: ProjectId
     val name: String
@@ -142,7 +129,7 @@ interface BuildConfiguration {
 
 interface Parameter {
     val name: String
-    val value: String?
+    val value: String
     val own: Boolean
 }
 
@@ -307,14 +294,17 @@ interface ArtifactRule {
     val destinationPath: String?
 }
 
-interface TriggeredBuild {
-    val id: Int
-    val buildTypeId: String
-}
-
 interface BuildQueue {
-    fun triggerBuild(triggerRequest: TriggerRequest): TriggeredBuild
-    fun cancelBuild(id: BuildId, cancelRequest: BuildCancelRequest = BuildCancelRequest())
+    fun triggerBuild(buildTypeId: BuildConfigurationId,
+                     parameters: Map<String, String>? = null,
+                     queueAtTop: Boolean? = null,
+                     cleanSources: Boolean? = null,
+                     rebuildAllDependencies: Boolean? = null,
+                     comment: String? = null,
+                     logicalBranchName: String? = null,
+                     personal: Boolean? = null): BuildId
+    fun cancelBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
+    fun queuedBuilds(projectId: ProjectId? = null): List<QueuedBuild>
 }
 
 interface BuildResults {

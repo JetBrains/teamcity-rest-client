@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package org.jetbrains.teamcity.rest
 
 import org.junit.Before
@@ -22,50 +24,55 @@ class Hackathon17Tests {
 
     //@Test
     fun test_run_build() {
-        val build = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
+        val build = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
         println(build)
     }
 
     //@Test
     fun test_run_build_and_get_info() {
         // trigger build -> Get triggered build from TC
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
-        val build = getBuild(triggeredBuild.id)
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
+        val build = getBuild(triggeredBuild)
         println(build.name)
     }
 
 //    @Test
     fun run_with_parameters() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID, mapOf("a" to "b")))
-        val build = getBuild(triggeredBuild.id)
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(
+                buildTypeId = buildTypeID,
+                parameters = mapOf("a" to "b"))
+        val build = getBuild(triggeredBuild)
         build.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
 
     //@Test
     fun trigger_and_cancel() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
-        val build = getBuild(triggeredBuild.id)
-        teamcity.buildQueue().cancelBuild(BuildId(triggeredBuild.id.toString()), BuildCancelRequest("hello!"))
-        awaitState(triggeredBuild.id, "finished", 60000L)
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
+        teamcity.buildQueue().cancelBuild(triggeredBuild, comment = "hello!")
+        awaitState(triggeredBuild, "finished", 60000L)
     }
 
 
     //@Test
     fun test_for_build_finishing() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID))
-        val build = awaitState(triggeredBuild.id, "finished", 60000)
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
+        val build = awaitState(triggeredBuild, "finished", 60000)
         println(build)
         println(build.state)
     }
 
     //@Test
     fun test_trigger_from_build() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(buildTypeID, mapOf("a" to "b")))
-        val build = getBuild(triggeredBuild.id)
+        val triggeredBuild = teamcity.buildQueue().triggerBuild(
+                buildTypeId = buildTypeID, parameters = mapOf("a" to "b"))
+        val build = getBuild(triggeredBuild)
 
+        val newTriggeredBuild = teamcity.buildQueue().triggerBuild(
+                buildTypeId = buildTypeID,
+                parameters = build.fetchParameters().associate { it.name to it.value }
+        )
 
-        val newTriggeredBuild = teamcity.buildQueue().triggerBuild(TriggerRequest(build))
-        val newBuild = awaitState(newTriggeredBuild.id, "finished", 60000)
+        val newBuild = awaitState(newTriggeredBuild, "finished", 60000)
         println(newBuild)
         newBuild.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
@@ -75,13 +82,13 @@ class Hackathon17Tests {
         teamcity.buildResults().tests(BuildId(75.toString()))
     }
 
-    private fun awaitState(id: Int, buildState: String, timeoutMsec: Long): Build {
+    private fun awaitState(id: BuildId, buildState: String, timeoutMsec: Long): Build {
         val curTime = System.currentTimeMillis()
         var b: Build? = null
         var state: String? = null
         while (buildState != state && System.currentTimeMillis() - curTime < timeoutMsec) {
             try {
-                b = teamcity.build(BuildId(id.toString()))
+                b = teamcity.build(id)
                 state = b.state
             } catch (e: KotlinNullPointerException) {
             }
@@ -93,7 +100,7 @@ class Hackathon17Tests {
         return b!!
     }
 
-    private fun getBuild(id:Int): Build {
+    private fun getBuild(id: BuildId): Build {
         // get build by build id
         var flag = false
         var buildStatus: BuildStatus? = null
@@ -102,7 +109,7 @@ class Hackathon17Tests {
 
         while (!flag && attempts-- > 0) {
             try {
-                b = teamcity.build(BuildId(id.toString()))
+                b = teamcity.build(id)
                 buildStatus = b.status
                 flag = true
             } catch (e: KotlinNullPointerException) {
