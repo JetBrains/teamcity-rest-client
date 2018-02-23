@@ -316,7 +316,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
         get() = BuildConfigurationId(bean.id!!)
 
     override val paused: Boolean
-        get() = bean.paused!!
+        get() = bean.paused ?: false // TC won't return paused:false field
 
     override fun fetchBuildTags(): List<String> = instance.service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
