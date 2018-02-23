@@ -3,6 +3,7 @@
 package org.jetbrains.teamcity.rest
 
 import org.junit.Assert.assertEquals
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertTrue
@@ -12,6 +13,8 @@ class UserTest {
 
     @Before
     fun setup() {
+        Assume.assumeTrue(haveCustomInstance())
+
         setupLog4jDebug()
 
         // requires admin credentials to teamcity.jetbrains.com
