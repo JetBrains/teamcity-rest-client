@@ -5,6 +5,8 @@ import java.io.OutputStream
 import java.util.*
 
 abstract class TeamCityInstance {
+    abstract val serverUrl: String
+
     abstract fun withLogResponses(): TeamCityInstance
 
     abstract fun builds(): BuildLocator
@@ -18,10 +20,13 @@ abstract class TeamCityInstance {
     abstract fun rootProject(): Project
     abstract fun buildQueue(): BuildQueue
     abstract fun buildResults(): BuildResults
+    abstract fun user(id: UserId): User
+    abstract fun users(): UserLocator
 
     abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
     abstract fun getWebUrl(buildId: BuildId): String
+    abstract fun getWebUrl(userId: UserId): String
     abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
     abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
@@ -47,6 +52,13 @@ abstract class TeamCityInstance {
 
 interface VcsRootLocator {
     fun list(): List<VcsRoot>
+}
+
+interface UserLocator {
+    fun withId(id: UserId): UserLocator
+    fun withUsername(name: String): UserLocator
+
+    fun list(): List<User>
 }
 
 interface BuildLocator {
@@ -208,10 +220,18 @@ interface Change {
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 }
 
+data class UserId(val stringId: String)
+
 interface User {
-    val id: String
+    val id: UserId
     val username: String
     val name: String
+    val email: String
+
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getWebUrl(): String
 }
 
 interface BuildArtifact {

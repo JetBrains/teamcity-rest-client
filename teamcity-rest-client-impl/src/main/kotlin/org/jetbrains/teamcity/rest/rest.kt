@@ -1,3 +1,5 @@
+@file:Suppress("RemoveRedundantBackticks")
+
 package org.jetbrains.teamcity.rest
 
 import retrofit.client.Response
@@ -90,6 +92,13 @@ internal interface TeamCityService {
     @GET("/app/rest/testOccurrences")
     fun tests(@Query("locator") locator: String): Response
 
+    @Headers("Accept: application/json")
+    @GET("/app/rest/users")
+    fun users(): UserListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/users/{userLocator}")
+    fun users(@Path("userLocator") userLocator: String): UserBean
 }
 
 internal class ProjectsBean {
@@ -117,6 +126,10 @@ internal open class VcsRootBean {
 
 internal class BuildListBean {
     var build: List<BuildBean> = ArrayList()
+}
+
+internal class UserListBean {
+    var user: List<UserBean> = ArrayList()
 }
 
 internal open class BuildBean {
@@ -254,6 +267,7 @@ internal class UserBean {
     var id: String? = null
     var username: String? = null
     var name: String? = null
+    var email: String? = null
 }
 
 internal class ParametersBean() {

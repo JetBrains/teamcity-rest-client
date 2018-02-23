@@ -1,3 +1,5 @@
+@file:Suppress("RemoveRedundantBackticks")
+
 package org.jetbrains.teamcity.rest
 
 import com.jakewharton.retrofit.Ok3Client
@@ -24,12 +26,12 @@ private val teamCityServiceDateFormat =
         }
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
-    return TeamCityInstanceImpl(serverUrl, "guestAuth", null, false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "guestAuth", null, false)
 }
 
 internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
     val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
-    return TeamCityInstanceImpl(serverUrl, "httpAuth", authorization, false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "httpAuth", authorization, false)
 }
 
 private class RetryInterceptor : Interceptor {
@@ -50,7 +52,7 @@ private class RetryInterceptor : Interceptor {
     }
 }
 
-internal class TeamCityInstanceImpl(internal val serverUrl: String,
+internal class TeamCityInstanceImpl(override val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
                                     logResponses: Boolean) : TeamCityInstance() {
@@ -94,6 +96,10 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 
+    override fun user(id: UserId): User = UserImpl(service.users("id:${id.stringId}"), true, this)
+
+    override fun users(): UserLocator = UserLocatorImpl(this)
+
     override fun getWebUrl(projectId: ProjectId, branch: String?): String =
         getUserUrlPage(serverUrl, "project.html", projectId = projectId, branch = branch)
 
@@ -105,6 +111,12 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
                 serverUrl, "viewLog.html",
                 buildId = buildId,
                 tab = "buildResultsDiv"
+        )
+
+    override fun getWebUrl(userId: UserId): String =
+        getUserUrlPage(
+                serverUrl, "admin/editUser.html",
+                userId = userId
         )
 
     override fun getWebUrl(queuedBuildId: QueuedBuildId): String =
@@ -120,6 +132,43 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
     override fun buildResults(): BuildResults = BuildResultsImpl(service)
+}
+
+private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserLocator {
+    private var id: UserId? = null
+    private var username: String? = null
+
+    override fun withId(id: UserId): UserLocator {
+        this.id = id
+        return this
+    }
+
+    override fun withUsername(name: String): UserLocator {
+        this.username = name
+        return this
+    }
+
+    override fun list(): List<User> {
+        val idCopy = id
+        val usernameCopy = username
+
+        if (idCopy != null && usernameCopy != null) {
+            throw IllegalArgumentException("UserLocator accepts only id or username, not both")
+        }
+
+        val locator = when {
+            idCopy != null -> "id:${idCopy.stringId}"
+            usernameCopy != null -> "username:$usernameCopy"
+            else -> ""
+        }
+
+        return if (idCopy == null && usernameCopy == null) {
+            instance.service.users().user.map { UserImpl(it, false, instance) }
+        } else {
+            val bean = instance.service.users(locator)
+            listOf(UserImpl(bean, true, instance))
+        }
+    }
 }
 
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
@@ -313,7 +362,7 @@ private class ChangeImpl(private val bean: ChangeBean,
         get() = bean.username!!
 
     override val user: User?
-        get() = bean.user?.let { UserImpl(it) }
+        get() = bean.user?.let { UserImpl(it, false, instance) }
 
     override val date: Date
         get() = teamCityServiceDateFormat.get().parse(bean.date!!)
@@ -325,26 +374,50 @@ private class ChangeImpl(private val bean: ChangeBean,
             "id=$id, version=$version, username=$username, user=$user, date=$date, comment=$comment"
 }
 
-private class UserImpl(private val bean: UserBean) : User {
-    override val id: String
-        get() = bean.id!!
+private class UserImpl(private val bean: UserBean,
+                       private val isFullBuildBean: Boolean,
+                       private val instance: TeamCityInstanceImpl) : User {
+    override val email: String
+        get() = bean.email ?: fullUserBean.email!!
+
+    override val id: UserId
+        get() = UserId(bean.id!!)
 
     override val username: String
-        get() = bean.username!!
+        get() = bean.username ?: fullUserBean.username!!
 
     override val name: String
-        get() = bean.name!!
+        get() = bean.name ?: fullUserBean.name!!
+
+    override fun getWebUrl(): String = instance.getWebUrl(id)
+
+    val fullUserBean: UserBean by lazy {
+        if (isFullBuildBean) bean else instance.service.users("id:${id.stringId}")
+    }
+
+    override fun toString(): String {
+        return "User(id=${id.stringId}, username=$username)"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        return id == (other as UserImpl).id && instance == other.instance
+    }
+
+    override fun hashCode(): Int = id.stringId.hashCode()
 }
 
-private class PinInfoImpl(bean: PinInfoBean) : PinInfo {
-    override val user = UserImpl(bean.user!!)
+private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityInstanceImpl) : PinInfo {
+    override val user = UserImpl(bean.user!!, false, instance)
     override val time = teamCityServiceDateFormat.get().parse(bean.timestamp!!)!!
 }
 
 private class TriggeredImpl(private val bean: TriggeredBean,
                             private val instance: TeamCityInstanceImpl) : TriggeredInfo {
     override val user: User?
-        get() = if (bean.user != null) UserImpl(bean.user!!) else null
+        get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val build: Build?
         get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
 }
@@ -469,7 +542,7 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
     override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
-    override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it) }
+    override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
 
     override fun fetchTests() = instance.service.tests(locator = "build:(id:${id.stringId})", fields = TestOccurrence.filter).testOccurrence.map {
@@ -684,6 +757,7 @@ private fun getUserUrlPage(serverUrl: String,
                            tab: String? = null,
                            projectId: ProjectId? = null,
                            buildId: BuildId? = null,
+                           userId: UserId? = null,
                            itemId: QueuedBuildId? = null,
                            modId: ChangeId? = null,
                            personal: Boolean? = null,
@@ -694,12 +768,13 @@ private fun getUserUrlPage(serverUrl: String,
     tab?.let { params.add("tab=" + tab.urlencode()) }
     projectId?.let { params.add("projectId=" + projectId.stringId.urlencode()) }
     buildId?.let { params.add("buildId=" + buildId.stringId.urlencode()) }
+    userId?.let { params.add("userId=" + userId.stringId.urlencode()) }
     modId?.let { params.add("modId=" + modId.stringId.urlencode()) }
     itemId?.let { params.add("itemId=" + itemId.stringId.urlencode()) }
     personal?.let { params.add("personal=" + if (personal) "true" else "false") }
     buildTypeId?.let { params.add("buildTypeId=" + buildTypeId.stringId.urlencode()) }
     branch?.let { params.add("branch=" + branch.urlencode()) }
 
-    return "${serverUrl.trimEnd('/')}/$pageName" +
+    return "$serverUrl/$pageName" +
             if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
 }
