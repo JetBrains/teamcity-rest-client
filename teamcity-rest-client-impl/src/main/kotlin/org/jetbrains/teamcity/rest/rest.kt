@@ -135,6 +135,7 @@ internal class UserListBean {
 internal open class BuildBean {
     var id: String? = null
     var buildTypeId: String? = null
+    var canceledInfo: BuildCanceledBean? = null
     var number: String? = null
     var status: BuildStatus? = null
     var state: String? = null
@@ -297,6 +298,11 @@ internal class PinInfoBean {
 internal class TriggeredBean {
     var user: UserBean? = null
     val build: BuildBean? = null
+}
+
+internal class BuildCanceledBean {
+    var user: UserBean? = null
+    val timestamp: String? = null
 }
 
 internal class TriggeredBuildBean {

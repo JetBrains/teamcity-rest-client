@@ -150,6 +150,11 @@ interface Branch {
     val isDefault: Boolean
 }
 
+interface BuildCanceledInfo {
+    val user: User?
+    val cancelDate: Date
+}
+
 interface Build {
     val id: BuildId
     val buildTypeId: BuildConfigurationId
@@ -158,6 +163,7 @@ interface Build {
     val branch: Branch
     val state: BuildState
     val name: String
+    val canceledInfo: BuildCanceledInfo?
 
     /**
      * Web UI URL for user, especially useful for error and log messages

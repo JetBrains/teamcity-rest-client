@@ -422,6 +422,14 @@ private class TriggeredImpl(private val bean: TriggeredBean,
         get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
 }
 
+private class BuildCanceledInfoImpl(private val bean: BuildCanceledBean,
+                                    private val instance: TeamCityInstanceImpl) : BuildCanceledInfo {
+    override val user: User?
+        get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
+    override val cancelDate: Date
+        get() = teamCityServiceDateFormat.get().parse(bean.timestamp!!)!!
+}
+
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
     override val name: String
         get() = bean.name!!
@@ -542,6 +550,9 @@ private class BuildImpl(private val bean: BuildBean,
     override fun toString(): String {
         return "Build{id=$id, buildTypeId=$buildTypeId, buildNumber=$buildNumber, status=$status, branch=$branch}"
     }
+
+    override val canceledInfo: BuildCanceledInfo?
+        get() = fullBuildBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
 
     override fun fetchStatusText(): String = fullBuildBean.statusText!!
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
