@@ -3,3 +3,4 @@
 .gradle
 build
 teamcity-rest-client-impl/src/test/resources/teamcity_connection.properties
+out
