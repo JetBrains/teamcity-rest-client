@@ -156,7 +156,7 @@ interface Build {
     val buildNumber: String
     val status: BuildStatus
     val branch: Branch
-    val state: String
+    val state: BuildState
     val name: String
 
     /**
@@ -250,7 +250,16 @@ interface VcsRoot {
 enum class BuildStatus {
     SUCCESS,
     FAILURE,
-    ERROR
+    ERROR,
+    UNKNOWN,
+}
+
+enum class BuildState {
+    QUEUED,
+    RUNNING,
+    FINISHED,
+    DELETED,
+    UNKNOWN,
 }
 
 interface PinInfo {

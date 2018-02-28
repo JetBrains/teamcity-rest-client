@@ -49,14 +49,14 @@ class Hackathon17Tests {
     fun trigger_and_cancel() {
         val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
         teamcity.buildQueue().cancelBuild(triggeredBuild, comment = "hello!")
-        awaitState(triggeredBuild, "finished", 60000L)
+        awaitState(triggeredBuild, BuildState.FINISHED, 60000L)
     }
 
 
     //@Test
     fun test_for_build_finishing() {
         val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
-        val build = awaitState(triggeredBuild, "finished", 60000)
+        val build = awaitState(triggeredBuild, BuildState.FINISHED, 60000)
         println(build)
         println(build.state)
     }
@@ -72,7 +72,7 @@ class Hackathon17Tests {
                 parameters = build.fetchParameters().associate { it.name to it.value }
         )
 
-        val newBuild = awaitState(newTriggeredBuild, "finished", 60000)
+        val newBuild = awaitState(newTriggeredBuild, BuildState.FINISHED, 60000)
         println(newBuild)
         newBuild.fetchParameters().forEach { println("${it.name}=${it.value}") }
     }
@@ -82,10 +82,10 @@ class Hackathon17Tests {
         teamcity.buildResults().tests(BuildId(75.toString()))
     }
 
-    private fun awaitState(id: BuildId, buildState: String, timeoutMsec: Long): Build {
+    private fun awaitState(id: BuildId, buildState: BuildState, timeoutMsec: Long): Build {
         val curTime = System.currentTimeMillis()
         var b: Build? = null
-        var state: String? = null
+        var state: BuildState? = null
         while (buildState != state && System.currentTimeMillis() - curTime < timeoutMsec) {
             try {
                 b = teamcity.build(id)
