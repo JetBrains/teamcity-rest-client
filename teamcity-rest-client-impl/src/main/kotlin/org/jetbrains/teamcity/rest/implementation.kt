@@ -526,8 +526,8 @@ private class BuildImpl(private val bean: BuildBean,
     override val buildNumber: String
         get() = bean.number!!
 
-    override val status: BuildStatus
-        get() = bean.status!!
+    override val status: BuildStatus?
+        get() = bean.status
 
     override val state: BuildState
         get() = try {

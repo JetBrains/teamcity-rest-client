@@ -159,7 +159,7 @@ interface Build {
     val id: BuildId
     val buildTypeId: BuildConfigurationId
     val buildNumber: String
-    val status: BuildStatus
+    val status: BuildStatus?
     val branch: Branch
     val state: BuildState
     val name: String
