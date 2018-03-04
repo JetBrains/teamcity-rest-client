@@ -64,7 +64,7 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
     internal val service = RestAdapter.Builder()
             .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
-            .setLog({ RestLOG.debug(it) })
+            .setLog({ RestLOG.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) })
             .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor({ request ->
                 if (basicAuthHeader != null) {
