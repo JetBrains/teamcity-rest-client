@@ -580,11 +580,12 @@ private class BuildImpl(private val bean: BuildBean,
     override val canceledInfo: BuildCanceledInfo?
         get() = fullBuildBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
 
-    override val buildProblems: List<BuildProblemOccurrence>
-        get() = instance.service.problemOccurrences(
+    override val buildProblems: List<BuildProblemOccurrence> by lazy {
+        instance.service.problemOccurrences(
                 locator = "build:(id:${id.stringId})",
                 fields = "\$long,problemOccurrence(\$long)")
                 .problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) }
+    }
 
     override fun fetchStatusText(): String = fullBuildBean.statusText!!
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
