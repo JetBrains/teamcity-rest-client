@@ -99,6 +99,10 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/users/{userLocator}")
     fun users(@Path("userLocator") userLocator: String): UserBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/problemOccurrences")
+    fun problemOccurrences(@Query("locator") locator: String, @Query("fields") fields: String): BuildProblemOccurrencesBean
 }
 
 internal class ProjectsBean {
@@ -178,6 +182,23 @@ internal class BuildTypeBean {
     var name: String? = null
     var projectId: String? = null
     var paused: Boolean? = null
+}
+
+internal class BuildProblemBean {
+    var id: String? = null
+    var type: String? = null
+    var identity: String? = null
+}
+
+internal class BuildProblemOccurrencesBean {
+    var problemOccurrence: List<BuildProblemOccurrenceBean> = ArrayList()
+}
+
+internal class BuildProblemOccurrenceBean {
+    var details: String? = null
+    var additionalData: String? = null
+    var problem: BuildProblemBean? = null
+    var build: BuildBean? = null
 }
 
 internal class BuildTypesBean {

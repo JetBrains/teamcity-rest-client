@@ -113,6 +113,9 @@ data class VcsRootId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
+data class BuildProblemId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
 interface Project {
     val id: ProjectId
@@ -150,6 +153,20 @@ interface BuildConfiguration {
     fun fetchArtifactDependencies(): List<ArtifactDependency>
 
     fun setParameter(name: String, value: String)
+}
+
+
+interface BuildProblem {
+    val id: BuildProblemId
+    val type: String
+    val identity: String
+}
+
+interface BuildProblemOccurrence {
+    val buildProblem: BuildProblem
+    val build: Build
+    val details: String
+    val additionalData: String?
 }
 
 interface Parameter {
@@ -200,6 +217,9 @@ interface Build {
 
     //TODO: support paging!
     fun fetchTests() : List<TestInfo>
+
+    //TODO: paging?
+    val buildProblems: List<BuildProblemOccurrence>
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")

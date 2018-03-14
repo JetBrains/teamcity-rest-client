@@ -480,7 +480,33 @@ private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
     private fun findPropertyByName(name: String): String? {
         return bean.properties?.property?.find { it.name == name }?.value
     }
+}
 
+private class BuildProblemImpl(private val bean: BuildProblemBean) : BuildProblem {
+    override val id: BuildProblemId
+        get() = BuildProblemId(bean.id!!)
+    override val type: String
+        get() = bean.type!!
+    override val identity: String
+        get() = bean.identity!!
+
+    override fun toString(): String =
+        "BuildProblem(id=${id.stringId},type=$type,identity=$identity)"
+}
+
+private class BuildProblemOccurrenceImpl(private val bean: BuildProblemOccurrenceBean,
+                                         private val instance: TeamCityInstanceImpl) : BuildProblemOccurrence {
+    override val buildProblem: BuildProblem
+        get() = BuildProblemImpl(bean.problem!!)
+    override val build: Build
+        get() = BuildImpl(bean.build!!, false, instance)
+    override val details: String
+        get() = bean.details ?: ""
+    override val additionalData: String?
+        get() = bean.additionalData
+
+    override fun toString(): String =
+        "BuildProblemOccurrence(build=${build.id},problem=$buildProblem,details=$details,additionalData=$additionalData)"
 }
 
 internal class ArtifactRuleImpl(private val pathRule: String) : ArtifactRule {
@@ -553,6 +579,12 @@ private class BuildImpl(private val bean: BuildBean,
 
     override val canceledInfo: BuildCanceledInfo?
         get() = fullBuildBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
+
+    override val buildProblems: List<BuildProblemOccurrence>
+        get() = instance.service.problemOccurrences(
+                locator = "build:(id:${id.stringId})",
+                fields = "\$long,problemOccurrence(\$long)")
+                .problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) }
 
     override fun fetchStatusText(): String = fullBuildBean.statusText!!
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
