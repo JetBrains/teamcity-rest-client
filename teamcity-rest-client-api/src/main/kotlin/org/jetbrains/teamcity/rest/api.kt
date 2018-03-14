@@ -89,17 +89,30 @@ interface BuildLocator {
     fun list(): List<Build>
 }
 
-data class ProjectId(val stringId: String)
+data class ProjectId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class BuildId(val stringId: String)
+data class BuildId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class QueuedBuildId(val stringId: String)
+data class QueuedBuildId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class ChangeId(val stringId: String)
+data class ChangeId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class BuildConfigurationId(val stringId: String)
+data class BuildConfigurationId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class VcsRootId(val stringId: String)
+data class VcsRootId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
 
 interface Project {
     val id: ProjectId
