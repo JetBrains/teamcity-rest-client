@@ -123,7 +123,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
         getUserUrlPage(
                 serverUrl, "project.html",
                 projectId = projectId,
-                testId = testId,
+                testNameId = testId,
                 tab = "testDetails"
         )
 
@@ -275,13 +275,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
         return lazyPaging { start ->
             val buildLocator = parameters.plus("start:$start").joinToString(",")
-            LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
 
+            LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
             val buildsBean = instance.service.builds(buildLocator = buildLocator)
 
             return@lazyPaging Page(
                     data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                    hasNextPage = buildsBean.nextHref.isNullOrBlank()
+                    hasNextPage = !buildsBean.nextHref.isNullOrBlank()
             )
         }
     }
@@ -516,8 +516,8 @@ private class ArtifactDependencyImpl(private val bean: ArtifactDependencyBean,
 private class BuildProblemImpl(private val bean: BuildProblemBean) : BuildProblem {
     override val id: BuildProblemId
         get() = BuildProblemId(bean.id!!)
-    override val type: String
-        get() = bean.type!!
+    override val type: BuildProblemType
+        get() = BuildProblemType(bean.type!!)
     override val identity: String
         get() = bean.identity!!
 
@@ -613,8 +613,9 @@ private class BuildImpl(private val bean: BuildBean,
     override val branch: Branch
         get() = BranchImpl(bean.branchName, bean.isDefaultBranch ?: (bean.branchName == null))
 
-    override val name: String
-        get() = bean.buildType!!.name!!
+    override val name: String by lazy {
+        if (isFullBuildBean) bean.buildType!!.name!! else instance.buildConfiguration(buildTypeId).name
+    }
 
     val fullBuildBean: BuildBean by lazy {
         if (isFullBuildBean) bean else instance.service.build(id.stringId)
@@ -861,6 +862,12 @@ private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
         else -> null
     } ?: ""
 
+    override val ignored: Boolean = bean.ignored ?: false
+
+    override val currentlyMuted: Boolean = bean.currentlyMuted ?: false
+
+    override val muted: Boolean = bean.muted ?: false
+
     override val buildId: BuildId = BuildId(bean.build!!.id!!)
 
     override val testId: TestId = TestId(bean.test!!.id!!)
@@ -879,7 +886,7 @@ private fun getUserUrlPage(serverUrl: String,
                            tab: String? = null,
                            projectId: ProjectId? = null,
                            buildId: BuildId? = null,
-                           testId: TestId? = null,
+                           testNameId: TestId? = null,
                            userId: UserId? = null,
                            itemId: QueuedBuildId? = null,
                            modId: ChangeId? = null,
@@ -891,7 +898,7 @@ private fun getUserUrlPage(serverUrl: String,
     tab?.let { params.add("tab=" + tab.urlencode()) }
     projectId?.let { params.add("projectId=" + projectId.stringId.urlencode()) }
     buildId?.let { params.add("buildId=" + buildId.stringId.urlencode()) }
-    testId?.let { params.add("testId=" + testId.stringId.urlencode()) }
+    testNameId?.let { params.add("testNameId=" + testNameId.stringId.urlencode()) }
     userId?.let { params.add("userId=" + userId.stringId.urlencode()) }
     modId?.let { params.add("modId=" + modId.stringId.urlencode()) }
     itemId?.let { params.add("itemId=" + itemId.stringId.urlencode()) }

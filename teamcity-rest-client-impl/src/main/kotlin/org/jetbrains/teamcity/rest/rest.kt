@@ -365,11 +365,13 @@ internal open class TestOccurrenceBean {
     var duration: Long? = null
     var ignoreDetails: String? = null
     var details: String? = null
+    val currentlyMuted: Boolean? = null
+    val muted: Boolean? = null
 
     var build: BuildBean? = null
     var test: TestBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,status,ignored,duration,ignoreDetails,details,build(id),test(id))"
+        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,ignoreDetails,details,build(id),test(id))"
     }
 }

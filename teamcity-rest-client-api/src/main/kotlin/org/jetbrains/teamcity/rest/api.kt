@@ -124,6 +124,16 @@ data class BuildProblemId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
+data class BuildProblemType(val stringType: String) {
+    override fun toString(): String = stringType
+
+    companion object {
+        val SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE = BuildProblemType("SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE")
+        val SNAPSHOT_DEPENDENCY_ERROR = BuildProblemType("SNAPSHOT_DEPENDENCY_ERROR")
+        val FAILED_TESTS = BuildProblemType("TC_FAILED_TESTS")
+    }
+}
+
 interface Project {
     val id: ProjectId
     val name: String
@@ -162,10 +172,9 @@ interface BuildConfiguration {
     fun setParameter(name: String, value: String)
 }
 
-
 interface BuildProblem {
     val id: BuildProblemId
-    val type: String
+    val type: BuildProblemType
     val identity: String
 }
 
@@ -330,6 +339,9 @@ interface TestOccurrence {
     val status: TestStatus
     val duration: Long
     val details : String
+    val ignored: Boolean
+    val currentlyMuted: Boolean
+    val muted: Boolean
 
     val buildId: BuildId
     val testId: TestId
