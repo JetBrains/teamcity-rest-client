@@ -281,7 +281,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
             return@lazyPaging Page(
                     data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                    hasNextPage = !buildsBean.nextHref.isNullOrBlank()
+                    hasNextPage = buildsBean.nextHref.isNotBlank()
             )
         }
     }
@@ -371,7 +371,7 @@ private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : V
             val vcsRootsBean = instance.service.vcsRoots(locator = locator)
             return@lazyPaging Page(
                     data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it) },
-                    hasNextPage = vcsRootsBean.nextHref.isNullOrBlank()
+                    hasNextPage = vcsRootsBean.nextHref.isNotBlank()
             )
         }
     }
@@ -585,6 +585,8 @@ private fun <T> lazyPaging(nextPage: (Int) -> Page<T>): Sequence<T> {
     }).mapNotNull { it.data }.flatten()
 }
 
+private fun String?.isNotBlank(): Boolean = this != null && !this.isBlank()
+
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,
                         private val instance: TeamCityInstanceImpl) : Build {
@@ -650,7 +652,7 @@ private class BuildImpl(private val bean: BuildBean,
 
         return@lazyPaging Page(
                 data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
-                hasNextPage = !occurrencesBean.nextHref.isNullOrBlank()
+                hasNextPage = occurrencesBean.nextHref.isNotBlank()
         )
     }
 
@@ -660,7 +662,7 @@ private class BuildImpl(private val bean: BuildBean,
                 fields = "\$long,problemOccurrence(\$long)")
         return@lazyPaging Page(
                 data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
-                hasNextPage = !occurrencesBean.nextHref.isNullOrBlank()
+                hasNextPage = occurrencesBean.nextHref.isNotBlank()
         )
     }
 
