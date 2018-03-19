@@ -30,7 +30,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
-    fun vcsRoots(): VcsRootListBean
+    fun vcsRoots(@Query("locator") locator: String): VcsRootListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots/id:{id}")
@@ -120,6 +120,7 @@ internal class ArtifactFileBean {
 }
 
 internal class VcsRootListBean {
+    var nextHref: String? = null
     var `vcs-root`: List<VcsRootBean> = ArrayList()
 }
 
@@ -129,6 +130,7 @@ internal open class VcsRootBean {
 }
 
 internal class BuildListBean {
+    var nextHref: String? = null
     var build: List<BuildBean> = ArrayList()
 }
 
@@ -191,6 +193,7 @@ internal class BuildProblemBean {
 }
 
 internal class BuildProblemOccurrencesBean {
+    var nextHref: String? = null
     var problemOccurrence: List<BuildProblemOccurrenceBean> = ArrayList()
 }
 
@@ -347,10 +350,11 @@ internal class BuildCancelRequestBean {
 }
 
 internal open class TestOccurrencesBean {
-  var testOccurrence: List<TestOccurrence> = ArrayList()
+    var nextHref: String? = null
+    var testOccurrence: List<TestOccurrenceBean> = ArrayList()
 }
 
-internal open class TestOccurrence {
+internal open class TestOccurrenceBean {
     var name: String? = null
     var status: String? = null
     var ignored: Boolean? = null

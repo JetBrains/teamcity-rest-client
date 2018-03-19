@@ -15,7 +15,7 @@ class TestsTest {
             .fromConfiguration(compileExamplesConfiguration)
             .limitResults(3)
             .list()
-            .first().fetchTests()
+            .first().fetchTests().toList()
 
     println("Total tests: ${tests.size}")
     println(tests.joinToString("\n"))

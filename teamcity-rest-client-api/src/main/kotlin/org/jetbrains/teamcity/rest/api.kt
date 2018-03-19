@@ -51,7 +51,7 @@ abstract class TeamCityInstance {
 }
 
 interface VcsRootLocator {
-    fun list(): List<VcsRoot>
+    fun list(): Sequence<VcsRoot>
 }
 
 interface UserLocator {
@@ -63,6 +63,8 @@ interface UserLocator {
 
 interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
+
+    fun snapshotDependencyTo(buildId: BuildId): BuildLocator
 
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
@@ -86,7 +88,7 @@ interface BuildLocator {
     fun sinceDate(date: Date) : BuildLocator
 
     fun latest(): Build?
-    fun list(): List<Build>
+    fun list(): Sequence<Build>
 }
 
 data class ProjectId(val stringId: String) {
@@ -215,11 +217,9 @@ interface Build {
 
     fun fetchTriggeredInfo(): TriggeredInfo?
 
-    //TODO: support paging!
-    fun fetchTests() : List<TestInfo>
+    fun fetchTests() : Sequence<TestOccurrence>
 
-    //TODO: paging?
-    val buildProblems: List<BuildProblemOccurrence>
+    fun fetchBuildProblems(): Sequence<BuildProblemOccurrence>
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
@@ -313,14 +313,14 @@ interface Revision {
 }
 
 enum class TestStatus {
-  SUCCESSFUL,
-  IGNORED,
-  FAILED,
+    SUCCESSFUL,
+    IGNORED,
+    FAILED,
 
-  UNKNOWN,
+    UNKNOWN,
 }
 
-interface TestInfo {
+interface TestOccurrence {
     val name : String
     val status: TestStatus
     val duration: Long

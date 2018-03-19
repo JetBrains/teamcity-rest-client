@@ -88,7 +88,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun buildConfiguration(id: BuildConfigurationId):
             BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), this)
 
-    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
+    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(this)
 
     override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId))
 
@@ -173,6 +173,7 @@ private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserL
 
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
+    private var snapshotDependencyTo: BuildId? = null
     private var number: String? = null
     private var sinceDate: Date? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
@@ -184,6 +185,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun snapshotDependencyTo(buildId: BuildId): BuildLocator {
+        this.snapshotDependencyTo = buildId
         return this
     }
 
@@ -235,9 +241,10 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return limitResults(1).list().firstOrNull()
     }
 
-    override fun list(): List<Build> {
+    override fun list(): Sequence<Build> {
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
+                snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
                 status?.name?.let { "status:$it" },
                 if (!tags.isEmpty())
@@ -258,9 +265,17 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
-        val buildLocator = parameters.joinToString(",")
-        LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
-        return instance.service.builds(buildLocator).build.map { BuildImpl(it, false, instance) }
+        return lazyPaging { start ->
+            val buildLocator = parameters.plus("start:$start").joinToString(",")
+            LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
+
+            val buildsBean = instance.service.builds(buildLocator = buildLocator)
+
+            return@lazyPaging Page(
+                    data = buildsBean.build.map { BuildImpl(it, false, instance) },
+                    hasNextPage = buildsBean.nextHref.isNullOrBlank()
+            )
+        }
     }
 
     override fun pinnedOnly(): BuildLocator {
@@ -339,10 +354,18 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
     }
 }
 
-private class VcsRootLocatorImpl(private val service: TeamCityService) : VcsRootLocator {
+private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : VcsRootLocator {
+    override fun list(): Sequence<VcsRoot> {
+        return lazyPaging { start ->
+            val locator = "start:$start"
+            LOG.debug("Retrieving vcs roots from ${instance.serverUrl} using locator '$locator'")
 
-    override fun list(): List<VcsRoot> {
-        return service.vcsRoots().`vcs-root`.map(::VcsRootImpl)
+            val vcsRootsBean = instance.service.vcsRoots(locator = locator)
+            return@lazyPaging Page(
+                    data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it) },
+                    hasNextPage = vcsRootsBean.nextHref.isNullOrBlank()
+            )
+        }
     }
 }
 
@@ -538,6 +561,22 @@ private data class BranchImpl(
         override val name: String?,
         override val isDefault: Boolean) : Branch
 
+private data class Page<out T>(val data: List<T>, val hasNextPage: Boolean)
+
+private fun <T> lazyPaging(nextPage: (Int) -> Page<T>): Sequence<T> {
+    data class PageSeq(val nextStart: Int, val hasNext: Boolean, val data: List<T>?)
+
+    return generateSequence(PageSeq(0, true, null), { prev ->
+        if (!prev.hasNext) return@generateSequence null
+
+        val data = nextPage(prev.nextStart)
+        return@generateSequence PageSeq(
+                nextStart = prev.nextStart + data.data.size,
+                hasNext = data.hasNextPage,
+                data = data.data)
+    }).mapNotNull { it.data }.flatten()
+}
+
 private class BuildImpl(private val bean: BuildBean,
                         private val isFullBuildBean: Boolean,
                         private val instance: TeamCityInstanceImpl) : Build {
@@ -580,13 +619,6 @@ private class BuildImpl(private val bean: BuildBean,
     override val canceledInfo: BuildCanceledInfo?
         get() = fullBuildBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
 
-    override val buildProblems: List<BuildProblemOccurrence> by lazy {
-        instance.service.problemOccurrences(
-                locator = "build:(id:${id.stringId})",
-                fields = "\$long,problemOccurrence(\$long)")
-                .problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) }
-    }
-
     override fun fetchStatusText(): String = fullBuildBean.statusText!!
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
     override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
@@ -594,25 +626,25 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
 
-    override fun fetchTests() = instance.service.tests(locator = "build:(id:${id.stringId})", fields = TestOccurrence.filter).testOccurrence.map {
-        object : TestInfo {
-            override val name = it.name!!
-            override val status = when {
-                it.ignored == true -> TestStatus.IGNORED
-                it.status == "FAILURE" -> TestStatus.FAILED
-                it.status == "SUCCESS" -> TestStatus.SUCCESSFUL
-                else -> TestStatus.UNKNOWN
-            }
-            override val duration = it.duration ?: 1L
+    override fun fetchTests(): Sequence<TestOccurrence> = lazyPaging { start ->
+        val occurrencesBean = instance.service.tests(
+                locator = "build:(id:${id.stringId}),start:$start",
+                fields = TestOccurrenceBean.filter)
 
-            override val details = when (status) {
-                TestStatus.IGNORED -> it.ignoreDetails
-                TestStatus.FAILED -> it.details
-                else -> null
-            } ?: ""
+        return@lazyPaging Page(
+                data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
+                hasNextPage = !occurrencesBean.nextHref.isNullOrBlank()
+        )
+    }
 
-            override fun toString() = "Test{name=$name, status=$status, duration=$duration, details=$details}"
-        }
+    override fun fetchBuildProblems(): Sequence<BuildProblemOccurrence> = lazyPaging { start ->
+        val occurrencesBean = instance.service.problemOccurrences(
+                locator = "build:(id:${id.stringId}),start:$start",
+                fields = "\$long,problemOccurrence(\$long)")
+        return@lazyPaging Page(
+                data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
+                hasNextPage = !occurrencesBean.nextHref.isNullOrBlank()
+        )
     }
 
     override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
@@ -793,6 +825,25 @@ private class BuildResultsImpl(private val service: TeamCityService): BuildResul
     override fun tests(id: BuildId) {
         service.tests("build:${id.stringId}")
     }
+}
+
+private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
+    override val name = bean.name!!
+    override val status = when {
+        bean.ignored == true -> TestStatus.IGNORED
+        bean.status == "FAILURE" -> TestStatus.FAILED
+        bean.status == "SUCCESS" -> TestStatus.SUCCESSFUL
+        else -> TestStatus.UNKNOWN
+    }
+    override val duration = bean.duration ?: 1L
+
+    override val details = when (status) {
+        TestStatus.IGNORED -> bean.ignoreDetails
+        TestStatus.FAILED -> bean.details
+        else -> null
+    } ?: ""
+
+    override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
 
 private fun convertToJavaRegexp(pattern: String): Regex {

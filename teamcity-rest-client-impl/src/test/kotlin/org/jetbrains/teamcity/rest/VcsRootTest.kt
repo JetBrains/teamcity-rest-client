@@ -27,7 +27,7 @@ class VcsRootTest {
     @Test
     fun vcs_roots_are_loaded() {
         val vcsRootLocator = vcsRootsFromCustomInstance()
-        val vcsRoots = vcsRootLocator.list()
+        val vcsRoots = vcsRootLocator.list().toList()
         assertTrue("Some vcs roots should be loaded", vcsRoots.isNotEmpty())
     }
 
