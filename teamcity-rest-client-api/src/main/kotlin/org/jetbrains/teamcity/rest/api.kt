@@ -27,6 +27,7 @@ abstract class TeamCityInstance {
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
     abstract fun getWebUrl(buildId: BuildId): String
     abstract fun getWebUrl(userId: UserId): String
+    abstract fun getWebUrl(projectId: ProjectId, testId: TestId): String
     abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
     abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
@@ -96,6 +97,10 @@ data class ProjectId(val stringId: String) {
 }
 
 data class BuildId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class TestId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
@@ -325,6 +330,9 @@ interface TestOccurrence {
     val status: TestStatus
     val duration: Long
     val details : String
+
+    val buildId: BuildId
+    val testId: TestId
 }
 
 interface TriggeredInfo {

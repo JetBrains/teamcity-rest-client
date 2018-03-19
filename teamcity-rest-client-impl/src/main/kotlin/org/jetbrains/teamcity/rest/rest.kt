@@ -354,6 +354,10 @@ internal open class TestOccurrencesBean {
     var testOccurrence: List<TestOccurrenceBean> = ArrayList()
 }
 
+internal open class TestBean {
+    var id: String? = null
+}
+
 internal open class TestOccurrenceBean {
     var name: String? = null
     var status: String? = null
@@ -362,7 +366,10 @@ internal open class TestOccurrenceBean {
     var ignoreDetails: String? = null
     var details: String? = null
 
+    var build: BuildBean? = null
+    var test: TestBean? = null
+
     companion object {
-        val filter = "testOccurrence(name,status,ignored,duration,ignoreDetails,details)"
+        val filter = "testOccurrence(name,status,ignored,duration,ignoreDetails,details,build(id),test(id))"
     }
 }

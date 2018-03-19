@@ -119,6 +119,14 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
                 userId = userId
         )
 
+    override fun getWebUrl(projectId: ProjectId, testId: TestId): String =
+        getUserUrlPage(
+                serverUrl, "project.html",
+                projectId = projectId,
+                testId = testId,
+                tab = "testDetails"
+        )
+
     override fun getWebUrl(queuedBuildId: QueuedBuildId): String =
         getUserUrlPage(serverUrl, "viewQueued.html", itemId = queuedBuildId)
 
@@ -837,12 +845,14 @@ private class BuildResultsImpl(private val service: TeamCityService): BuildResul
 
 private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!
+
     override val status = when {
         bean.ignored == true -> TestStatus.IGNORED
         bean.status == "FAILURE" -> TestStatus.FAILED
         bean.status == "SUCCESS" -> TestStatus.SUCCESSFUL
         else -> TestStatus.UNKNOWN
     }
+
     override val duration = bean.duration ?: 1L
 
     override val details = when (status) {
@@ -850,6 +860,10 @@ private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
         TestStatus.FAILED -> bean.details
         else -> null
     } ?: ""
+
+    override val buildId: BuildId = BuildId(bean.build!!.id!!)
+
+    override val testId: TestId = TestId(bean.test!!.id!!)
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
@@ -865,6 +879,7 @@ private fun getUserUrlPage(serverUrl: String,
                            tab: String? = null,
                            projectId: ProjectId? = null,
                            buildId: BuildId? = null,
+                           testId: TestId? = null,
                            userId: UserId? = null,
                            itemId: QueuedBuildId? = null,
                            modId: ChangeId? = null,
@@ -876,6 +891,7 @@ private fun getUserUrlPage(serverUrl: String,
     tab?.let { params.add("tab=" + tab.urlencode()) }
     projectId?.let { params.add("projectId=" + projectId.stringId.urlencode()) }
     buildId?.let { params.add("buildId=" + buildId.stringId.urlencode()) }
+    testId?.let { params.add("testId=" + testId.stringId.urlencode()) }
     userId?.let { params.add("userId=" + userId.stringId.urlencode()) }
     modId?.let { params.add("modId=" + modId.stringId.urlencode()) }
     itemId?.let { params.add("itemId=" + itemId.stringId.urlencode()) }
