@@ -626,9 +626,17 @@ private class BuildImpl(private val bean: BuildBean,
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
 
-    override fun fetchTests(): Sequence<TestOccurrence> = lazyPaging { start ->
+    override fun fetchTests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging { start ->
+        val statusLocator = when (status) {
+            null -> ""
+            TestStatus.FAILED -> ",status:FAILURE"
+            TestStatus.SUCCESSFUL -> ",status:SUCCESS"
+            TestStatus.IGNORED -> ",ignored:true"
+            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
+        }
+
         val occurrencesBean = instance.service.tests(
-                locator = "build:(id:${id.stringId}),start:$start",
+                locator = "build:(id:${id.stringId}),start:$start$statusLocator",
                 fields = TestOccurrenceBean.filter)
 
         return@lazyPaging Page(

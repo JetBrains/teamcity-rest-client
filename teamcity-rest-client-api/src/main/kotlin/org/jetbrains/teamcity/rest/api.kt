@@ -217,7 +217,7 @@ interface Build {
 
     fun fetchTriggeredInfo(): TriggeredInfo?
 
-    fun fetchTests() : Sequence<TestOccurrence>
+    fun fetchTests(status: TestStatus? = null) : Sequence<TestOccurrence>
 
     fun fetchBuildProblems(): Sequence<BuildProblemOccurrence>
 
