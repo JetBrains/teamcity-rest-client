@@ -115,7 +115,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId))
 
-    override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, this)
+    override fun project(id: ProjectId): Project = ProjectImpl(ProjectBean().let { it.id = id.stringId; it }, false, this)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 
@@ -326,13 +326,13 @@ private class ProjectImpl(
         get() = ProjectId(bean.id!!)
 
     override val name: String
-        get() = bean.name!!
+        get() = bean.name ?: fullProjectBean.name!!
 
     override val archived: Boolean
-        get() = bean.archived
+        get() = bean.archived ?: fullProjectBean.archived!!
 
     override val parentProjectId: ProjectId
-        get() = ProjectId(bean.parentProjectId!!)
+        get() = ProjectId(bean.parentProjectId ?: fullProjectBean.parentProjectId!!)
 
     val fullProjectBean: ProjectBean by lazy {
         if (isFullProjectBean) bean else instance.service.project(id.stringId)

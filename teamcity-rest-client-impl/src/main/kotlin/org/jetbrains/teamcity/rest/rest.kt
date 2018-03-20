@@ -268,7 +268,7 @@ internal class ProjectBean {
     var id: String? = null
     var name: String? = null
     var parentProjectId: String? = null
-    var archived: Boolean = false
+    var archived: Boolean? = null
 
     var projects: ProjectsBean? = ProjectsBean()
     var parameters: ParametersBean? = ParametersBean()
