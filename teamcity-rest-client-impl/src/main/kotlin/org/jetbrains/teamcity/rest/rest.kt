@@ -103,6 +103,18 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/problemOccurrences")
     fun problemOccurrences(@Query("locator") locator: String, @Query("fields") fields: String): BuildProblemOccurrencesBean
+
+    @POST("/app/rest/projects")
+    @Headers("Accept: application/json", "Content-Type: application/xml")
+    fun createProject(@Body projectDescriptionXml: TypedString): ProjectBean
+
+    @POST("/app/rest/vcs-roots")
+    @Headers("Accept: application/json", "Content-Type: application/xml")
+    fun createVcsRoot(@Body vcsRootXml: TypedString): VcsRootBean
+
+    @POST("/app/rest/buildTypes")
+    @Headers("Accept: application/json", "Content-Type: application/xml")
+    fun createBuildType(@Body buildTypeXml: TypedString): BuildTypeBean
 }
 
 internal class ProjectsBean {

@@ -10,14 +10,13 @@ import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
 import retrofit.mime.TypedString
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
+import java.io.*
 import java.net.URLEncoder
 import java.net.HttpURLConnection
-import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.xml.stream.XMLOutputFactory
+import javax.xml.stream.XMLStreamWriter
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -66,10 +65,27 @@ private class RetryInterceptor : Interceptor {
     }
 }
 
+private fun xml(init: XMLStreamWriter.() -> Unit): String {
+    val stringWriter = StringWriter()
+    val xmlStreamWriter = XMLOutputFactory.newFactory().createXMLStreamWriter(stringWriter)
+    init(xmlStreamWriter)
+    xmlStreamWriter.flush()
+    return stringWriter.toString()
+}
+
+private fun XMLStreamWriter.element(name: String, init: XMLStreamWriter.() -> Unit): XMLStreamWriter {
+    this.writeStartElement(name)
+    this.init()
+    this.writeEndElement()
+    return this
+}
+
+private fun XMLStreamWriter.attribute(name: String, value: String) = writeAttribute(name, value)
+
 internal class TeamCityInstanceImpl(override val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
-                                    logResponses: Boolean) : TeamCityInstance() {
+                                    logResponses: Boolean) : TeamCityInstance(), Experimental {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
@@ -163,6 +179,59 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
     override fun buildResults(): BuildResults = BuildResultsImpl(service)
+
+    override val experimental: Experimental
+        get() = this
+
+    override fun createProject(id: ProjectId, name: String, parentProjectId: ProjectId): Project {
+        val projectXmlDescription = xml {
+            element("newProjectDescription") {
+                attribute("name", name)
+                attribute("id", id.stringId)
+                element("parentProject") {
+                    attribute("locator", "id:${parentProjectId.stringId}")
+                }
+            }
+        }
+
+        val projectBean = service.createProject(TypedString(projectXmlDescription))
+        return ProjectImpl(projectBean, true, this)
+    }
+
+    override fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, parentProjectId: ProjectId, properties: Map<String, String>): VcsRoot {
+        val vcsRootDescriptionXml = xml {
+            element("vcs-root") {
+                attribute("name", name)
+                attribute("id", id.stringId)
+                attribute("vcsName", type.stringType)
+
+                element("project") {
+                    attribute("id", parentProjectId.stringId)
+                }
+
+                element("properties") {
+                    properties.entries.sortedBy { it.key }.forEach {
+                        element("property") {
+                            attribute("name", it.key)
+                            attribute("value", it.value)
+                        }
+                    }
+                }
+            }
+        }
+
+        return createVcsRoot(vcsRootDescriptionXml)
+    }
+
+    override fun createVcsRoot(vcsRootDescriptionXml: String): VcsRoot {
+        val vcsRootBean = service.createVcsRoot(TypedString(vcsRootDescriptionXml))
+        return VcsRootImpl(vcsRootBean)
+    }
+
+    override fun createBuildType(buildTypeDescriptionXml: String): BuildConfiguration {
+        val bean = service.createBuildType(TypedString(buildTypeDescriptionXml))
+        return BuildConfigurationImpl(bean, this)
+    }
 }
 
 private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserLocator {
