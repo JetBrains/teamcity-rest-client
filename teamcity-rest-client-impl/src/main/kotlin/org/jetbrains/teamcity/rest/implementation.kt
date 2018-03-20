@@ -14,6 +14,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URLEncoder
+import java.net.HttpURLConnection
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,13 +36,26 @@ internal fun createHttpAuthInstance(serverUrl: String, username: String, passwor
 }
 
 private class RetryInterceptor : Interceptor {
+    private fun Response.retryRequired(): Boolean {
+        val code = code()
+        if (code < 400) return false
+
+        // Do not retry non-GET methods, their result may be not idempotent
+        if (request().method() != "GET") return false
+
+        return  code == HttpURLConnection.HTTP_CLIENT_TIMEOUT ||
+                code == HttpURLConnection.HTTP_INTERNAL_ERROR ||
+                code == HttpURLConnection.HTTP_BAD_GATEWAY ||
+                code == HttpURLConnection.HTTP_UNAVAILABLE ||
+                code == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
+    }
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         var response = chain.proceed(request)
 
         var tryCount = 0
-        while (!response.isSuccessful && tryCount < 3) {
+        while (response.retryRequired() && tryCount < 3) {
             tryCount++
             LOG.warn("Request ${request.url()} is not successful, $tryCount sec waiting [$tryCount retry]")
             Thread.sleep((tryCount * 1000).toLong())
