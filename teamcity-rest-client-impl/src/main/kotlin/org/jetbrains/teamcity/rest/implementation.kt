@@ -88,7 +88,16 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
             })
-            .setErrorHandler({ throw Error("Failed to connect to ${it.url}: ${it.message}", it) })
+            .setErrorHandler({
+                val responseText = try {
+                    it.response.body.`in`().reader().use { it.readText() }
+                } catch (t: Throwable) {
+                    LOG.warn("Exception while reading error response text: ${t.message}", t)
+                    ""
+                }
+
+                throw Error("Failed to connect to ${it.url}: ${it.message} $responseText", it)
+            })
             .build()
             .create(TeamCityService::class.java)
 
