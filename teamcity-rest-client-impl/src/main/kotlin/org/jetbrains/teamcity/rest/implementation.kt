@@ -342,8 +342,10 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun list(): Sequence<Build> {
+        val count1 = count
+
         val parameters = listOfNotNull(
-                buildConfigurationId?.stringId?.let { "buildType:$it" },
+                buildTypeId?.stringId?.let { "buildType:$it" },
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
                 status?.name?.let { "status:$it" },
@@ -351,7 +353,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
-                count?.let { "count:$it" },
+                count1?.let { "count:$it" },
 
                 sinceDate?.let {"sinceDate:${teamCityServiceDateFormat.get().format(sinceDate)}"},
 
@@ -365,7 +367,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
-        return lazyPaging { start ->
+        val sequence = lazyPaging { start ->
             val buildLocator = parameters.plus("start:$start").joinToString(",")
 
             LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
@@ -376,6 +378,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     hasNextPage = buildsBean.nextHref.isNotBlank()
             )
         }
+
+        return if (count1 != null) sequence.take(count1) else sequence
     }
 
     override fun pinnedOnly(): BuildLocator {
