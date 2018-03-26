@@ -402,7 +402,7 @@ private class ProjectImpl(
         get() = bean.name ?: fullProjectBean.name!!
 
     override val archived: Boolean
-        get() = bean.archived ?: fullProjectBean.archived!!
+        get() = bean.archived ?: fullProjectBean.archived ?: false
 
     override val parentProjectId: ProjectId
         get() = ProjectId(bean.parentProjectId ?: fullProjectBean.parentProjectId!!)
