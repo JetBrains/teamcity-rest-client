@@ -112,7 +112,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
                     ""
                 }
 
-                throw Error("Failed to connect to ${it.url}: ${it.message} $responseText", it)
+                throw TeamCityConversationException("Failed to connect to ${it.url}: ${it.message} $responseText", it)
             })
             .build()
             .create(TeamCityService::class.java)
@@ -798,11 +798,11 @@ private class BuildImpl(private val bean: BuildBean,
         val result = list.filter { regexp.matches(it.fileName) }
         if (result.isEmpty()) {
             val available = list.joinToString(",") { it.fileName }
-            throw RuntimeException("Artifact $pattern not found in build $buildNumber. Available artifacts: $available.")
+            throw TeamCityQueryException("Artifact $pattern not found in build $buildNumber. Available artifacts: $available.")
         }
         if (result.size > 1) {
             val names = result.joinToString(",") { it.fileName }
-            throw RuntimeException("Several artifacts matching $pattern are found in build $buildNumber: $names.")
+            throw TeamCityQueryException("Several artifacts matching $pattern are found in build $buildNumber: $names.")
         }
         return result.first()
     }
@@ -813,7 +813,7 @@ private class BuildImpl(private val bean: BuildBean,
         val matched = list.filter { regexp.matches(it.fileName) }
         if (matched.isEmpty()) {
             val available = list.joinToString(",") { it.fileName }
-            throw RuntimeException("No artifacts matching $pattern are found in build $buildNumber. Available artifacts: $available.")
+            throw TeamCityQueryException("No artifacts matching $pattern are found in build $buildNumber. Available artifacts: $available.")
         }
         outputDir.mkdirs()
         matched.forEach {
