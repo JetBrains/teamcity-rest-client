@@ -907,7 +907,7 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 
         request.buildType = BuildTypeBean().apply { id = buildTypeId.stringId }
         request.branchName = logicalBranchName
-        comment.let { commentText -> request.comment = CommentBean().apply { text = commentText } }
+        comment?.let { commentText -> request.comment = CommentBean().apply { text = commentText } }
         request.personal = personal
         request.triggeringOptions = TriggeringOptionsBean().apply {
             this.cleanSources = cleanSources
