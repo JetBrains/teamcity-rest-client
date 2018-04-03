@@ -504,8 +504,8 @@ private class ChangeImpl(private val bean: ChangeBean,
 private class UserImpl(private val bean: UserBean,
                        private val isFullBuildBean: Boolean,
                        private val instance: TeamCityInstanceImpl) : User {
-    override val email: String
-        get() = bean.email ?: fullUserBean.email!!
+    override val email: String?
+        get() = bean.email ?: fullUserBean.email
 
     override val id: UserId
         get() = UserId(bean.id!!)

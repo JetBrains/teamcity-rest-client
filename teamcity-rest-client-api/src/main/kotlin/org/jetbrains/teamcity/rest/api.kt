@@ -297,7 +297,7 @@ interface User {
     val id: UserId
     val username: String
     val name: String
-    val email: String
+    val email: String?
 
     /**
      * Web UI URL for user, especially useful for error and log messages
