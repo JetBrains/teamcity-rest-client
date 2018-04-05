@@ -492,9 +492,10 @@ private class BuildImpl(private val bean: BuildBean,
 
     override fun getArtifacts(parentPath: String, recursive: Boolean, hidden: Boolean): List<BuildArtifact> {
         val locator = "recursive:$recursive,hidden:$hidden"
-        return instance.service.artifactChildren(id.stringId, parentPath, locator).file
-                .filter { it.name != null && it.modificationTime != null }
-                .map { BuildArtifactImpl(this, it.name!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!)) }
+        val fields = "file(${ArtifactFileBean.FIELDS})"
+        return instance.service.artifactChildren(id.stringId, parentPath, locator, fields).file
+                .filter { it.fullName != null && it.modificationTime != null }
+                .map { BuildArtifactImpl(this, it.fullName!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!)) }
     }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
