@@ -55,7 +55,8 @@ internal interface TeamCityService {
     @GET("/app/rest/builds/id:{id}/artifacts/children/{path}")
     fun artifactChildren(@Path("id") buildId: String,
                          @Path("path", encode = false) artifactPath: String,
-                         @Query("locator") locator: String): ArtifactFileListBean
+                         @Query("locator") locator: String,
+                         @Query("fields") fields: String): ArtifactFileListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/projects/id:{id}")
@@ -128,9 +129,13 @@ internal class ArtifactFileListBean {
 }
 
 internal class ArtifactFileBean {
-    var name: String? = null
+    var fullName: String? = null
     var size: Long? = null
     var modificationTime: String? = null
+
+    companion object {
+        val FIELDS = "${ArtifactFileBean::fullName.name},${ArtifactFileBean::size.name},${ArtifactFileBean::modificationTime.name}"
+    }
 }
 
 internal class VcsRootListBean {
