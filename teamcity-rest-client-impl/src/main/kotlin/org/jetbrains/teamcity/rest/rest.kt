@@ -53,7 +53,9 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/builds/id:{id}/artifacts/children/{path}")
-    fun artifactChildren(@Path("id") buildId: String, @Path("path", encode = false) artifactPath: String): ArtifactFileListBean
+    fun artifactChildren(@Path("id") buildId: String,
+                         @Path("path", encode = false) artifactPath: String,
+                         @Query("locator") locator: String): ArtifactFileListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/projects/id:{id}")
