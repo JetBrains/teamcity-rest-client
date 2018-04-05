@@ -67,8 +67,11 @@ class BuildTest {
                 .limitResults(1)
                 .list().first()
 
-        val artifacts = build.getArtifacts("internal")
-        Assert.assertTrue(artifacts.any { it.fileName == "dependencies.properties"})
+        val artifacts = build.getArtifacts("maven")
+        Assert.assertTrue(artifacts.any { it.fileName == "org"})
+
+        val artifactsRecursive = build.getArtifacts("maven", recursive = true)
+        Assert.assertTrue(artifactsRecursive.size > artifacts.size)
     }
 
     @Test
