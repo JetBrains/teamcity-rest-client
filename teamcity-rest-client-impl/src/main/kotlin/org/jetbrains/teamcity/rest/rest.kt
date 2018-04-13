@@ -89,12 +89,13 @@ internal class ArtifactFileListBean {
 }
 
 internal class ArtifactFileBean {
+    var name: String? = null
     var fullName: String? = null
     var size: Long? = null
     var modificationTime: String? = null
 
     companion object {
-        val FIELDS = "${ArtifactFileBean::fullName.name},${ArtifactFileBean::size.name},${ArtifactFileBean::modificationTime.name}"
+        val FIELDS = "${ArtifactFileBean::fullName.name},${ArtifactFileBean::name.name},${ArtifactFileBean::size.name},${ArtifactFileBean::modificationTime.name}"
     }
 }
 

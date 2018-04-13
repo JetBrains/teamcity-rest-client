@@ -495,35 +495,35 @@ private class BuildImpl(private val bean: BuildBean,
         val fields = "file(${ArtifactFileBean.FIELDS})"
         return instance.service.artifactChildren(id.stringId, parentPath, locator, fields).file
                 .filter { it.fullName != null && it.modificationTime != null }
-                .map { BuildArtifactImpl(this, it.fullName!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!)) }
+                .map { BuildArtifactImpl(this, it.name!!, it.fullName!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!)) }
     }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
         val list = getArtifacts(parentPath)
         val regexp = convertToJavaRegexp(pattern)
-        val result = list.filter { regexp.matches(it.fileName) }
+        val result = list.filter { regexp.matches(it.name) }
         if (result.isEmpty()) {
-            val available = list.joinToString(",") { it.fileName }
+            val available = list.joinToString(",") { it.name }
             throw TeamCityQueryException("Artifact $pattern not found in build $buildNumber. Available artifacts: $available.")
         }
         if (result.size > 1) {
-            val names = result.joinToString(",") { it.fileName }
+            val names = result.joinToString(",") { it.name }
             throw TeamCityQueryException("Several artifacts matching $pattern are found in build $buildNumber: $names.")
         }
         return result.first()
     }
 
     override fun downloadArtifacts(pattern: String, outputDir: File) {
-        val list = getArtifacts()
+        val list = getArtifacts(recursive = true)
         val regexp = convertToJavaRegexp(pattern)
-        val matched = list.filter { regexp.matches(it.fileName) }
+        val matched = list.filter { regexp.matches(it.fullName) }
         if (matched.isEmpty()) {
-            val available = list.joinToString(",") { it.fileName }
+            val available = list.joinToString(",") { it.fullName }
             throw TeamCityQueryException("No artifacts matching $pattern are found in build $buildNumber. Available artifacts: $available.")
         }
         outputDir.mkdirs()
         matched.forEach {
-            it.download(File(outputDir, it.fileName))
+            it.download(File(outputDir, it.name))
         }
     }
 
@@ -580,9 +580,14 @@ private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
         get() = bean.name!!
 }
 
-private class BuildArtifactImpl(private val build: Build, override val fileName: String, override val size: Long?, override val modificationTime: Date) : BuildArtifact {
+private class BuildArtifactImpl(
+        private val build: Build,
+        override val name: String,
+        override val fullName: String,
+        override val size: Long?,
+        override val modificationTime: Date) : BuildArtifact {
     override fun download(output: File) {
-        build.downloadArtifact(fileName, output)
+        build.downloadArtifact(fullName, output)
     }
 }
 

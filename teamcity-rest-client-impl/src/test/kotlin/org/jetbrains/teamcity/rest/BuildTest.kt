@@ -68,7 +68,7 @@ class BuildTest {
                 .list().first()
 
         val artifacts = build.getArtifacts("maven")
-        Assert.assertTrue(artifacts.any { it.fileName == "maven/org"})
+        Assert.assertTrue(artifacts.any { it.fullName == "maven/org" && it.name == "org" && it.size == null })
 
         val artifactsRecursive = build.getArtifacts("maven", recursive = true)
         Assert.assertTrue(artifactsRecursive.size > artifacts.size)
