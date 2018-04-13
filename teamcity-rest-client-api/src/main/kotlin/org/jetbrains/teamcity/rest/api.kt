@@ -306,7 +306,10 @@ interface User {
 }
 
 interface BuildArtifact {
-    val fileName: String
+    /** Artifact name without path. e.g. my.jar */
+    val name: String
+    /** Artifact name with path. e.g. directory/my.jar */
+    val fullName: String
     val size: Long?
     val modificationTime: Date
 
