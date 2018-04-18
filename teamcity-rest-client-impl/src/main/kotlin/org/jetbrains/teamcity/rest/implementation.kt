@@ -282,6 +282,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var running: String? = null
+    private var canceled: String? = null
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -305,6 +307,24 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun withStatus(status: BuildStatus): BuildLocator {
         this.status = status
+        return this
+    }
+
+    override fun withRunning(running: RunningStatus): BuildLocator {
+        this.running = when (running) {
+            RunningStatus.ANY -> "any"
+            RunningStatus.TRUE -> "true"
+            RunningStatus.FALSE -> "false"
+        }
+        return this
+    }
+
+    override fun withCanceled(canceled: CanceledStatus): BuildLocator {
+        this.canceled = when (canceled) {
+            CanceledStatus.ANY -> "any"
+            CanceledStatus.TRUE -> "true"
+            CanceledStatus.FALSE -> "false"
+        }
         return this
     }
 
@@ -348,6 +368,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 buildTypeId?.stringId?.let { "buildType:$it" },
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
+                running?.let { "running:$it" },
+                canceled?.let { "canceled:$it" },
                 status?.name?.let { "status:$it" },
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")

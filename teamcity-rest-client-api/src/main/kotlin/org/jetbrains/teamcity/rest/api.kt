@@ -90,6 +90,16 @@ interface BuildLocator {
      */
     fun withAnyStatus(): BuildLocator
 
+    /**
+     * By default only finished builds are returned
+     */
+    fun withRunning(running: RunningStatus): BuildLocator
+
+    /**
+     * By default canceled builds are not returned
+     */
+    fun withCanceled(canceled: CanceledStatus): BuildLocator
+
     fun withStatus(status: BuildStatus): BuildLocator
     fun withTag(tag: String): BuildLocator
 
@@ -334,6 +344,18 @@ enum class BuildState {
     FINISHED,
     DELETED,
     UNKNOWN,
+}
+
+enum class RunningStatus {
+    TRUE,
+    FALSE,
+    ANY
+}
+
+enum class CanceledStatus {
+    TRUE,
+    FALSE,
+    ANY
 }
 
 interface PinInfo {
