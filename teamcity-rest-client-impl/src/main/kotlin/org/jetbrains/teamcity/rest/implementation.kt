@@ -148,8 +148,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun getWebUrl(buildId: BuildId): String =
         getUserUrlPage(
                 serverUrl, "viewLog.html",
-                buildId = buildId,
-                tab = "buildResultsDiv"
+                buildId = buildId
         )
 
     override fun getWebUrl(userId: UserId): String =
