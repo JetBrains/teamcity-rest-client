@@ -166,7 +166,7 @@ interface Project {
     val id: ProjectId
     val name: String
     val archived: Boolean
-    val parentProjectId: ProjectId
+    val parentProjectId: ProjectId?
 
     /**
      * Web UI URL for user, especially useful for error and log messages

@@ -425,8 +425,8 @@ private class ProjectImpl(
     override val archived: Boolean
         get() = bean.archived ?: fullProjectBean.archived ?: false
 
-    override val parentProjectId: ProjectId
-        get() = ProjectId(bean.parentProjectId ?: fullProjectBean.parentProjectId!!)
+    override val parentProjectId: ProjectId?
+        get() = (bean.parentProjectId ?: fullProjectBean.parentProjectId)?.let { ProjectId(it) }
 
     val fullProjectBean: ProjectBean by lazy {
         if (isFullProjectBean) bean else instance.service.project(id.stringId)
