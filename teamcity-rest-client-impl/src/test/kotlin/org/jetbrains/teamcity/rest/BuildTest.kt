@@ -81,9 +81,6 @@ class BuildTest {
                 .limitResults(1)
                 .list().first()
 
-        assertEquals(
-                "$publicInstanceUrl/viewLog.html?tab=buildResultsDiv&buildId=${build.id.stringId}",
-                build.getWebUrl()
-        )
+        assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getWebUrl())
     }
 }
