@@ -15,6 +15,7 @@ import java.net.URLEncoder
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
 
@@ -91,6 +92,9 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
     private var client = OkHttpClient.Builder()
+            .readTimeout(2, TimeUnit.MINUTES)
+            .writeTimeout(2, TimeUnit.MINUTES)
+            .connectTimeout(2, TimeUnit.MINUTES)
             .addInterceptor(RetryInterceptor())
             .build()
 
