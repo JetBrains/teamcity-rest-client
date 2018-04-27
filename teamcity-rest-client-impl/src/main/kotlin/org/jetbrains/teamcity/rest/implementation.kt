@@ -753,8 +753,8 @@ private class BuildImpl(private val bean: BuildBean,
 
     override fun fetchStatusText(): String = fullBuildBean.statusText!!
     override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
-    override fun fetchStartDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.startDate!!)
-    override fun fetchFinishDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.finishDate!!)
+    override fun fetchStartDate(): Date? = fullBuildBean.startDate?.let { teamCityServiceDateFormat.get().parse(it) }
+    override fun fetchFinishDate(): Date? = fullBuildBean.finishDate?.let { teamCityServiceDateFormat.get().parse(it) }
     override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
 

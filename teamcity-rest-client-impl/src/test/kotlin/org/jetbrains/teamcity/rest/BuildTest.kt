@@ -34,7 +34,7 @@ class BuildTest {
                 .list()
 
         for (build in builds) {
-            assert(build.fetchStartDate() >= monthAgo.time)
+            assert(build.fetchStartDate()!! >= monthAgo.time)
         }
     }
 

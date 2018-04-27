@@ -246,8 +246,8 @@ interface Build {
 
     fun fetchStatusText(): String
     fun fetchQueuedDate(): Date
-    fun fetchStartDate(): Date
-    fun fetchFinishDate(): Date
+    fun fetchStartDate(): Date?
+    fun fetchFinishDate(): Date?
 
     fun fetchParameters(): List<Parameter>
 
