@@ -244,7 +244,7 @@ interface Build {
      */
     fun getWebUrl(): String
 
-    fun fetchStatusText(): String
+    fun fetchStatusText(): String?
     fun fetchQueuedDate(): Date
     fun fetchStartDate(): Date?
     fun fetchFinishDate(): Date?
