@@ -14,6 +14,7 @@ import java.io.FileOutputStream
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit.SECONDS
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -59,6 +60,10 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
 
     private var client = OkHttpClient.Builder()
             .addInterceptor(RetryInterceptor())
+            .also {
+                it.readTimeout(60, SECONDS)
+                it.writeTimeout(60, SECONDS)
+            }
             .build()
 
     internal val service = RestAdapter.Builder()
