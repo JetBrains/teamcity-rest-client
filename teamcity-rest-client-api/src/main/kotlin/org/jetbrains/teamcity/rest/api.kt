@@ -222,6 +222,11 @@ interface VcsRoot {
     val name: String
 }
 
+interface VcsRootInstance {
+    val vcsRootId: VcsRootId
+    val name: String
+}
+
 enum class BuildStatus {
     SUCCESS,
     FAILURE,
@@ -236,7 +241,7 @@ interface PinInfo {
 interface Revision {
     val version: String
     val vcsBranchName: String
-    val vcsRoot: VcsRoot
+    val vcsRootInstance: VcsRootInstance
 }
 
 interface TriggeredInfo {

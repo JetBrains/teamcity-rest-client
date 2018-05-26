@@ -428,8 +428,8 @@ private class RevisionImpl(private val bean: RevisionBean) : Revision {
     override val vcsBranchName: String
         get() = bean.vcsBranchName!!
 
-    override val vcsRoot: VcsRoot
-        get() = VcsRootImpl(bean.`vcs-root-instance`!!)
+    override val vcsRootInstance: VcsRootInstance
+        get() = VcsRootInstanceImpl(bean.`vcs-root-instance`!!)
 }
 
 private data class BranchImpl(
@@ -580,6 +580,14 @@ private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
 
     override val id: VcsRootId
         get() = VcsRootId(bean.id!!)
+
+    override val name: String
+        get() = bean.name!!
+}
+
+private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
+    override val vcsRootId: VcsRootId
+        get() = VcsRootId(bean.`vcs-root-id`!!)
 
     override val name: String
         get() = bean.name!!
