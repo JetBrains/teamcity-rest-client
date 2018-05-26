@@ -95,9 +95,9 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
     override fun buildConfiguration(id: BuildConfigurationId):
             BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), this)
 
-    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service)
+    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(service, this)
 
-    override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId))
+    override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId), true, this)
 
     override fun project(id: ProjectId): Project = ProjectImpl(service.project(id.stringId), true, this)
 
@@ -295,10 +295,11 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
     }
 }
 
-private class VcsRootLocatorImpl(private val service: TeamCityService) : VcsRootLocator {
+private class VcsRootLocatorImpl(private val service: TeamCityService,
+                                 private val instance: TeamCityInstanceImpl) : VcsRootLocator {
 
     override fun list(): List<VcsRoot> {
-        return service.vcsRoots().vcsRoot.map(::VcsRootImpl)
+        return service.vcsRoots().vcsRoot.map {VcsRootImpl(it, false, instance)}
     }
 }
 
@@ -576,13 +577,20 @@ private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val ins
     }
 }
 
-private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
+private class VcsRootImpl(private val bean: VcsRootBean,
+                          private val isFullVcsRootBean: Boolean,
+                          private val instance: TeamCityInstanceImpl) : VcsRoot {
 
     override val id: VcsRootId
         get() = VcsRootId(bean.id!!)
 
     override val name: String
         get() = bean.name!!
+
+    val fullVcsRootBean: VcsRootBean by lazy {
+        if (isFullVcsRootBean) bean else instance.service.vcsRoot(id.stringId)
+    }
+    override fun fetchVcsRootProperties(): List<VcsRootProperty> = fullVcsRootBean.properties!!.property!!.map { VcsRootPropertyImpl(it) }
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
@@ -591,6 +599,14 @@ private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRo
 
     override val name: String
         get() = bean.name!!
+}
+
+private class VcsRootPropertyImpl(private val bean: VcsRootPropertyBean) : VcsRootProperty {
+    override val name: String
+        get() = bean.name!!
+
+    override val value: String
+        get() = bean.value!!
 }
 
 private class BuildArtifactImpl(
