@@ -109,6 +109,11 @@ internal open class VcsRootBean {
     var name: String? = null
 }
 
+internal open class VcsRootInstanceBean {
+    var `vcs-root-id`: String? = null
+    var name: String? = null
+}
+
 internal class BuildListBean {
     var build: List<BuildBean> = ArrayList()
 }
@@ -249,5 +254,5 @@ internal class RevisionsBean {
 internal class RevisionBean {
     var version: String? = null
     var vcsBranchName: String? = null
-    var `vcs-root-instance`: VcsRootBean? = null
+    var `vcs-root-instance`: VcsRootInstanceBean? = null
 }
