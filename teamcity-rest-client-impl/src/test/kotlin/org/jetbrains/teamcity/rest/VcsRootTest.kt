@@ -40,6 +40,13 @@ class VcsRootTest {
         assertNotNull("Vcs root should be loaded", vcsRoot)
     }
 
+    @Test
+    fun test_fetch_vcs_root_properties() {
+        val vcsRoot = vcsRootsFromPublicInstance().list().first()
+        val vcsRootProperties = vcsRoot.fetchVcsRootProperties()
+        assertNotNull("Vcs root properties should be loaded", vcsRootProperties)
+    }
+
     private fun vcsRootsFromPublicInstance(): VcsRootLocator {
         return publicInstance().vcsRoots()
     }

@@ -220,6 +220,13 @@ interface BuildArtifact {
 interface VcsRoot {
     val id: VcsRootId
     val name: String
+
+    fun fetchVcsRootProperties(): List<VcsRootProperty>
+}
+
+interface VcsRootProperty {
+    val name: String
+    val value: String
 }
 
 interface VcsRootInstance {
