@@ -591,11 +591,10 @@ private class VcsRootImpl(private val bean: VcsRootBean,
         if (isFullVcsRootBean) bean else instance.service.vcsRoot(id.stringId)
     }
 
-    fun fetchVcsRootProperties(): List<VcsRootProperty> = fullVcsRootBean.properties!!.property!!.map { VcsRootPropertyImpl(it) }
-    fun getProperty(name: String): String? = fetchVcsRootProperties().filter { it.name == name}.single().value
+    fun fetchNameValueProperties(): List<NameValueProperty> = fullVcsRootBean.properties!!.property!!.map { NameValueProperty(it) }
 
-    override fun getUrl(): String? = getProperty("url")
-    override fun getDefaultBranch(): String? = getProperty("branch")
+    override fun getUrl(): String? = getNameValueProperty(fetchNameValueProperties(), "url")
+    override fun getDefaultBranch(): String? = getNameValueProperty(fetchNameValueProperties(), "branch")
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
@@ -606,11 +605,11 @@ private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRo
         get() = bean.name!!
 }
 
-private class VcsRootPropertyImpl(private val bean: VcsRootPropertyBean) : VcsRootProperty {
-    override val name: String
+private class NameValueProperty(private val bean: NameValuePropertyBean) {
+    val name: String
         get() = bean.name!!
 
-    override val value: String?
+    val value: String?
         get() = bean.value
 }
 
@@ -624,6 +623,8 @@ private class BuildArtifactImpl(
         build.downloadArtifact(fullName, output)
     }
 }
+
+private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.filter { it.name == name}.single().value
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()

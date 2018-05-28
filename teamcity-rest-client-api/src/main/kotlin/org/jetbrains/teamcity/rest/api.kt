@@ -225,11 +225,6 @@ interface VcsRoot {
     fun getDefaultBranch(): String?
 }
 
-interface VcsRootProperty {
-    val name: String
-    val value: String?
-}
-
 interface VcsRootInstance {
     val vcsRootId: VcsRootId
     val name: String
