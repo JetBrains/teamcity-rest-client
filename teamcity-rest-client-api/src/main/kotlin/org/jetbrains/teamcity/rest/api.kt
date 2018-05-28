@@ -221,7 +221,8 @@ interface VcsRoot {
     val id: VcsRootId
     val name: String
 
-    fun fetchVcsRootProperties(): List<VcsRootProperty>
+    fun getUrl(): String?
+    fun getDefaultBranch(): String?
 }
 
 interface VcsRootProperty {
