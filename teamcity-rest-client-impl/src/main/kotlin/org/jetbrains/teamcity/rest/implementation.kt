@@ -545,6 +545,19 @@ private class BuildImpl(private val bean: BuildBean,
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
+
+    override fun downloadBuildLog(output: File) {
+        LOG.info("Downloading build log from build $buildNumber (id:${id.stringId}) to $output")
+
+        output.parentFile.mkdirs()
+        val response = instance.service.buildLog(id.stringId)
+        val input = response.body.`in`()
+        BufferedOutputStream(FileOutputStream(output)).use {
+            input.copyTo(it)
+        }
+
+        LOG.debug("Build log from build $buildNumber (id:${id.stringId}) downloaded to $output")
+    }
 }
 
 private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val instance: TeamCityInstanceImpl) : QueuedBuild {
