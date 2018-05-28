@@ -226,7 +226,7 @@ interface VcsRoot {
 
 interface VcsRootProperty {
     val name: String
-    val value: String
+    val value: String?
 }
 
 interface VcsRootInstance {
