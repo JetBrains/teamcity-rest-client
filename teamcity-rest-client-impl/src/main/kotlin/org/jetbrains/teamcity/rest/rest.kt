@@ -108,7 +108,7 @@ internal open class VcsRootBean {
     var id: String? = null
     var name: String? = null
 
-    var properties: VcsRootPropertiesBean? = null
+    var properties: NameValuePropertiesBean? = null
 }
 
 internal open class VcsRootInstanceBean {
@@ -259,11 +259,11 @@ internal class RevisionBean {
     var `vcs-root-instance`: VcsRootInstanceBean? = null
 }
 
-internal class VcsRootPropertiesBean {
-    var property: List<VcsRootPropertyBean>? = ArrayList()
+internal class NameValuePropertiesBean {
+    var property: List<NameValuePropertyBean>? = ArrayList()
 }
 
-internal class VcsRootPropertyBean {
+internal class NameValuePropertyBean {
     var name: String? = null
     var value: String? = null
 }
