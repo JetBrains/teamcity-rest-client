@@ -590,7 +590,12 @@ private class VcsRootImpl(private val bean: VcsRootBean,
     val fullVcsRootBean: VcsRootBean by lazy {
         if (isFullVcsRootBean) bean else instance.service.vcsRoot(id.stringId)
     }
-    override fun fetchVcsRootProperties(): List<VcsRootProperty> = fullVcsRootBean.properties!!.property!!.map { VcsRootPropertyImpl(it) }
+
+    fun fetchVcsRootProperties(): List<VcsRootProperty> = fullVcsRootBean.properties!!.property!!.map { VcsRootPropertyImpl(it) }
+    fun getProperty(name: String): String? = fetchVcsRootProperties().filter { it.name == name}.single().value
+
+    override fun getUrl(): String? = getProperty("url")
+    override fun getDefaultBranch(): String? = getProperty("branch")
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
