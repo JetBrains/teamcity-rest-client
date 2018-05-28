@@ -605,8 +605,8 @@ private class VcsRootPropertyImpl(private val bean: VcsRootPropertyBean) : VcsRo
     override val name: String
         get() = bean.name!!
 
-    override val value: String
-        get() = bean.value!!
+    override val value: String?
+        get() = bean.value
 }
 
 private class BuildArtifactImpl(
