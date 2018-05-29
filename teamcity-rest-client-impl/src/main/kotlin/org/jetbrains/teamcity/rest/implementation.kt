@@ -536,12 +536,8 @@ private class BuildImpl(private val bean: BuildBean,
     override fun downloadArtifact(artifactPath: String, output: File) {
         LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
 
-        output.parentFile.mkdirs()
         val response = instance.service.artifactContent(id.stringId, artifactPath)
-        val input = response.body.`in`()
-        BufferedOutputStream(FileOutputStream(output)).use {
-            input.copyTo(it)
-        }
+        saveToFile(response, output)
 
         LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
@@ -549,12 +545,8 @@ private class BuildImpl(private val bean: BuildBean,
     override fun downloadBuildLog(output: File) {
         LOG.info("Downloading build log from build $buildNumber (id:${id.stringId}) to $output")
 
-        output.parentFile.mkdirs()
         val response = instance.service.buildLog(id.stringId)
-        val input = response.body.`in`()
-        BufferedOutputStream(FileOutputStream(output)).use {
-            input.copyTo(it)
-        }
+        saveToFile(response, output)
 
         LOG.debug("Build log from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
@@ -662,4 +654,12 @@ private fun getUserUrlPage(serverUrl: String,
 
     return "${serverUrl.trimEnd('/')}/$pageName" +
             if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
+}
+
+private fun saveToFile(response: retrofit.client.Response, file: File) {
+    file.parentFile.mkdirs()
+    val input = response.body.`in`()
+    BufferedOutputStream(FileOutputStream(file)).use {
+        input.copyTo(it)
+    }
 }
