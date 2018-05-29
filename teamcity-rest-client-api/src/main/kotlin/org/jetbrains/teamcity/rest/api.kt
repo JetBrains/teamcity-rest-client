@@ -170,6 +170,7 @@ interface Build {
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: File)
+    fun downloadBuildLog(output: File)
 }
 
 interface QueuedBuild {

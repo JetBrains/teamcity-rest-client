@@ -78,6 +78,10 @@ internal interface TeamCityService {
 
     @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
     fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
+
+    @Streaming
+    @GET("/downloadBuildLog.html")
+    fun buildLog(@Query ("buildId") id: String): Response
 }
 
 internal class ProjectsBean {
