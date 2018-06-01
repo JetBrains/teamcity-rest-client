@@ -118,6 +118,10 @@ internal interface TeamCityService {
     @POST("/app/rest/buildTypes")
     @Headers("Accept: application/json", "Content-Type: application/xml")
     fun createBuildType(@Body buildTypeXml: TypedString): BuildTypeBean
+
+    @Streaming
+    @GET("/downloadBuildLog.html")
+    fun buildLog(@Query ("buildId") id: String): Response
 }
 
 internal class ProjectsBean {
@@ -146,6 +150,13 @@ internal class VcsRootListBean {
 
 internal open class VcsRootBean {
     var id: String? = null
+    var name: String? = null
+
+    var properties: NameValuePropertiesBean? = null
+}
+
+internal open class VcsRootInstanceBean {
+    var `vcs-root-id`: String? = null
     var name: String? = null
 }
 
@@ -361,7 +372,16 @@ internal class RevisionsBean {
 internal class RevisionBean {
     var version: String? = null
     var vcsBranchName: String? = null
-    var `vcs-root-instance`: VcsRootBean? = null
+    var `vcs-root-instance`: VcsRootInstanceBean? = null
+}
+
+internal class NameValuePropertiesBean {
+    var property: List<NameValuePropertyBean>? = ArrayList()
+}
+
+internal class NameValuePropertyBean {
+    var name: String? = null
+    var value: String? = null
 }
 
 internal class BuildCancelRequestBean {

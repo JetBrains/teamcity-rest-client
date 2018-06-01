@@ -271,6 +271,7 @@ interface Build {
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
+    fun downloadBuildLog(output: File)
 }
 
 interface QueuedBuild {
@@ -329,6 +330,14 @@ interface BuildArtifact {
 interface VcsRoot {
     val id: VcsRootId
     val name: String
+
+    fun getUrl(): String?
+    fun getDefaultBranch(): String?
+}
+
+interface VcsRootInstance {
+    val vcsRootId: VcsRootId
+    val name: String
 }
 
 enum class BuildStatus {
@@ -366,7 +375,7 @@ interface PinInfo {
 interface Revision {
     val version: String
     val vcsBranchName: String
-    val vcsRoot: VcsRoot
+    val vcsRootInstance: VcsRootInstance
 }
 
 enum class TestStatus {
@@ -425,6 +434,12 @@ interface ArtifactRule {
     val destinationPath: String?
 }
 
+open class TeamCityRestException(message: String?, cause: Throwable?) : RuntimeException(message, cause)
+
+open class TeamCityQueryException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
+
+open class TeamCityConversationException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
+
 interface BuildQueue {
     fun triggerBuild(buildTypeId: BuildConfigurationId,
                      parameters: Map<String, String>? = null,
@@ -441,9 +456,3 @@ interface BuildQueue {
 interface BuildResults {
     fun tests(id: BuildId)
 }
-
-open class TeamCityRestException(message: String?, cause: Throwable?) : RuntimeException(message, cause)
-
-open class TeamCityQueryException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
-
-open class TeamCityConversationException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)

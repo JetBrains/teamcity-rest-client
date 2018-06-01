@@ -18,6 +18,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
+import java.util.concurrent.TimeUnit.SECONDS
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -96,6 +97,10 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             .writeTimeout(2, TimeUnit.MINUTES)
             .connectTimeout(2, TimeUnit.MINUTES)
             .addInterceptor(RetryInterceptor())
+            .also {
+                it.readTimeout(60, SECONDS)
+                it.writeTimeout(60, SECONDS)
+            }
             .build()
 
     internal val service = RestAdapter.Builder()
@@ -133,7 +138,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(this)
 
-    override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId))
+    override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId), true, this)
 
     override fun project(id: ProjectId): Project = ProjectImpl(ProjectBean().let { it.id = id.stringId; it }, false, this)
 
@@ -682,8 +687,8 @@ private class RevisionImpl(private val bean: RevisionBean) : Revision {
     override val vcsBranchName: String
         get() = bean.vcsBranchName!!
 
-    override val vcsRoot: VcsRoot
-        get() = VcsRootImpl(bean.`vcs-root-instance`!!)
+    override val vcsRootInstance: VcsRootInstance
+        get() = VcsRootInstanceImpl(bean.`vcs-root-instance`!!)
 }
 
 private data class BranchImpl(
@@ -869,10 +874,22 @@ private class BuildImpl(private val bean: BuildBean,
 
     private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
         val response = instance.service.artifactContent(id.stringId, artifactPath)
+        saveToFile(response, output)
+
+        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
         val input = response.body.`in`()
         BufferedOutputStream(output).use {
             input.copyTo(it)
         }
+    }
+
+    override fun downloadBuildLog(output: File) {
+        LOG.info("Downloading build log from build $buildNumber (id:${id.stringId}) to $output")
+
+        val response = instance.service.buildLog(id.stringId)
+        saveToFile(response, output)
+
+        LOG.debug("Build log from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
 }
 
@@ -906,13 +923,46 @@ private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val ins
     }
 }
 
-private class VcsRootImpl(private val bean: VcsRootBean) : VcsRoot {
+private class VcsRootImpl(private val bean: VcsRootBean,
+                          private val isFullVcsRootBean: Boolean,
+                          private val instance: TeamCityInstanceImpl) : VcsRoot {
 
     override val id: VcsRootId
         get() = VcsRootId(bean.id!!)
 
     override val name: String
         get() = bean.name!!
+
+    val fullVcsRootBean: VcsRootBean by lazy {
+        if (isFullVcsRootBean) bean else instance.service.vcsRoot(id.stringId)
+    }
+
+    fun fetchNameValueProperties(): List<NameValueProperty> = fullVcsRootBean.properties!!.property!!.map { NameValueProperty(it) }
+
+    override fun getUrl(): String? = getNameValueProperty(fetchNameValueProperties(), "url")
+    override fun getDefaultBranch(): String? = getNameValueProperty(fetchNameValueProperties(), "branch")
+}
+
+private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
+    override val vcsRootId: VcsRootId
+        get() = VcsRootId(bean.`vcs-root-id`!!)
+
+    override val name: String
+        get() = bean.name!!
+}
+
+private class BuildArtifactImpl(
+        private val build: Build,
+        override val name: String,
+        override val fullName: String,
+        override val size: Long?,
+        override val modificationTime: Date) : BuildArtifact {
+private class NameValueProperty(private val bean: NameValuePropertyBean) {
+    val name: String
+        get() = bean.name!!
+
+    val value: String?
+        get() = bean.value
 }
 
 private class BuildArtifactImpl(
@@ -965,8 +1015,11 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
         val locator = if (projectId == null) null else "project:${projectId.stringId}"
         return instance.service.queuedBuilds(locator).build.map { QueuedBuildImpl(it, instance) }
+        build.downloadArtifact(fullName, output)
     }
 }
+
+private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.filter { it.name == name}.single().value
 
 private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
     override fun tests(id: BuildId) {
@@ -1038,4 +1091,12 @@ private fun getUserUrlPage(serverUrl: String,
 
     return "$serverUrl/$pageName" +
             if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
+}
+
+private fun saveToFile(response: retrofit.client.Response, file: File) {
+    file.parentFile.mkdirs()
+    val input = response.body.`in`()
+    BufferedOutputStream(FileOutputStream(file)).use {
+        input.copyTo(it)
+    }
 }

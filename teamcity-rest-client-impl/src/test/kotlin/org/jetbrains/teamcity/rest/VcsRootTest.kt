@@ -40,6 +40,20 @@ class VcsRootTest {
         assertNotNull("Vcs root should be loaded", vcsRoot)
     }
 
+    @Test
+    fun test_get_url() {
+        val vcsRoot = vcsRootsFromPublicInstance().list().first()
+        val url = vcsRoot.getUrl()
+        assertNotNull("Vcs root url should be loaded", url)
+    }
+
+    @Test
+    fun test_get_default_branch() {
+        val vcsRoot = vcsRootsFromPublicInstance().list().first()
+        val url = vcsRoot.getDefaultBranch()
+        assertNotNull("Vcs root default branch should be loaded", url)
+    }
+
     private fun vcsRootsFromPublicInstance(): VcsRootLocator {
         return publicInstance().vcsRoots()
     }
