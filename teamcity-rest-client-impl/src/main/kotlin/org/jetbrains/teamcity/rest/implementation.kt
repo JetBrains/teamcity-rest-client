@@ -368,7 +368,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         val count1 = count
 
         val parameters = listOfNotNull(
-                buildTypeId?.stringId?.let { "buildType:$it" },
+                buildConfigurationId?.stringId?.let { "buildType:$it" },
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
                 running?.let { "running:$it" },
