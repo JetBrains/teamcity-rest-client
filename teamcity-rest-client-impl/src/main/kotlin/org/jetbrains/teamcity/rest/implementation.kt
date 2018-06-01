@@ -18,7 +18,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
-import java.util.concurrent.TimeUnit.SECONDS
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -97,10 +96,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             .writeTimeout(2, TimeUnit.MINUTES)
             .connectTimeout(2, TimeUnit.MINUTES)
             .addInterceptor(RetryInterceptor())
-            .also {
-                it.readTimeout(60, SECONDS)
-                it.writeTimeout(60, SECONDS)
-            }
             .build()
 
     internal val service = RestAdapter.Builder()
@@ -233,7 +228,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun createVcsRoot(vcsRootDescriptionXml: String): VcsRoot {
         val vcsRootBean = service.createVcsRoot(TypedString(vcsRootDescriptionXml))
-        return VcsRootImpl(vcsRootBean)
+        return VcsRootImpl(vcsRootBean, true, this)
     }
 
     override fun createBuildType(buildTypeDescriptionXml: String): BuildConfiguration {
@@ -496,7 +491,7 @@ private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : V
 
             val vcsRootsBean = instance.service.vcsRoots(locator = locator)
             return@lazyPaging Page(
-                    data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it) },
+                    data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it, false, instance) },
                     hasNextPage = vcsRootsBean.nextHref.isNotBlank()
             )
         }
@@ -874,9 +869,6 @@ private class BuildImpl(private val bean: BuildBean,
 
     private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
         val response = instance.service.artifactContent(id.stringId, artifactPath)
-        saveToFile(response, output)
-
-        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
         val input = response.body.`in`()
         BufferedOutputStream(output).use {
             input.copyTo(it)
@@ -951,12 +943,6 @@ private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRo
         get() = bean.name!!
 }
 
-private class BuildArtifactImpl(
-        private val build: Build,
-        override val name: String,
-        override val fullName: String,
-        override val size: Long?,
-        override val modificationTime: Date) : BuildArtifact {
 private class NameValueProperty(private val bean: NameValuePropertyBean) {
     val name: String
         get() = bean.name!!
@@ -1015,7 +1001,6 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
         val locator = if (projectId == null) null else "project:${projectId.stringId}"
         return instance.service.queuedBuilds(locator).build.map { QueuedBuildImpl(it, instance) }
-        build.downloadArtifact(fullName, output)
     }
 }
 
