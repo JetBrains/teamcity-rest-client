@@ -31,9 +31,6 @@ abstract class TeamCityInstance {
     abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
     abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
-    // Experimental unstable API subject to change or removal
-    abstract val experimental: Experimental
-
     companion object {
         private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
 
@@ -58,15 +55,6 @@ data class VcsRootType(val stringType: String) {
     companion object {
         val GIT = VcsRootType("jetbrains.git")
     }
-}
-
-interface Experimental {
-    fun createProject(id: ProjectId, name: String, parentProjectId: ProjectId): Project
-
-    fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, parentProjectId: ProjectId, properties: Map<String, String>): VcsRoot
-    fun createVcsRoot(vcsRootDescriptionXml: String): VcsRoot
-
-    fun createBuildType(buildTypeDescriptionXml: String): BuildConfiguration
 }
 
 interface VcsRootLocator {
@@ -178,6 +166,10 @@ interface Project {
     fun fetchParameters(): List<Parameter>
 
     fun setParameter(name: String, value: String)
+
+    fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot
+    fun createProject(id: ProjectId, name: String): Project
+    fun createBuildConfiguration(buildTypeDescriptionXml: String): BuildConfiguration
 }
 
 interface BuildConfiguration {

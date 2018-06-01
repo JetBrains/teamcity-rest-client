@@ -86,7 +86,7 @@ private fun XMLStreamWriter.attribute(name: String, value: String) = writeAttrib
 internal class TeamCityInstanceImpl(override val serverUrl: String,
                                     private val authMethod: String,
                                     private val basicAuthHeader: String?,
-                                    logResponses: Boolean) : TeamCityInstance(), Experimental {
+                                    logResponses: Boolean) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
@@ -182,59 +182,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
     override fun buildResults(): BuildResults = BuildResultsImpl(service)
-
-    override val experimental: Experimental
-        get() = this
-
-    override fun createProject(id: ProjectId, name: String, parentProjectId: ProjectId): Project {
-        val projectXmlDescription = xml {
-            element("newProjectDescription") {
-                attribute("name", name)
-                attribute("id", id.stringId)
-                element("parentProject") {
-                    attribute("locator", "id:${parentProjectId.stringId}")
-                }
-            }
-        }
-
-        val projectBean = service.createProject(TypedString(projectXmlDescription))
-        return ProjectImpl(projectBean, true, this)
-    }
-
-    override fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, parentProjectId: ProjectId, properties: Map<String, String>): VcsRoot {
-        val vcsRootDescriptionXml = xml {
-            element("vcs-root") {
-                attribute("name", name)
-                attribute("id", id.stringId)
-                attribute("vcsName", type.stringType)
-
-                element("project") {
-                    attribute("id", parentProjectId.stringId)
-                }
-
-                element("properties") {
-                    properties.entries.sortedBy { it.key }.forEach {
-                        element("property") {
-                            attribute("name", it.key)
-                            attribute("value", it.value)
-                        }
-                    }
-                }
-            }
-        }
-
-        return createVcsRoot(vcsRootDescriptionXml)
-    }
-
-    override fun createVcsRoot(vcsRootDescriptionXml: String): VcsRoot {
-        val vcsRootBean = service.createVcsRoot(TypedString(vcsRootDescriptionXml))
-        return VcsRootImpl(vcsRootBean, true, this)
-    }
-
-    override fun createBuildType(buildTypeDescriptionXml: String): BuildConfiguration {
-        val bean = service.createBuildType(TypedString(buildTypeDescriptionXml))
-        return BuildConfigurationImpl(bean, this)
-    }
 }
 
 private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserLocator {
@@ -443,6 +390,52 @@ private class ProjectImpl(
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         instance.service.setProjectParameter(id.stringId, name, TypedString(value))
+    }
+
+    override fun createProject(id: ProjectId, name: String): Project {
+        val projectXmlDescription = xml {
+            element("newProjectDescription") {
+                attribute("name", name)
+                attribute("id", id.stringId)
+                element("parentProject") {
+                    attribute("locator", "id:${this@ProjectImpl.id.stringId}")
+                }
+            }
+        }
+
+        val projectBean = instance.service.createProject(TypedString(projectXmlDescription))
+        return ProjectImpl(projectBean, true, instance)
+    }
+
+    override fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot {
+        val vcsRootDescriptionXml = xml {
+            element("vcs-root") {
+                attribute("name", name)
+                attribute("id", id.stringId)
+                attribute("vcsName", type.stringType)
+
+                element("project") {
+                    attribute("id", id.stringId)
+                }
+
+                element("properties") {
+                    properties.entries.sortedBy { it.key }.forEach {
+                        element("property") {
+                            attribute("name", it.key)
+                            attribute("value", it.value)
+                        }
+                    }
+                }
+            }
+        }
+
+        val vcsRootBean = instance.service.createVcsRoot(TypedString(vcsRootDescriptionXml))
+        return VcsRootImpl(vcsRootBean, true, instance)
+    }
+
+    override fun createBuildConfiguration(buildTypeDescriptionXml: String): BuildConfiguration {
+        val bean = instance.service.createBuildType(TypedString(buildTypeDescriptionXml))
+        return BuildConfigurationImpl(bean, instance)
     }
 }
 
@@ -1004,7 +997,7 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     }
 }
 
-private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.filter { it.name == name}.single().value
+private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.single { it.name == name}.value
 
 private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
     override fun tests(id: BuildId) {
