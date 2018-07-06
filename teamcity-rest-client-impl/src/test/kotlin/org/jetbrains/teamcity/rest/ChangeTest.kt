@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ChangeTest {
     @Before
@@ -37,17 +38,17 @@ class ChangeTest {
 
     @Test
     fun changeByVcsRevision() {
-        val change = publicInstance().builds()
+        val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
                 .list()
-                .map { it.fetchChanges() }
-                .first { it.isNotEmpty() }
-                .first()
+                .first { it.fetchChanges().isNotEmpty() }
+        val change = build.fetchChanges().first()
 
         assertEquals(
                 change.toString(),
                 publicInstance().change(compilerAndPluginConfiguration, change.version).toString()
         )
+        assertTrue(change.firstBuilds().map { it.toString() }.contains(build.toString()))
     }
 }

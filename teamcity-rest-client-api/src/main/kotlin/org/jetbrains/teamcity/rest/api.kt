@@ -201,6 +201,8 @@ interface Change {
      * Web UI URL for user, especially useful for error and log messages
      */
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+
+    fun firstBuilds(): List<Build>
 }
 
 interface User {

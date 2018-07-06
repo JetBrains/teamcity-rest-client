@@ -312,6 +312,12 @@ private class ChangeImpl(private val bean: ChangeBean,
             id, specificBuildConfigurationId = specificBuildConfigurationId,
             includePersonalBuilds = includePersonalBuilds)
 
+    override fun firstBuilds(): List<Build> =
+            instance.service
+                    .changeFirstBuilds(id.stringId)
+                    .build
+                    .map { BuildImpl(it, false, instance) }
+
     override val id: ChangeId
         get() = ChangeId(bean.id!!)
 
