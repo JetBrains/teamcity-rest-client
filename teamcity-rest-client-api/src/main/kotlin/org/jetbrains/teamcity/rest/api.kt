@@ -54,6 +54,8 @@ interface BuildLocator {
 
     fun withNumber(buildNumber: String): BuildLocator
 
+    fun withVcsRevision(vcsRevision: String): BuildLocator
+
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
      */

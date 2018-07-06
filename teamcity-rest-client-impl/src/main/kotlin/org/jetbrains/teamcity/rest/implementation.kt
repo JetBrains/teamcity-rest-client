@@ -133,6 +133,7 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
     private var buildConfigurationId: BuildConfigurationId? = null
     private var number: String? = null
+    private var vcsRevision: String? = null
     private var sinceDate: Date? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
@@ -148,6 +149,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun withNumber(buildNumber: String): BuildLocator {
         this.number = buildNumber
+        return this
+    }
+
+    override fun withVcsRevision(vcsRevision: String): BuildLocator {
+        this.vcsRevision = vcsRevision
         return this
     }
 
@@ -198,6 +204,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
                 number?.let { "number:$it" },
+                vcsRevision?.let { "revision:$it" },
                 status?.name?.let { "status:$it" },
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
