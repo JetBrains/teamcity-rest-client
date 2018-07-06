@@ -86,6 +86,10 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/changes/buildType:{id},version:{version}")
     fun change(@Path("id") buildType: String, @Path("version") version: String): ChangeBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/changes/{id}/firstBuilds")
+    fun changeFirstBuilds(@Path("id") id: String): BuildListBean
 }
 
 internal class ProjectsBean {
