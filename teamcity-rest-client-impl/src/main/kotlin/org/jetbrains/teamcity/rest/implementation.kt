@@ -146,7 +146,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
-    fun withNumber(buildNumber: String): BuildLocator {
+    override fun withNumber(buildNumber: String): BuildLocator {
         this.number = buildNumber
         return this
     }
