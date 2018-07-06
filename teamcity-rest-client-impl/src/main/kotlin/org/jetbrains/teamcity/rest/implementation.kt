@@ -69,14 +69,14 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
     internal val service = RestAdapter.Builder()
             .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
-            .setLog({ RestLOG.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) })
+            .setLog { RestLOG.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) }
             .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
-            .setRequestInterceptor({ request ->
+            .setRequestInterceptor { request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
-            })
-            .setErrorHandler({ throw TeamCityConversationException("Failed to connect to ${it.url}: ${it.message}", it) })
+            }
+            .setErrorHandler { throw TeamCityConversationException("Failed to connect to ${it.url}: ${it.message}", it) }
             .build()
             .create(TeamCityService::class.java)
 
@@ -192,7 +192,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun list(): List<Build> {
-        val parameters = listOf(
+        val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
                 number?.let { "number:$it" },
                 status?.name?.let { "status:$it" },
@@ -208,7 +208,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     branch?.let { "branch:$it" }
                 else
                     "branch:default:any"
-        ).filterNotNull()
+        )
 
         if (parameters.isEmpty()) {
             throw IllegalArgumentException("At least one parameter should be specified")
@@ -629,7 +629,7 @@ private class BuildArtifactImpl(
     }
 }
 
-private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.filter { it.name == name}.single().value
+private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.single { it.name == name}.value
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()
