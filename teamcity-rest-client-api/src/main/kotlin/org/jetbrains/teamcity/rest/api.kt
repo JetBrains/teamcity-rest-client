@@ -17,6 +17,8 @@ abstract class TeamCityInstance {
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
 
+    abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
+
     abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
     abstract fun getWebUrl(buildId: BuildId): String
