@@ -51,4 +51,20 @@ class ChangeTest {
         )
         assertTrue(change.firstBuilds().map { it.toString() }.contains(build.toString()))
     }
+
+    @Test
+    fun buildByVcsRevision() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .limitResults(10)
+                .list()
+                .first { it.fetchChanges().isNotEmpty() }
+        val change = build.fetchChanges().first()
+
+        val builds = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .withVcsRevision(change.version)
+                .list()
+        assertTrue(builds.map { it.toString() }.contains(build.toString()))
+    }
 }
