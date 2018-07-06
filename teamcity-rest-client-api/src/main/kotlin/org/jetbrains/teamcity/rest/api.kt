@@ -52,6 +52,8 @@ interface VcsRootLocator {
 interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
 
+    fun withNumber(buildNumber: String): BuildLocator
+
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
      */
