@@ -103,6 +103,9 @@ internal class TeamCityInstanceImpl(internal val serverUrl: String,
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 
+    override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change = 
+            ChangeImpl(service.change(buildType.stringId, vcsRevision), this)
+
     override fun getWebUrl(projectId: ProjectId, branch: String?): String =
         getUserUrlPage(serverUrl, "project.html", projectId = projectId, branch = branch)
 
