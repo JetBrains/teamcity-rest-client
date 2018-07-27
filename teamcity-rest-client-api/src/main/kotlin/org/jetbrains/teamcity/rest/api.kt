@@ -206,6 +206,10 @@ interface Change {
      */
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
+    /**
+     * Returns an uncertain amount of builds which contain the revision. The builds are not necessarily from the same
+     * configuration as the revision. The feature is experimental, see https://youtrack.jetbrains.com/issue/TW-24633
+     */
     fun firstBuilds(): List<Build>
 }
 
