@@ -54,6 +54,9 @@ interface BuildLocator {
 
     fun withNumber(buildNumber: String): BuildLocator
 
+    /**
+     * Filters builds to include only ones which are built on top of the specified revision.
+     */
     fun withVcsRevision(vcsRevision: String): BuildLocator
 
     /**
