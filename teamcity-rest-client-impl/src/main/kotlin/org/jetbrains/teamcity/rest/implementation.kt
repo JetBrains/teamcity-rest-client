@@ -146,9 +146,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
             ChangeImpl(service.change(buildType.stringId, vcsRevision), this)
 
-    override fun getWebUrl(projectId: ProjectId, branch: String?): String =
-        getUserUrlPage(serverUrl, "project.html", projectId = projectId, branch = branch)
-
     override fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String?): String =
         getUserUrlPage(serverUrl, "viewType.html", buildTypeId = buildConfigurationId, branch = branch)
 
@@ -377,7 +374,7 @@ private class ProjectImpl(
         private val isFullProjectBean: Boolean,
         private val instance: TeamCityInstanceImpl) : Project {
 
-    override fun getWebUrl(branch: String?): String = instance.getWebUrl(id, branch = branch)
+    override fun getProjectHomeUrl(branch: String?): String = instance.getWebUrl(id, branch = branch)
 
     override val id: ProjectId
         get() = ProjectId(bean.id!!)
