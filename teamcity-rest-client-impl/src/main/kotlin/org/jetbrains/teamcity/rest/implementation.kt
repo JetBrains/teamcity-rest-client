@@ -259,7 +259,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
-    override fun withAnyStatus(): BuildLocator {
+    override fun includeFailed(): BuildLocator {
         status = null
         return this
     }
@@ -269,21 +269,23 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
-    override fun withRunning(running: RunningStatus): BuildLocator {
-        this.running = when (running) {
-            RunningStatus.ANY -> "any"
-            RunningStatus.TRUE -> "true"
-            RunningStatus.FALSE -> "false"
-        }
+    override fun includeRunning(): BuildLocator {
+        running = "any"
         return this
     }
 
-    override fun withCanceled(canceled: CanceledStatus): BuildLocator {
-        this.canceled = when (canceled) {
-            CanceledStatus.ANY -> "any"
-            CanceledStatus.TRUE -> "true"
-            CanceledStatus.FALSE -> "false"
-        }
+    override fun onlyRunning(): BuildLocator {
+        running = "true"
+        return this
+    }
+
+    override fun includeCanceled(): BuildLocator {
+        canceled = "any"
+        return this
+    }
+
+    override fun onlyCanceled(): BuildLocator {
+        canceled = "true"
         return this
     }
 
@@ -704,7 +706,7 @@ private data class Page<out T>(val data: List<T>, val hasNextPage: Boolean)
 private fun <T> lazyPaging(nextPage: (Int) -> Page<T>): Sequence<T> {
     data class PageSeq(val nextStart: Int, val hasNext: Boolean, val data: List<T>?)
 
-    return generateSequence(PageSeq(0, true, null), { prev ->
+    return generateSequence(PageSeq(0, true, null)) { prev ->
         if (!prev.hasNext) return@generateSequence null
 
         val data = nextPage(prev.nextStart)
@@ -712,7 +714,7 @@ private fun <T> lazyPaging(nextPage: (Int) -> Page<T>): Sequence<T> {
                 nextStart = prev.nextStart + data.data.size,
                 hasNext = data.hasNextPage,
                 data = data.data)
-    }).mapNotNull { it.data }.flatten()
+    }.mapNotNull { it.data }.flatten()
 }
 
 private fun String?.isNotBlank(): Boolean = this != null && !this.isBlank()
