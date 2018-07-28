@@ -1024,7 +1024,7 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     }
 }
 
-private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.single { it.name == name}.value
+private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
 private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
     override fun tests(id: BuildId) {
