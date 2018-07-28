@@ -293,7 +293,7 @@ data class UserId(val stringId: String)
 interface User {
     val id: UserId
     val username: String
-    val name: String
+    val name: String?
     val email: String?
 
     /**
@@ -317,8 +317,8 @@ interface VcsRoot {
     val id: VcsRootId
     val name: String
 
-    fun getUrl(): String?
-    fun getDefaultBranch(): String?
+    val url: String?
+    val defaultBranch: String?
 }
 
 interface VcsRootInstance {

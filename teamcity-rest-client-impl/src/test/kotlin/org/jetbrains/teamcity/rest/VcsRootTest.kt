@@ -43,14 +43,14 @@ class VcsRootTest {
     @Test
     fun test_get_url() {
         val vcsRoot = vcsRootsFromPublicInstance().list().first()
-        val url = vcsRoot.getUrl()
+        val url = vcsRoot.url
         assertNotNull("Vcs root url should be loaded", url)
     }
 
     @Test
     fun test_get_default_branch() {
         val vcsRoot = vcsRootsFromPublicInstance().list().first()
-        val url = vcsRoot.getDefaultBranch()
+        val url = vcsRoot.defaultBranch
         assertNotNull("Vcs root default branch should be loaded", url)
     }
 

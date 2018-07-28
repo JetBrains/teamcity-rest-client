@@ -159,13 +159,16 @@ internal class ArtifactFileBean {
     }
 }
 
+internal open class IdBean {
+    var id: String? = null
+}
+
 internal class VcsRootListBean {
     var nextHref: String? = null
     var `vcs-root`: List<VcsRootBean> = ArrayList()
 }
 
-internal open class VcsRootBean {
-    var id: String? = null
+internal open class VcsRootBean: IdBean() {
     var name: String? = null
 
     var properties: NameValuePropertiesBean? = null
@@ -185,8 +188,7 @@ internal class UserListBean {
     var user: List<UserBean> = ArrayList()
 }
 
-internal open class BuildBean {
-    var id: String? = null
+internal open class BuildBean: IdBean() {
     var buildTypeId: String? = null
     var canceledInfo: BuildCanceledBean? = null
     var number: String? = null
@@ -210,8 +212,7 @@ internal open class BuildBean {
     var buildType: BuildTypeBean? = BuildTypeBean()
 }
 
-internal class BuildTypeBean {
-    var id: String? = null
+internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
     var paused: Boolean? = null
@@ -282,8 +283,7 @@ internal class TriggersBean {
     var trigger: List<TriggerBean>? = ArrayList()
 }
 
-internal class ArtifactDependencyBean {
-    var id: String? = null
+internal class ArtifactDependencyBean: IdBean() {
     var type: String? = null
     var disabled: Boolean? = false
     var inherited: Boolean? = false
@@ -295,8 +295,7 @@ internal class ArtifactDependenciesBean {
     var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
 }
 
-internal class ProjectBean {
-    var id: String? = null
+internal class ProjectBean: IdBean() {
     var name: String? = null
     var parentProjectId: String? = null
     var archived: Boolean? = null
@@ -310,8 +309,7 @@ internal class ChangesBean {
     var change: List<ChangeBean>? = ArrayList()
 }
 
-internal class ChangeBean {
-    var id: String? = null
+internal class ChangeBean: IdBean() {
     var version: String? = null
     var user: UserBean? = null
     var date: String? = null
@@ -319,8 +317,7 @@ internal class ChangeBean {
     var username: String? = null
 }
 
-internal class UserBean {
-    var id: String? = null
+internal class UserBean: IdBean() {
     var username: String? = null
     var name: String? = null
     var email: String? = null
