@@ -24,9 +24,7 @@ abstract class TeamCityInstance {
     abstract fun users(): UserLocator
 
     abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
-
-    abstract fun getWebUrl(projectId: ProjectId, testId: TestId): String
-    abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+    abstract fun change(id: ChangeId): Change
 
     companion object {
         private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
@@ -158,7 +156,8 @@ interface Project {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getProjectHomeUrl(branch: String? = null): String
+    fun getHomeUrl(branch: String? = null): String
+    fun getTestHomeUrl(testId: TestId): String
 
     fun fetchChildProjects(): List<Project>
     fun fetchBuildConfigurations(): List<BuildConfiguration>
@@ -284,7 +283,7 @@ interface Change {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+    fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
     fun firstBuilds(): List<Build>
 }

@@ -32,7 +32,7 @@ class ProjectTest {
         val proj = publicInstance().project(kotlinProject)
         kotlin.test.assertEquals(
                 "$publicInstanceUrl/project.html?projectId=${kotlinProject.stringId}",
-                proj.getProjectHomeUrl())
+                proj.getHomeUrl())
     }
 
     @Test
@@ -40,6 +40,6 @@ class ProjectTest {
         val proj = publicInstance().project(kotlinProject)
         kotlin.test.assertEquals(
                 "$publicInstanceUrl/project.html?projectId=${kotlinProject.stringId}&branch=%3Cdefault%3E",
-                proj.getProjectHomeUrl(branch = "<default>"))
+                proj.getHomeUrl(branch = "<default>"))
     }
 }

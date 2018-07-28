@@ -146,22 +146,11 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun users(): UserLocator = UserLocatorImpl(this)
 
     override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
-            ChangeImpl(service.change(buildType.stringId, vcsRevision), this)
+            ChangeImpl(service.change(
+                    buildType = buildType.stringId, version = vcsRevision), true, this)
 
-    override fun getWebUrl(projectId: ProjectId, testId: TestId): String =
-        getUserUrlPage(
-                serverUrl, "project.html",
-                projectId = projectId,
-                testNameId = testId,
-                tab = "testDetails"
-        )
-
-    override fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
-        getUserUrlPage(
-                serverUrl, "viewModification.html",
-                modId = changeId,
-                buildTypeId = specificBuildConfigurationId,
-                personal = includePersonalBuilds)
+    override fun change(id: ChangeId): Change =
+            ChangeImpl(ChangeBean().also { it.id = id.stringId }, false, this)
 
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
@@ -358,8 +347,15 @@ private class ProjectImpl(
         private val isFullProjectBean: Boolean,
         private val instance: TeamCityInstanceImpl) : Project {
 
-    override fun getProjectHomeUrl(branch: String?): String =
+    override fun getHomeUrl(branch: String?): String =
             getUserUrlPage(instance.serverUrl, "project.html", projectId = id, branch = branch)
+
+    override fun getTestHomeUrl(testId: TestId): String = getUserUrlPage(
+            instance.serverUrl, "project.html",
+            projectId = id,
+            testNameId = testId,
+            tab = "testDetails"
+    )
 
     override val id: ProjectId
         get() = ProjectId(bean.id!!)
@@ -526,10 +522,13 @@ private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : V
 }
 
 private class ChangeImpl(private val bean: ChangeBean,
+                         private val isFullBean: Boolean,
                          private val instance: TeamCityInstanceImpl) : Change {
-    override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String = instance.getWebUrl(
-            id, specificBuildConfigurationId = specificBuildConfigurationId,
-            includePersonalBuilds = includePersonalBuilds)
+    override fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String = getUserUrlPage(
+            instance.serverUrl, "viewModification.html",
+            modId = id,
+            buildTypeId = specificBuildConfigurationId,
+            personal = includePersonalBuilds)
 
     override fun firstBuilds(): List<Build> =
             instance.service
@@ -541,22 +540,32 @@ private class ChangeImpl(private val bean: ChangeBean,
         get() = ChangeId(bean.id!!)
 
     override val version: String
-        get() = bean.version!!
+        get() = notNull { it.version }
 
     override val username: String
-        get() = bean.username!!
+        get() = notNull { it.username }
 
     override val user: User?
-        get() = bean.user?.let { UserImpl(it, false, instance) }
+        get() = nullable { it.user }?.let { UserImpl(it, false, instance) }
 
     override val date: Date
-        get() = teamCityServiceDateFormat.get().parse(bean.date!!)
+        get() = teamCityServiceDateFormat.get().parse(notNull { it.date })
 
     override val comment: String
-        get() = bean.comment!!
+        get() = notNull { it.comment }
+
+    inline fun <T> notNull(getter: (ChangeBean) -> T?): T =
+            getter(bean) ?: getter(fullBean)!!
+
+    inline fun <T> nullable(getter: (ChangeBean) -> T?): T? =
+            getter(bean) ?: getter(fullBean)
+
+    val fullBean: ChangeBean by lazy {
+        if (isFullBean) bean else instance.service.change(changeId = id.stringId)
+    }
 
     override fun toString() =
-            "id=$id, version=$version, username=$username, user=$user, date=$date, comment=$comment"
+            "Change(id=$id, version=$version, username=$username, user=$user, date=$date, comment=$comment)"
 }
 
 private class UserImpl(private val bean: UserBean,
@@ -858,7 +867,7 @@ private class BuildImpl(private val bean: BuildBean,
         get() = instance.service.changes(
                 "build:${id.stringId}",
                 "change(id,version,username,user,date,comment)")
-                .change!!.map { ChangeImpl(it, instance) }
+                .change!!.map { ChangeImpl(it, true, instance) }
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")

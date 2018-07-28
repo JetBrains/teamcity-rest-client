@@ -28,11 +28,11 @@ class ChangeTest {
                 }
         assertEquals(
                 "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}",
-                change.getWebUrl()
+                change.getHomeUrl()
         )
         assertEquals(
                 "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}&personal=true&buildTypeId=xxx",
-                change.getWebUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
+                change.getHomeUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
         )
     }
 
