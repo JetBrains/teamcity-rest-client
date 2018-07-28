@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ChangeTest {
     @Before
@@ -33,5 +34,37 @@ class ChangeTest {
                 "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}&personal=true&buildTypeId=xxx",
                 change.getWebUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
         )
+    }
+
+    @Test
+    fun changeByVcsRevision() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .limitResults(10)
+                .list()
+                .first { it.fetchChanges().isNotEmpty() }
+        val change = build.fetchChanges().first()
+
+        assertEquals(
+                change.toString(),
+                publicInstance().change(compilerAndPluginConfiguration, change.version).toString()
+        )
+        assertTrue(change.firstBuilds().map { it.toString() }.contains(build.toString()))
+    }
+
+    @Test
+    fun buildByVcsRevision() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .limitResults(10)
+                .list()
+                .first { it.fetchChanges().isNotEmpty() }
+        val change = build.fetchChanges().first()
+
+        val builds = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .withVcsRevision(change.version)
+                .list()
+        assertTrue(builds.map { it.toString() }.contains(build.toString()))
     }
 }

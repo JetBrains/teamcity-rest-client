@@ -101,14 +101,14 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     internal val service = RestAdapter.Builder()
             .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
-            .setLog({ restLog.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) })
+            .setLog { restLog.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) }
             .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
-            .setRequestInterceptor({ request ->
+            .setRequestInterceptor { request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
-            })
-            .setErrorHandler({
+            }
+            .setErrorHandler {
                 val responseText = try {
                     it.response.body.`in`().reader().use { it.readText() }
                 } catch (t: Throwable) {
@@ -117,7 +117,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
                 }
 
                 throw TeamCityConversationException("Failed to connect to ${it.url}: ${it.message} $responseText", it)
-            })
+            }
             .build()
             .create(TeamCityService::class.java)
 
@@ -142,6 +142,9 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun user(id: UserId): User = UserImpl(service.users("id:${id.stringId}"), true, this)
 
     override fun users(): UserLocator = UserLocatorImpl(this)
+
+    override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
+            ChangeImpl(service.change(buildType.stringId, vcsRevision), this)
 
     override fun getWebUrl(projectId: ProjectId, branch: String?): String =
         getUserUrlPage(serverUrl, "project.html", projectId = projectId, branch = branch)
@@ -225,6 +228,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var buildConfigurationId: BuildConfigurationId? = null
     private var snapshotDependencyTo: BuildId? = null
     private var number: String? = null
+    private var vcsRevision: String? = null
     private var sinceDate: Date? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
@@ -245,8 +249,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
-    fun withNumber(buildNumber: String): BuildLocator {
+    override fun withNumber(buildNumber: String): BuildLocator {
         this.number = buildNumber
+        return this
+    }
+
+    override fun withVcsRevision(vcsRevision: String): BuildLocator {
+        this.vcsRevision = vcsRevision
         return this
     }
 
@@ -320,6 +329,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 number?.let { "number:$it" },
                 running?.let { "running:$it" },
                 canceled?.let { "canceled:$it" },
+                vcsRevision?.let { "revision:$it" },
                 status?.name?.let { "status:$it" },
                 if (!tags.isEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
@@ -496,6 +506,12 @@ private class ChangeImpl(private val bean: ChangeBean,
     override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String = instance.getWebUrl(
             id, specificBuildConfigurationId = specificBuildConfigurationId,
             includePersonalBuilds = includePersonalBuilds)
+
+    override fun firstBuilds(): List<Build> =
+            instance.service
+                    .changeFirstBuilds(id.stringId)
+                    .build
+                    .map { BuildImpl(it, false, instance) }
 
     override val id: ChangeId
         get() = ChangeId(bean.id!!)

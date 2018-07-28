@@ -23,6 +23,8 @@ abstract class TeamCityInstance {
     abstract fun user(id: UserId): User
     abstract fun users(): UserLocator
 
+    abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
+
     abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
     abstract fun getWebUrl(buildId: BuildId): String
@@ -70,6 +72,10 @@ interface UserLocator {
 
 interface BuildLocator {
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
+
+    fun withNumber(buildNumber: String): BuildLocator
+
+    fun withVcsRevision(vcsRevision: String): BuildLocator
 
     fun snapshotDependencyTo(buildId: BuildId): BuildLocator
 
@@ -292,6 +298,8 @@ interface Change {
      * Web UI URL for user, especially useful for error and log messages
      */
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+
+    fun firstBuilds(): List<Build>
 }
 
 data class UserId(val stringId: String)
