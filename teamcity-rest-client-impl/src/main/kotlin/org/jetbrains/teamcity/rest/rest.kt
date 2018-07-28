@@ -14,7 +14,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/buildQueue")
-    fun queuedBuilds(@Query("locator") locator: String?): QueuedBuildListBean
+    fun queuedBuilds(@Query("locator") locator: String?): BuildListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/builds/id:{id}")
@@ -204,20 +204,6 @@ internal open class BuildBean {
 
     var properties: ParametersBean? = ParametersBean()
     var buildType: BuildTypeBean? = BuildTypeBean()
-}
-
-internal class QueuedBuildListBean {
-    var build: List<QueuedBuildBean> = ArrayList()
-}
-
-internal open class QueuedBuildBean {
-    var id: String? = null
-    var buildTypeId: String? = null
-    var state: String? = null
-    var branchName: String? = null
-    var defaultBranch: Boolean? = null
-
-    var href: String? = null
 }
 
 internal class BuildTypeBean {

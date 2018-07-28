@@ -161,9 +161,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
                 tab = "testDetails"
         )
 
-    override fun getWebUrl(queuedBuildId: QueuedBuildId): String =
-        getUserUrlPage(serverUrl, "viewQueued.html", itemId = queuedBuildId)
-
     override fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
         getUserUrlPage(
                 serverUrl, "viewModification.html",
@@ -768,11 +765,11 @@ private class BuildImpl(private val bean: BuildBean,
     override val buildTypeId: BuildConfigurationId
         get() = BuildConfigurationId(bean.buildTypeId ?: fullBuildBean.buildTypeId!!)
 
-    override val buildNumber: String
-        get() = bean.number ?: fullBuildBean.number!!
+    override val buildNumber: String?
+        get() = bean.number ?: fullBuildBean.number
 
     override val status: BuildStatus?
-        get() = bean.status ?: fullBuildBean.status!!
+        get() = bean.status ?: fullBuildBean.status
 
     override val state: BuildState
         get() = try {
@@ -955,36 +952,6 @@ private class BuildImpl(private val bean: BuildBean,
     }
 }
 
-private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val instance: TeamCityInstanceImpl) : QueuedBuild {
-    override val id: QueuedBuildId
-        get() = QueuedBuildId(bean.id!!)
-
-    override val buildTypeId: BuildConfigurationId
-        get() = BuildConfigurationId(bean.buildTypeId!!)
-
-    override val status: QueuedBuildStatus
-        get() = when (bean.state!!) {
-            "queued" -> QueuedBuildStatus.QUEUED
-            "finished" -> QueuedBuildStatus.FINISHED
-            else -> error("Unknown queued build status: " + bean.state)
-        }
-
-    override val branch: Branch
-        get() = object : Branch {
-            override val isDefault: Boolean
-                get() = bean.defaultBranch ?: name == null
-
-            override val name: String?
-                get() = bean.branchName
-        }
-
-    override fun getWebUrl(): String = instance.getWebUrl(id)
-
-    override fun toString(): String {
-        return "QueuedBuild{id=${id.stringId}, typeId=${buildTypeId.stringId}, state=$status, branch=${branch.name}, branchIsDefault=${branch.isDefault}"
-    }
-}
-
 private class VcsRootImpl(private val bean: VcsRootBean,
                           private val isFullVcsRootBean: Boolean,
                           private val instance: TeamCityInstanceImpl) : VcsRoot {
@@ -1040,9 +1007,20 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
         instance.service.removeQueuedBuild(id.stringId, request)
     }
 
-    override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
-        val locator = if (projectId == null) null else "project:${projectId.stringId}"
-        return instance.service.queuedBuilds(locator).build.map { QueuedBuildImpl(it, instance) }
+    override fun queuedBuilds(projectId: ProjectId?): Sequence<Build> {
+        val parameters = if (projectId == null) emptyList() else listOf("project:${projectId.stringId}")
+
+        return lazyPaging { start ->
+            val buildLocator = parameters.plus("start:$start").joinToString(",")
+
+            LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
+            val buildsBean = instance.service.queuedBuilds(locator = buildLocator)
+
+            return@lazyPaging Page(
+                    data = buildsBean.build.map { BuildImpl(it, instance) },
+                    hasNextPage = buildsBean.nextHref.isNotBlank()
+            )
+        }
     }
 }
 
@@ -1098,7 +1076,6 @@ private fun getUserUrlPage(serverUrl: String,
                            buildId: BuildId? = null,
                            testNameId: TestId? = null,
                            userId: UserId? = null,
-                           itemId: QueuedBuildId? = null,
                            modId: ChangeId? = null,
                            personal: Boolean? = null,
                            buildTypeId: BuildConfigurationId? = null,
@@ -1111,7 +1088,6 @@ private fun getUserUrlPage(serverUrl: String,
     testNameId?.let { params.add("testNameId=" + testNameId.stringId.urlencode()) }
     userId?.let { params.add("userId=" + userId.stringId.urlencode()) }
     modId?.let { params.add("modId=" + modId.stringId.urlencode()) }
-    itemId?.let { params.add("itemId=" + itemId.stringId.urlencode()) }
     personal?.let { params.add("personal=" + if (personal) "true" else "false") }
     buildTypeId?.let { params.add("buildTypeId=" + buildTypeId.stringId.urlencode()) }
     branch?.let { params.add("branch=" + branch.urlencode()) }

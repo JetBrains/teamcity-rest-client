@@ -27,7 +27,6 @@ abstract class TeamCityInstance {
 
     abstract fun getWebUrl(userId: UserId): String
     abstract fun getWebUrl(projectId: ProjectId, testId: TestId): String
-    abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
     abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
     companion object {
@@ -122,10 +121,6 @@ data class BuildId(val stringId: String) {
 }
 
 data class TestId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class QueuedBuildId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
@@ -235,7 +230,7 @@ interface BuildCanceledInfo {
 interface Build {
     val id: BuildId
     val buildTypeId: BuildConfigurationId
-    val buildNumber: String
+    val buildNumber: String?
     val status: BuildStatus?
     val branch: Branch
     val state: BuildState
@@ -277,20 +272,6 @@ interface Build {
     fun downloadBuildLog(output: File)
 
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
-}
-
-interface QueuedBuild {
-    val id: QueuedBuildId
-    val buildTypeId: BuildConfigurationId
-    val status: QueuedBuildStatus
-    val branch : Branch
-
-    fun getWebUrl(): String
-}
-
-enum class QueuedBuildStatus {
-    QUEUED,
-    FINISHED
 }
 
 interface Change {
@@ -437,7 +418,7 @@ open class TeamCityConversationException(message: String?, cause: Throwable? = n
 
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
-    fun queuedBuilds(projectId: ProjectId? = null): List<QueuedBuild>
+    fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
 }
 
 interface BuildResults {
