@@ -25,7 +25,6 @@ abstract class TeamCityInstance {
 
     abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
 
-    abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
     abstract fun getWebUrl(userId: UserId): String
     abstract fun getWebUrl(projectId: ProjectId, testId: TestId): String
     abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
@@ -195,14 +194,13 @@ interface BuildConfiguration {
 
     fun setParameter(name: String, value: String)
 
-    fun runBuild(buildTypeId: BuildConfigurationId,
-                 parameters: Map<String, String>? = null,
+    fun runBuild(parameters: Map<String, String>? = null,
                  queueAtTop: Boolean? = null,
                  cleanSources: Boolean? = null,
                  rebuildAllDependencies: Boolean? = null,
                  comment: String? = null,
                  logicalBranchName: String? = null,
-                 personal: Boolean? = null): BuildId
+                 personal: Boolean? = null): Build
 }
 
 interface BuildProblem {

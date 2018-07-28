@@ -126,11 +126,11 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun build(id: BuildId): Build = BuildImpl(
             BuildBean().also { it.id = id.stringId }, this)
 
-    override fun build(buildType: BuildConfigurationId, number: String): Build?
-            = BuildLocatorImpl(this).fromConfiguration(buildType).withNumber(number).latest()
+    override fun build(buildType: BuildConfigurationId, number: String): Build? =
+            BuildLocatorImpl(this).fromConfiguration(buildType).withNumber(number).latest()
 
-    override fun buildConfiguration(id: BuildConfigurationId):
-            BuildConfiguration = BuildConfigurationImpl(service.buildConfiguration(id.stringId), this)
+    override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration =
+            BuildConfigurationImpl(BuildTypeBean().also { it.id = id.stringId }, this)
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(this)
 
@@ -146,9 +146,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
             ChangeImpl(service.change(buildType.stringId, vcsRevision), this)
-
-    override fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String?): String =
-        getUserUrlPage(serverUrl, "viewType.html", buildTypeId = buildConfigurationId, branch = branch)
 
     override fun getWebUrl(userId: UserId): String =
         getUserUrlPage(
@@ -446,52 +443,63 @@ private class ProjectImpl(
 
 private class BuildConfigurationImpl(private val bean: BuildTypeBean,
                                      private val instance: TeamCityInstanceImpl) : BuildConfiguration {
-    override fun getHomeUrl(branch: String?): String = instance.getWebUrl(id, branch = branch)
+    init {
+        if (bean.id == null) {
+            throw IllegalArgumentException("bean.id should not be null")
+        }
+    }
+
+    override fun getHomeUrl(branch: String?): String = getUserUrlPage(
+            instance.serverUrl, "viewType.html", buildTypeId = id, branch = branch)
 
     override val name: String
-        get() = bean.name!!
+        get() = bean.name ?: fullBean.name!!
 
     override val projectId: ProjectId
-        get() = ProjectId(bean.projectId!!)
+        get() = ProjectId(bean.projectId ?: fullBean.projectId!!)
 
     override val id: BuildConfigurationId
         get() = BuildConfigurationId(bean.id!!)
 
     override val paused: Boolean
-        get() = bean.paused ?: false // TC won't return paused:false field
+        get() = bean.paused ?: fullBean.paused ?: false // TC won't return paused:false field
 
-    override val buildTags: List<String>
-        get() = instance.service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
+    override val buildTags: List<String> by lazy {
+        instance.service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
+    }
 
-    override val finishBuildTriggers: List<FinishBuildTrigger>
-        get() = instance.service.buildTypeTriggers(id.stringId)
+    override val finishBuildTriggers: List<FinishBuildTrigger> by lazy {
+        instance.service.buildTypeTriggers(id.stringId)
                 .trigger
                 ?.filter { it.type == "buildDependencyTrigger" }
                 ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
+    }
 
-    override val artifactDependencies: List<ArtifactDependency>
-        get() = instance.service
+    override val artifactDependencies: List<ArtifactDependency> by lazy {
+        instance.service
                 .buildTypeArtifactDependencies(id.stringId)
                 .`artifact-dependency`
                 ?.filter { it.disabled == false }
                 ?.map { ArtifactDependencyImpl(it, instance) }.orEmpty()
+    }
+
+    private val fullBean by lazy { instance.service.buildConfiguration(id.stringId) }
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         instance.service.setBuildTypeParameter(id.stringId, name, TypedString(value))
     }
 
-    override fun runBuild(buildTypeId: BuildConfigurationId,
-                          parameters: Map<String, String>?,
+    override fun runBuild(parameters: Map<String, String>?,
                           queueAtTop: Boolean?,
                           cleanSources: Boolean?,
                           rebuildAllDependencies: Boolean?,
                           comment: String?,
                           logicalBranchName: String?,
-                          personal: Boolean?): BuildId {
+                          personal: Boolean?): Build {
         val request = TriggerBuildRequestBean()
 
-        request.buildType = BuildTypeBean().apply { id = buildTypeId.stringId }
+        request.buildType = BuildTypeBean().apply { id = this@BuildConfigurationImpl.id.stringId }
         request.branchName = logicalBranchName
         comment?.let { commentText -> request.comment = CommentBean().apply { text = commentText } }
         request.personal = personal
@@ -506,7 +514,7 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
         }
 
         val triggeredBuildBean = instance.service.triggerBuild(request)
-        return BuildId(triggeredBuildBean.id!!.toString())
+        return instance.build(BuildId(triggeredBuildBean.id!!.toString()))
     }
 }
 

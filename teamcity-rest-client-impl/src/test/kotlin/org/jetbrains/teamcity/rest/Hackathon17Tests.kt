@@ -24,55 +24,51 @@ class Hackathon17Tests {
 
     //@Test
     fun test_run_build() {
-        val build = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
+        val build = teamcity.buildConfiguration(buildTypeID).runBuild()
         println(build)
     }
 
     //@Test
     fun test_run_build_and_get_info() {
         // trigger build -> Get triggered build from TC
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
-        val build = getBuild(triggeredBuild)
-        println(build.name)
+        val triggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild()
+        println(triggeredBuild.name)
     }
 
 //    @Test
     fun run_with_parameters() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(
-                buildTypeId = buildTypeID,
+        val triggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild(
                 parameters = mapOf("a" to "b"))
-        val build = getBuild(triggeredBuild)
-        build.parameters.forEach { println("${it.name}=${it.value}") }
+        triggeredBuild.parameters.forEach { println("${it.name}=${it.value}") }
     }
 
     //@Test
     fun trigger_and_cancel() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
-        teamcity.buildQueue().cancelBuild(triggeredBuild, comment = "hello!")
-        awaitState(triggeredBuild, BuildState.FINISHED, 60000L)
+        val triggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild()
+        triggeredBuild.cancel(comment = "hello!")
+        awaitState(triggeredBuild.id, BuildState.FINISHED, 60000L)
     }
 
 
     //@Test
     fun test_for_build_finishing() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(buildTypeId = buildTypeID)
-        val build = awaitState(triggeredBuild, BuildState.FINISHED, 60000)
+        val triggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild()
+        val build = awaitState(triggeredBuild.id, BuildState.FINISHED, 60000)
         println(build)
         println(build.state)
     }
 
     //@Test
     fun test_trigger_from_build() {
-        val triggeredBuild = teamcity.buildQueue().triggerBuild(
-                buildTypeId = buildTypeID, parameters = mapOf("a" to "b"))
-        val build = getBuild(triggeredBuild)
+        val triggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild(
+                parameters = mapOf("a" to "b"))
+        val build = getBuild(triggeredBuild.id)
 
-        val newTriggeredBuild = teamcity.buildQueue().triggerBuild(
-                buildTypeId = buildTypeID,
+        val newTriggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild(
                 parameters = build.parameters.associate { it.name to it.value }
         )
 
-        val newBuild = awaitState(newTriggeredBuild, BuildState.FINISHED, 60000)
+        val newBuild = awaitState(newTriggeredBuild.id, BuildState.FINISHED, 60000)
         println(newBuild)
         newBuild.parameters.forEach { println("${it.name}=${it.value}") }
     }

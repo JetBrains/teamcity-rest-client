@@ -21,7 +21,7 @@ class ChangeTest {
                 .firstOrNull { it.changes.isNotEmpty() }
                 .let { build ->
                     assert(build != null) {
-                        "Unable to find a build with changes (tried top 10) in ${configuration.getWebUrl(branch = "<default>")}"
+                        "Unable to find a build with changes (tried top 10) in ${configuration.getHomeUrl(branch = "<default>")}"
                     }
 
                     build!!.changes.first()
