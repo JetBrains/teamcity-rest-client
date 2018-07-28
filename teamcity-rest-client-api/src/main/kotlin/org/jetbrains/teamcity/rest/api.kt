@@ -187,15 +187,22 @@ interface BuildConfiguration {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(branch: String? = null): String
+    fun getHomeUrl(branch: String? = null): String
 
-    fun fetchBuildTags(): List<String>
-
-    fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
-
-    fun fetchArtifactDependencies(): List<ArtifactDependency>
+    val buildTags: List<String>
+    val finishBuildTriggers: List<FinishBuildTrigger>
+    val artifactDependencies: List<ArtifactDependency>
 
     fun setParameter(name: String, value: String)
+
+    fun runBuild(buildTypeId: BuildConfigurationId,
+                 parameters: Map<String, String>? = null,
+                 queueAtTop: Boolean? = null,
+                 cleanSources: Boolean? = null,
+                 rebuildAllDependencies: Boolean? = null,
+                 comment: String? = null,
+                 logicalBranchName: String? = null,
+                 personal: Boolean? = null): BuildId
 }
 
 interface BuildProblem {
@@ -270,6 +277,8 @@ interface Build {
     fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
     fun downloadBuildLog(output: File)
+
+    fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
 }
 
 interface QueuedBuild {
@@ -429,15 +438,7 @@ open class TeamCityQueryException(message: String?, cause: Throwable? = null) : 
 open class TeamCityConversationException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
 
 interface BuildQueue {
-    fun triggerBuild(buildTypeId: BuildConfigurationId,
-                     parameters: Map<String, String>? = null,
-                     queueAtTop: Boolean? = null,
-                     cleanSources: Boolean? = null,
-                     rebuildAllDependencies: Boolean? = null,
-                     comment: String? = null,
-                     logicalBranchName: String? = null,
-                     personal: Boolean? = null): BuildId
-    fun cancelBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
+    fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
     fun queuedBuilds(projectId: ProjectId? = null): List<QueuedBuild>
 }
 

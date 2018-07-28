@@ -92,6 +92,10 @@ internal interface TeamCityService {
     @POST("/app/rest/builds/id:{id}")
     fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
 
+    @Headers("Accept: application/json")
+    @POST("/app/rest/buildQueue/id:{id}")
+    fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
+
     @GET("/app/rest/testOccurrences")
     fun tests(@Query("locator") locator: String): Response
 
@@ -214,7 +218,6 @@ internal open class QueuedBuildBean {
     var defaultBranch: Boolean? = null
 
     var href: String? = null
-    var webUrl: String? = null
 }
 
 internal class BuildTypeBean {

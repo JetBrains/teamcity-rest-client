@@ -446,7 +446,7 @@ private class ProjectImpl(
 
 private class BuildConfigurationImpl(private val bean: BuildTypeBean,
                                      private val instance: TeamCityInstanceImpl) : BuildConfiguration {
-    override fun getWebUrl(branch: String?): String = instance.getWebUrl(id, branch = branch)
+    override fun getHomeUrl(branch: String?): String = instance.getWebUrl(id, branch = branch)
 
     override val name: String
         get() = bean.name!!
@@ -460,24 +460,53 @@ private class BuildConfigurationImpl(private val bean: BuildTypeBean,
     override val paused: Boolean
         get() = bean.paused ?: false // TC won't return paused:false field
 
-    override fun fetchBuildTags(): List<String> = instance.service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
+    override val buildTags: List<String>
+        get() = instance.service.buildTypeTags(id.stringId).tag!!.map { it.name!! }
 
-    override fun fetchFinishBuildTriggers(): List<FinishBuildTrigger> =
-            instance.service.buildTypeTriggers(id.stringId)
-                    .trigger
-                    ?.filter { it.type == "buildDependencyTrigger" }
-                    ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
+    override val finishBuildTriggers: List<FinishBuildTrigger>
+        get() = instance.service.buildTypeTriggers(id.stringId)
+                .trigger
+                ?.filter { it.type == "buildDependencyTrigger" }
+                ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
 
-    override fun fetchArtifactDependencies(): List<ArtifactDependency> =
-            instance.service
-                    .buildTypeArtifactDependencies(id.stringId)
-                    .`artifact-dependency`
-                    ?.filter { it.disabled == false }
-                    ?.map { ArtifactDependencyImpl(it, instance) }.orEmpty()
+    override val artifactDependencies: List<ArtifactDependency>
+        get() = instance.service
+                .buildTypeArtifactDependencies(id.stringId)
+                .`artifact-dependency`
+                ?.filter { it.disabled == false }
+                ?.map { ArtifactDependencyImpl(it, instance) }.orEmpty()
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ${bean.id}")
         instance.service.setBuildTypeParameter(id.stringId, name, TypedString(value))
+    }
+
+    override fun runBuild(buildTypeId: BuildConfigurationId,
+                          parameters: Map<String, String>?,
+                          queueAtTop: Boolean?,
+                          cleanSources: Boolean?,
+                          rebuildAllDependencies: Boolean?,
+                          comment: String?,
+                          logicalBranchName: String?,
+                          personal: Boolean?): BuildId {
+        val request = TriggerBuildRequestBean()
+
+        request.buildType = BuildTypeBean().apply { id = buildTypeId.stringId }
+        request.branchName = logicalBranchName
+        comment?.let { commentText -> request.comment = CommentBean().apply { text = commentText } }
+        request.personal = personal
+        request.triggeringOptions = TriggeringOptionsBean().apply {
+            this.cleanSources = cleanSources
+            this.rebuildAllDependencies = rebuildAllDependencies
+            this.queueAtTop = queueAtTop
+        }
+        parameters?.let {
+            val parametersBean = ParametersBean(it.map { ParameterBean(it.key, it.value) })
+            request.properties = parametersBean
+        }
+
+        val triggeredBuildBean = instance.service.triggerBuild(request)
+        return BuildId(triggeredBuildBean.id!!.toString())
     }
 }
 
@@ -909,6 +938,13 @@ private class BuildImpl(private val bean: BuildBean,
 
         LOG.debug("Build log from build $buildNumber (id:${id.stringId}) downloaded to $output")
     }
+
+    override fun cancel(comment: String, reAddIntoQueue: Boolean) {
+        val request = BuildCancelRequestBean()
+        request.comment = comment
+        request.readdIntoQueue = reAddIntoQueue
+        instance.service.cancelBuild(id.stringId, request)
+    }
 }
 
 private class QueuedBuildImpl(private val bean: QueuedBuildBean, private val instance: TeamCityInstanceImpl) : QueuedBuild {
@@ -989,39 +1025,11 @@ private class BuildArtifactImpl(
 }
 
 private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQueue {
-    override fun triggerBuild(buildTypeId: BuildConfigurationId,
-                     parameters: Map<String, String>?,
-                     queueAtTop: Boolean?,
-                     cleanSources: Boolean?,
-                     rebuildAllDependencies: Boolean?,
-                     comment: String?,
-                     logicalBranchName: String?,
-                     personal: Boolean?): BuildId {
-        val request = TriggerBuildRequestBean()
-
-        request.buildType = BuildTypeBean().apply { id = buildTypeId.stringId }
-        request.branchName = logicalBranchName
-        comment?.let { commentText -> request.comment = CommentBean().apply { text = commentText } }
-        request.personal = personal
-        request.triggeringOptions = TriggeringOptionsBean().apply {
-            this.cleanSources = cleanSources
-            this.rebuildAllDependencies = rebuildAllDependencies
-            this.queueAtTop = queueAtTop
-        }
-        parameters?.let {
-            val parametersBean = ParametersBean(it.map { ParameterBean(it.key, it.value) })
-            request.properties = parametersBean
-        }
-
-        val triggeredBuildBean = instance.service.triggerBuild(request)
-        return BuildId(triggeredBuildBean.id!!.toString())
-    }
-
-    override fun cancelBuild(id: BuildId, comment: String, reAddIntoQueue: Boolean) {
+    override fun removeBuild(id: BuildId, comment: String, reAddIntoQueue: Boolean) {
         val request = BuildCancelRequestBean()
         request.comment = comment
         request.readdIntoQueue = reAddIntoQueue
-        instance.service.cancelBuild(id.stringId, request)
+        instance.service.removeQueuedBuild(id.stringId, request)
     }
 
     override fun queuedBuilds(projectId: ProjectId?): List<QueuedBuild> {
