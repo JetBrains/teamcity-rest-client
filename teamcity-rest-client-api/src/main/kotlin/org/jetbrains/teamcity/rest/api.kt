@@ -26,7 +26,6 @@ abstract class TeamCityInstance {
     abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
 
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
-    abstract fun getWebUrl(buildId: BuildId): String
     abstract fun getWebUrl(userId: UserId): String
     abstract fun getWebUrl(projectId: ProjectId, testId: TestId): String
     abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
@@ -241,26 +240,26 @@ interface Build {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(): String
+    fun getBuildHomeUrl(): String
 
-    fun fetchStatusText(): String?
-    fun fetchQueuedDate(): Date
-    fun fetchStartDate(): Date?
-    fun fetchFinishDate(): Date?
+    val statusText: String?
+    val queuedDate: Date
+    val startDate: Date?
+    val finishDate: Date?
 
-    fun fetchParameters(): List<Parameter>
+    val parameters: List<Parameter>
 
-    fun fetchRevisions(): List<Revision>
+    val revisions: List<Revision>
 
-    fun fetchChanges(): List<Change>
+    val changes: List<Change>
 
-    fun fetchPinInfo(): PinInfo?
+    val pinInfo: PinInfo?
 
-    fun fetchTriggeredInfo(): TriggeredInfo?
+    val triggeredInfo: TriggeredInfo?
 
-    fun fetchTests(status: TestStatus? = null) : Sequence<TestOccurrence>
+    fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
 
-    fun fetchBuildProblems(): Sequence<BuildProblemOccurrence>
+    val buildProblems: Sequence<BuildProblemOccurrence>
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")

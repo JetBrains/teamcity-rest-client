@@ -42,7 +42,7 @@ class Hackathon17Tests {
                 buildTypeId = buildTypeID,
                 parameters = mapOf("a" to "b"))
         val build = getBuild(triggeredBuild)
-        build.fetchParameters().forEach { println("${it.name}=${it.value}") }
+        build.parameters.forEach { println("${it.name}=${it.value}") }
     }
 
     //@Test
@@ -69,12 +69,12 @@ class Hackathon17Tests {
 
         val newTriggeredBuild = teamcity.buildQueue().triggerBuild(
                 buildTypeId = buildTypeID,
-                parameters = build.fetchParameters().associate { it.name to it.value }
+                parameters = build.parameters.associate { it.name to it.value }
         )
 
         val newBuild = awaitState(newTriggeredBuild, BuildState.FINISHED, 60000)
         println(newBuild)
-        newBuild.fetchParameters().forEach { println("${it.name}=${it.value}") }
+        newBuild.parameters.forEach { println("${it.name}=${it.value}") }
     }
 
     //@Test

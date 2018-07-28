@@ -26,9 +26,9 @@ class BranchesTest {
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(20)
             .list().forEach {
-      it.fetchParameters()
-      it.fetchChanges().joinToString("\n")
-      it.fetchRevisions()
+      it.parameters
+      it.changes.joinToString("\n")
+      it.revisions
       it.getArtifacts()
     }
   }

@@ -123,7 +123,8 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
 
-    override fun build(id: BuildId): Build = BuildImpl(service.build(id.stringId), true, this)
+    override fun build(id: BuildId): Build = BuildImpl(
+            BuildBean().also { it.id = id.stringId }, this)
 
     override fun build(buildType: BuildConfigurationId, number: String): Build?
             = BuildLocatorImpl(this).fromConfiguration(buildType).withNumber(number).latest()
@@ -148,12 +149,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String?): String =
         getUserUrlPage(serverUrl, "viewType.html", buildTypeId = buildConfigurationId, branch = branch)
-
-    override fun getWebUrl(buildId: BuildId): String =
-        getUserUrlPage(
-                serverUrl, "viewLog.html",
-                buildId = buildId
-        )
 
     override fun getWebUrl(userId: UserId): String =
         getUserUrlPage(
@@ -355,7 +350,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             val buildsBean = instance.service.builds(buildLocator = buildLocator)
 
             return@lazyPaging Page(
-                    data = buildsBean.build.map { BuildImpl(it, false, instance) },
+                    data = buildsBean.build.map { BuildImpl(it, instance) },
                     hasNextPage = buildsBean.nextHref.isNotBlank()
             )
         }
@@ -374,7 +369,8 @@ private class ProjectImpl(
         private val isFullProjectBean: Boolean,
         private val instance: TeamCityInstanceImpl) : Project {
 
-    override fun getProjectHomeUrl(branch: String?): String = instance.getWebUrl(id, branch = branch)
+    override fun getProjectHomeUrl(branch: String?): String =
+            getUserUrlPage(instance.serverUrl, "project.html", projectId = id, branch = branch)
 
     override val id: ProjectId
         get() = ProjectId(bean.id!!)
@@ -510,7 +506,7 @@ private class ChangeImpl(private val bean: ChangeBean,
             instance.service
                     .changeFirstBuilds(id.stringId)
                     .build
-                    .map { BuildImpl(it, false, instance) }
+                    .map { BuildImpl(it, instance) }
 
     override val id: ChangeId
         get() = ChangeId(bean.id!!)
@@ -579,7 +575,7 @@ private class TriggeredImpl(private val bean: TriggeredBean,
     override val user: User?
         get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val build: Build?
-        get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
+        get() = if (bean.build != null) BuildImpl(bean.build, instance) else null
 }
 
 private class BuildCanceledInfoImpl(private val bean: BuildCanceledBean,
@@ -659,7 +655,7 @@ private class BuildProblemOccurrenceImpl(private val bean: BuildProblemOccurrenc
     override val buildProblem: BuildProblem
         get() = BuildProblemImpl(bean.problem!!)
     override val build: Build
-        get() = BuildImpl(bean.build!!, false, instance)
+        get() = BuildImpl(bean.build!!, instance)
     override val details: String
         get() = bean.details ?: ""
     override val additionalData: String?
@@ -717,21 +713,29 @@ private fun <T> lazyPaging(nextPage: (Int) -> Page<T>): Sequence<T> {
 private fun String?.isNotBlank(): Boolean = this != null && !this.isBlank()
 
 private class BuildImpl(private val bean: BuildBean,
-                        private val isFullBuildBean: Boolean,
                         private val instance: TeamCityInstanceImpl) : Build {
-    override fun getWebUrl(): String = instance.getWebUrl(id)
+    init {
+        if (bean.id == null) {
+            throw IllegalArgumentException("bean.id should not be null")
+        }
+    }
+
+    override fun getBuildHomeUrl(): String = getUserUrlPage(
+            instance.serverUrl, "viewLog.html",
+            buildId = id
+    )
 
     override val id: BuildId
         get() = BuildId(bean.id!!)
 
     override val buildTypeId: BuildConfigurationId
-        get() = BuildConfigurationId(bean.buildTypeId!!)
+        get() = BuildConfigurationId(bean.buildTypeId ?: fullBuildBean.buildTypeId!!)
 
     override val buildNumber: String
-        get() = bean.number!!
+        get() = bean.number ?: fullBuildBean.number!!
 
     override val status: BuildStatus?
-        get() = bean.status
+        get() = bean.status ?: fullBuildBean.status!!
 
     override val state: BuildState
         get() = try {
@@ -742,14 +746,20 @@ private class BuildImpl(private val bean: BuildBean,
         }
 
     override val branch: Branch
-        get() = BranchImpl(bean.branchName, bean.isDefaultBranch ?: (bean.branchName == null))
+        get() {
+            val branchName = bean.branchName ?: fullBuildBean.branchName
+            return BranchImpl(
+                    name = branchName,
+                    isDefault = bean.isDefaultBranch ?: fullBuildBean.isDefaultBranch ?: (branchName == null)
+            )
+        }
 
     override val name: String by lazy {
-        if (isFullBuildBean) bean.buildType!!.name!! else instance.buildConfiguration(buildTypeId).name
+        bean.buildType?.name ?: instance.buildConfiguration(buildTypeId).name
     }
 
     val fullBuildBean: BuildBean by lazy {
-        if (isFullBuildBean) bean else instance.service.build(id.stringId)
+        instance.service.build(id.stringId)
     }
 
     override fun toString(): String {
@@ -759,14 +769,18 @@ private class BuildImpl(private val bean: BuildBean,
     override val canceledInfo: BuildCanceledInfo?
         get() = fullBuildBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
 
-    override fun fetchStatusText(): String? = fullBuildBean.statusText
-    override fun fetchQueuedDate(): Date = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
-    override fun fetchStartDate(): Date? = fullBuildBean.startDate?.let { teamCityServiceDateFormat.get().parse(it) }
-    override fun fetchFinishDate(): Date? = fullBuildBean.finishDate?.let { teamCityServiceDateFormat.get().parse(it) }
-    override fun fetchPinInfo() = fullBuildBean.pinInfo?.let { PinInfoImpl(it, instance) }
-    override fun fetchTriggeredInfo() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
+    override val statusText: String?
+        get() = fullBuildBean.statusText
+    override val queuedDate: Date
+        get() = teamCityServiceDateFormat.get().parse(fullBuildBean.queuedDate!!)
+    override val startDate: Date?
+        get() = fullBuildBean.startDate?.let { teamCityServiceDateFormat.get().parse(it) }
+    override val finishDate: Date?
+        get() = fullBuildBean.finishDate?.let { teamCityServiceDateFormat.get().parse(it) }
+    override val pinInfo get() = fullBuildBean.pinInfo?.let { PinInfoImpl(it, instance) }
+    override val triggeredInfo get() = fullBuildBean.triggered?.let { TriggeredImpl(it, instance) }
 
-    override fun fetchTests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging { start ->
+    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging { start ->
         val statusLocator = when (status) {
             null -> ""
             TestStatus.FAILED -> ",status:FAILURE"
@@ -785,24 +799,28 @@ private class BuildImpl(private val bean: BuildBean,
         )
     }
 
-    override fun fetchBuildProblems(): Sequence<BuildProblemOccurrence> = lazyPaging { start ->
-        val occurrencesBean = instance.service.problemOccurrences(
-                locator = "build:(id:${id.stringId}),start:$start",
-                fields = "\$long,problemOccurrence(\$long)")
-        return@lazyPaging Page(
-                data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
-                hasNextPage = occurrencesBean.nextHref.isNotBlank()
-        )
-    }
+    override val buildProblems: Sequence<BuildProblemOccurrence>
+        get() = lazyPaging { start ->
+            val occurrencesBean = instance.service.problemOccurrences(
+                    locator = "build:(id:${id.stringId}),start:$start",
+                    fields = "\$long,problemOccurrence(\$long)")
+            return@lazyPaging Page(
+                    data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
+                    hasNextPage = occurrencesBean.nextHref.isNotBlank()
+            )
+        }
 
-    override fun fetchParameters(): List<Parameter> = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
+    override val parameters: List<Parameter>
+        get() = fullBuildBean.properties!!.property!!.map { ParameterImpl(it) }
 
-    override fun fetchRevisions(): List<Revision> = fullBuildBean.revisions!!.revision!!.map { RevisionImpl(it) }
+    override val revisions: List<Revision>
+        get() = fullBuildBean.revisions!!.revision!!.map { RevisionImpl(it) }
 
-    override fun fetchChanges(): List<Change> = instance.service.changes(
-            "build:${id.stringId}",
-            "change(id,version,username,user,date,comment)")
-            .change!!.map { ChangeImpl(it, instance) }
+    override val changes: List<Change>
+        get() = instance.service.changes(
+                "build:${id.stringId}",
+                "change(id,version,username,user,date,comment)")
+                .change!!.map { ChangeImpl(it, instance) }
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build $buildNumber (id:${id.stringId})")

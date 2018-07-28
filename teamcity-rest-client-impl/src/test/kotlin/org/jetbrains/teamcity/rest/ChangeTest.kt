@@ -18,13 +18,13 @@ class ChangeTest {
                 .fromConfiguration(configuration.id)
                 .limitResults(10)
                 .list()
-                .firstOrNull { it.fetchChanges().isNotEmpty() }
+                .firstOrNull { it.changes.isNotEmpty() }
                 .let { build ->
                     assert(build != null) {
                         "Unable to find a build with changes (tried top 10) in ${configuration.getWebUrl(branch = "<default>")}"
                     }
 
-                    build!!.fetchChanges().first()
+                    build!!.changes.first()
                 }
         assertEquals(
                 "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}",
@@ -42,8 +42,8 @@ class ChangeTest {
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
                 .list()
-                .first { it.fetchChanges().isNotEmpty() }
-        val change = build.fetchChanges().first()
+                .first { it.changes.isNotEmpty() }
+        val change = build.changes.first()
 
         assertEquals(
                 change.toString(),
@@ -58,8 +58,8 @@ class ChangeTest {
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
                 .list()
-                .first { it.fetchChanges().isNotEmpty() }
-        val change = build.fetchChanges().first()
+                .first { it.changes.isNotEmpty() }
+        val change = build.changes.first()
 
         val builds = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)

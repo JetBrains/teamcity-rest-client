@@ -19,7 +19,7 @@ class BuildProblemTest {
 
     @Test
     fun fetch_problems() {
-        val buildProblems = instance.build(BuildId("1261003")).fetchBuildProblems()
+        val buildProblems = instance.build(BuildId("1261003")).buildProblems
         println(buildProblems.joinToString("\n"))
     }
 }

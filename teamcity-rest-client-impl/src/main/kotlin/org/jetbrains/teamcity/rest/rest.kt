@@ -199,7 +199,6 @@ internal open class BuildBean {
     var triggered: TriggeredBean? = null
 
     var properties: ParametersBean? = ParametersBean()
-    var webUrl: String? = null
     var buildType: BuildTypeBean? = BuildTypeBean()
 }
 

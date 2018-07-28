@@ -34,7 +34,7 @@ class BuildTest {
                 .list()
 
         for (build in builds) {
-            assert(build.fetchStartDate()!! >= monthAgo.time)
+            assert(build.startDate!! >= monthAgo.time)
         }
     }
 
@@ -45,7 +45,7 @@ class BuildTest {
                 .limitResults(10)
                 .list()
                 .forEach {
-                    val revisions = it.fetchRevisions()
+                    val revisions = it.revisions
                     Assert.assertTrue(revisions.isNotEmpty())
                 }
     }
@@ -57,7 +57,7 @@ class BuildTest {
                 .limitResults(1)
                 .list().first()
 
-        build.fetchStatusText()
+        build.statusText
     }
 
     @Test
@@ -81,6 +81,6 @@ class BuildTest {
                 .limitResults(1)
                 .list().first()
 
-        assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getWebUrl())
+        assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getBuildHomeUrl())
     }
 }
