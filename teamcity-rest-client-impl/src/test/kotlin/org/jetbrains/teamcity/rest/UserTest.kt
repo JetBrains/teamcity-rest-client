@@ -28,7 +28,7 @@ class UserTest {
         assertEquals("kir", user.username)
         assertEquals("Kirill Maximov", user.name)
         assertEquals("kir@jetbrains.com", user.email)
-        assertEquals("${instance.serverUrl}/admin/editUser.html?userId=1", user.getWebUrl())
+        assertEquals("${instance.serverUrl}/admin/editUser.html?userId=1", user.getHomeUrl())
     }
 
     @Test
@@ -39,7 +39,7 @@ class UserTest {
 
     @Test
     fun `user url from instance`() {
-        val url = instance.getWebUrl(UserId("1"))
+        val url = instance.user(UserId("1")).getHomeUrl()
         assertEquals("${instance.serverUrl}/admin/editUser.html?userId=1", url)
     }
 

@@ -140,18 +140,13 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 
-    override fun user(id: UserId): User = UserImpl(service.users("id:${id.stringId}"), true, this)
+    override fun user(id: UserId): User =
+            UserImpl(UserBean().also { it.id = id.stringId }, false, this)
 
     override fun users(): UserLocator = UserLocatorImpl(this)
 
     override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
             ChangeImpl(service.change(buildType.stringId, vcsRevision), this)
-
-    override fun getWebUrl(userId: UserId): String =
-        getUserUrlPage(
-                serverUrl, "admin/editUser.html",
-                userId = userId
-        )
 
     override fun getWebUrl(projectId: ProjectId, testId: TestId): String =
         getUserUrlPage(
@@ -567,6 +562,12 @@ private class ChangeImpl(private val bean: ChangeBean,
 private class UserImpl(private val bean: UserBean,
                        private val isFullBuildBean: Boolean,
                        private val instance: TeamCityInstanceImpl) : User {
+    init {
+        if (bean.id == null) {
+            throw IllegalArgumentException("bean.id should not be null")
+        }
+    }
+
     override val email: String?
         get() = bean.email ?: fullUserBean.email
 
@@ -579,7 +580,10 @@ private class UserImpl(private val bean: UserBean,
     override val name: String
         get() = bean.name ?: fullUserBean.name!!
 
-    override fun getWebUrl(): String = instance.getWebUrl(id)
+    override fun getHomeUrl(): String = getUserUrlPage(
+            instance.serverUrl, "admin/editUser.html",
+            userId = id
+    )
 
     val fullUserBean: UserBean by lazy {
         if (isFullBuildBean) bean else instance.service.users("id:${id.stringId}")
@@ -593,7 +597,7 @@ private class UserImpl(private val bean: UserBean,
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        return id == (other as UserImpl).id && instance == other.instance
+        return id == (other as UserImpl).id && instance === other.instance
     }
 
     override fun hashCode(): Int = id.stringId.hashCode()

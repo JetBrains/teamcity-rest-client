@@ -25,7 +25,6 @@ abstract class TeamCityInstance {
 
     abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
 
-    abstract fun getWebUrl(userId: UserId): String
     abstract fun getWebUrl(projectId: ProjectId, testId: TestId): String
     abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
@@ -301,7 +300,7 @@ interface User {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(): String
+    fun getHomeUrl(): String
 }
 
 interface BuildArtifact {
