@@ -19,7 +19,7 @@ class VcsRootTest {
     @Test
     fun access_to_vcs_root_requires_credential() {
         val vcsRootLocator = vcsRootsFromPublicInstance()
-        vcsRootLocator.list()
+        vcsRootLocator.all().toList()
     }
 
     @Ignore("teamcity_connection.properties should be updated;" +
@@ -27,7 +27,7 @@ class VcsRootTest {
     @Test
     fun vcs_roots_are_loaded() {
         val vcsRootLocator = vcsRootsFromCustomInstance()
-        val vcsRoots = vcsRootLocator.list().toList()
+        val vcsRoots = vcsRootLocator.all().toList()
         assertTrue("Some vcs roots should be loaded", vcsRoots.isNotEmpty())
     }
 
@@ -42,14 +42,14 @@ class VcsRootTest {
 
     @Test
     fun test_get_url() {
-        val vcsRoot = vcsRootsFromPublicInstance().list().first()
+        val vcsRoot = vcsRootsFromPublicInstance().all().first()
         val url = vcsRoot.url
         assertNotNull("Vcs root url should be loaded", url)
     }
 
     @Test
     fun test_get_default_branch() {
-        val vcsRoot = vcsRootsFromPublicInstance().list().first()
+        val vcsRoot = vcsRootsFromPublicInstance().all().first()
         val url = vcsRoot.defaultBranch
         assertNotNull("Vcs root default branch should be loaded", url)
     }

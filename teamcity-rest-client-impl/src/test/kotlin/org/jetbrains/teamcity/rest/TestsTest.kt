@@ -14,7 +14,7 @@ class TestsTest {
     val tests = publicInstance().builds()
             .fromConfiguration(compileExamplesConfiguration)
             .limitResults(3)
-            .list()
+            .all()
             .first().tests().toList()
 
     println("Total tests: ${tests.size}")

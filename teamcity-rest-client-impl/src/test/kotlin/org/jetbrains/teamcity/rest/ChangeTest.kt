@@ -17,7 +17,7 @@ class ChangeTest {
         val change = publicInstance().builds()
                 .fromConfiguration(configuration.id)
                 .limitResults(10)
-                .list()
+                .all()
                 .firstOrNull { it.changes.isNotEmpty() }
                 .let { build ->
                     assert(build != null) {
@@ -41,7 +41,7 @@ class ChangeTest {
         val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
-                .list()
+                .all()
                 .first { it.changes.isNotEmpty() }
         val change = build.changes.first()
 
@@ -57,14 +57,14 @@ class ChangeTest {
         val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
-                .list()
+                .all()
                 .first { it.changes.isNotEmpty() }
         val change = build.changes.first()
 
         val builds = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .withVcsRevision(change.version)
-                .list()
+                .all()
         assertTrue(builds.map { it.toString() }.contains(build.toString()))
     }
 }

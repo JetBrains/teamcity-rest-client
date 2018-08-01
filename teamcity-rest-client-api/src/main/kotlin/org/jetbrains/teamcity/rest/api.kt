@@ -21,10 +21,27 @@ abstract class TeamCityInstance {
     abstract fun buildQueue(): BuildQueue
     abstract fun buildResults(): BuildResults
     abstract fun user(id: UserId): User
+    abstract fun user(userName: String): User
     abstract fun users(): UserLocator
 
     abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
     abstract fun change(id: ChangeId): Change
+
+    @Deprecated(message = "use project(projectId).getHomeUrl(branch)",
+                replaceWith = ReplaceWith("project(projectId).getHomeUrl(branch)"))
+    abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
+    @Deprecated(message = "use buildConfiguration(buildConfigurationId).getHomeUrl(branch)",
+                replaceWith = ReplaceWith("buildConfiguration(buildConfigurationId).getHomeUrl(branch)"))
+    abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
+    @Deprecated(message = "use build(buildId).getHomeUrl()",
+                replaceWith = ReplaceWith("build(buildId).getHomeUrl()"))
+    abstract fun getWebUrl(buildId: BuildId): String
+    @Deprecated(message = "use change(changeId).getHomeUrl()",
+            replaceWith = ReplaceWith("change(changeId).getHomeUrl(specificBuildConfigurationId, includePersonalBuilds)"))
+    abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+    @Deprecated(message = "use buildQueue().queuedBuilds(projectId)",
+                replaceWith = ReplaceWith("buildQueue().queuedBuilds(projectId)"))
+    abstract fun queuedBuilds(projectId: ProjectId? = null): List<Build>
 
     companion object {
         private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
@@ -53,13 +70,22 @@ data class VcsRootType(val stringType: String) {
 }
 
 interface VcsRootLocator {
-    fun list(): Sequence<VcsRoot>
+    fun all(): Sequence<VcsRoot>
+
+    @Deprecated(message = "use all() which returns lazy sequence",
+                replaceWith = ReplaceWith("all()"))
+    fun list(): List<VcsRoot>
 }
 
 interface UserLocator {
-    fun withId(id: UserId): UserLocator
-    fun withUsername(name: String): UserLocator
+    fun all(): Sequence<User>
 
+    @Deprecated("use instance.user(id)")
+    fun withId(id: UserId): UserLocator
+    @Deprecated(message = "use instance.user(userName)")
+    fun withUsername(name: String): UserLocator
+    @Deprecated(message = "use all() method which returns lazy sequence",
+            replaceWith = ReplaceWith("all()"))
     fun list(): List<User>
 }
 
@@ -106,7 +132,11 @@ interface BuildLocator {
     fun sinceDate(date: Date) : BuildLocator
 
     fun latest(): Build?
-    fun list(): Sequence<Build>
+    fun all(): Sequence<Build>
+
+    @Deprecated(message = "use all() which returns lazy sequence",
+                replaceWith = ReplaceWith("all()"))
+    fun list(): List<Build>
 }
 
 data class ProjectId(val stringId: String) {
@@ -140,9 +170,11 @@ data class BuildProblemId(val stringId: String) {
 data class BuildProblemType(val stringType: String) {
     override fun toString(): String = stringType
 
+    val isSnapshotDependencyError: Boolean
+        get() = stringType == "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE" ||
+                stringType == "SNAPSHOT_DEPENDENCY_ERROR"
+
     companion object {
-        val SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE = BuildProblemType("SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE")
-        val SNAPSHOT_DEPENDENCY_ERROR = BuildProblemType("SNAPSHOT_DEPENDENCY_ERROR")
         val FAILED_TESTS = BuildProblemType("TC_FAILED_TESTS")
     }
 }
@@ -159,15 +191,29 @@ interface Project {
     fun getHomeUrl(branch: String? = null): String
     fun getTestHomeUrl(testId: TestId): String
 
-    fun fetchChildProjects(): List<Project>
-    fun fetchBuildConfigurations(): List<BuildConfiguration>
-    fun fetchParameters(): List<Parameter>
+    val childProjects: List<Project>
+    val buildConfigurations: List<BuildConfiguration>
+    val parameters: List<Parameter>
 
     fun setParameter(name: String, value: String)
 
     fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot
     fun createProject(id: ProjectId, name: String): Project
     fun createBuildConfiguration(buildTypeDescriptionXml: String): BuildConfiguration
+
+    @Deprecated(message = "use getHomeUrl(branch)",
+                replaceWith = ReplaceWith("getHomeUrl(branch"))
+    fun getWebUrl(branch: String? = null): String
+
+    @Deprecated(message = "use childProjects",
+                replaceWith = ReplaceWith("childProjects"))
+    fun fetchChildProjects(): List<Project>
+    @Deprecated(message = "use buildConfigurations",
+            replaceWith = ReplaceWith("buildConfigurations"))
+    fun fetchBuildConfigurations(): List<BuildConfiguration>
+    @Deprecated(message = "use parameters",
+            replaceWith = ReplaceWith("parameters"))
+    fun fetchParameters(): List<Parameter>
 }
 
 interface BuildConfiguration {
@@ -194,6 +240,19 @@ interface BuildConfiguration {
                  comment: String? = null,
                  logicalBranchName: String? = null,
                  personal: Boolean? = null): Build
+
+    @Deprecated(message = "use getHomeUrl(branch)",
+                replaceWith = ReplaceWith("getHomeUrl(branch)"))
+    fun getWebUrl(branch: String? = null): String
+    @Deprecated(message = "use buildTags",
+                replaceWith = ReplaceWith("buildTags"))
+    fun fetchBuildTags(): List<String>
+    @Deprecated(message = "use finishBuildTriggers",
+                replaceWith = ReplaceWith("finishBuildTriggers"))
+    fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
+    @Deprecated(message = "use artifactDependencies",
+                replaceWith = ReplaceWith("artifactDependencies"))
+    fun fetchArtifactDependencies(): List<ArtifactDependency>
 }
 
 interface BuildProblem {
@@ -238,7 +297,7 @@ interface Build {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getBuildHomeUrl(): String
+    fun getHomeUrl(): String
 
     val statusText: String?
     val queuedDate: Date
@@ -270,6 +329,27 @@ interface Build {
     fun downloadBuildLog(output: File)
 
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
+
+    @Deprecated(message = "use getHomeUrl()", replaceWith = ReplaceWith("getHomeUrl()"))
+    fun getWebUrl(): String
+    @Deprecated(message = "use statusText", replaceWith = ReplaceWith("statusText"))
+    fun fetchStatusText(): String?
+    @Deprecated(message = "use queuedDate", replaceWith = ReplaceWith("queuedDate"))
+    fun fetchQueuedDate(): Date
+    @Deprecated(message = "use startDate", replaceWith = ReplaceWith("startDate"))
+    fun fetchStartDate(): Date?
+    @Deprecated(message = "use finishDate", replaceWith = ReplaceWith("finishDate"))
+    fun fetchFinishDate(): Date?
+    @Deprecated(message = "use parameters", replaceWith = ReplaceWith("parameters"))
+    fun fetchParameters(): List<Parameter>
+    @Deprecated(message = "use revisions", replaceWith = ReplaceWith("revisions"))
+    fun fetchRevisions(): List<Revision>
+    @Deprecated(message = "use changes", replaceWith = ReplaceWith("changes"))
+    fun fetchChanges(): List<Change>
+    @Deprecated(message = "use pinInfo", replaceWith = ReplaceWith("pinInfo"))
+    fun fetchPinInfo(): PinInfo?
+    @Deprecated(message = "triggeredInfo", replaceWith = ReplaceWith("triggeredInfo"))
+    fun fetchTriggeredInfo(): TriggeredInfo?
 }
 
 interface Change {
@@ -286,6 +366,10 @@ interface Change {
     fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
     fun firstBuilds(): List<Build>
+
+    @Deprecated(message = "use getHomeUrl()",
+                replaceWith = ReplaceWith("getHomeUrl(specificBuildConfigurationId, includePersonalBuilds)"))
+    fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 }
 
 data class UserId(val stringId: String)

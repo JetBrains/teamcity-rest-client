@@ -1,4 +1,4 @@
-@file:Suppress("RemoveRedundantBackticks")
+@file:Suppress("RemoveRedundantBackticks", "OverridingDeprecatedMember")
 
 package org.jetbrains.teamcity.rest
 
@@ -143,6 +143,11 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun user(id: UserId): User =
             UserImpl(UserBean().also { it.id = id.stringId }, false, this)
 
+    override fun user(userName: String): User {
+        val bean = service.users("username:$userName")
+        return UserImpl(bean, true, this)
+    }
+
     override fun users(): UserLocator = UserLocatorImpl(this)
 
     override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
@@ -155,6 +160,28 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
     override fun buildResults(): BuildResults = BuildResultsImpl(service)
+
+    override fun getWebUrl(projectId: ProjectId, branch: String?): String =
+            project(projectId).getHomeUrl(branch = branch)
+
+    override fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String?): String =
+            buildConfiguration(buildConfigurationId).getHomeUrl(branch = branch)
+
+    override fun getWebUrl(buildId: BuildId): String =
+            build(buildId).getHomeUrl()
+
+    override fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
+            change(changeId).getHomeUrl(
+                    specificBuildConfigurationId = specificBuildConfigurationId,
+                    includePersonalBuilds = includePersonalBuilds
+            )
+
+    override fun queuedBuilds(projectId: ProjectId?): List<Build> =
+            buildQueue().queuedBuilds(projectId = projectId).toList()
+}
+
+private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
+    override fun iterator(): Iterator<T> = this@toSequence.iterator()
 }
 
 private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserLocator {
@@ -171,7 +198,7 @@ private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserL
         return this
     }
 
-    override fun list(): List<User> {
+    override fun all(): Sequence<User> {
         val idCopy = id
         val usernameCopy = username
 
@@ -186,12 +213,14 @@ private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserL
         }
 
         return if (idCopy == null && usernameCopy == null) {
-            instance.service.users().user.map { UserImpl(it, false, instance) }
+            instance.service.users().user.map { UserImpl(it, false, instance) }.toSequence()
         } else {
             val bean = instance.service.users(locator)
-            listOf(UserImpl(bean, true, instance))
+            listOf(UserImpl(bean, true, instance)).toSequence()
         }
     }
+
+    override fun list(): List<User> = all().toList()
 }
 
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
@@ -283,16 +312,21 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun pinnedOnly(): BuildLocator {
+        this.pinnedOnly = true
+        return this
+    }
+
     override fun limitResults(count: Int): BuildLocator {
         this.count = count
         return this
     }
 
     override fun latest(): Build? {
-        return limitResults(1).list().firstOrNull()
+        return limitResults(1).all().firstOrNull()
     }
 
-    override fun list(): Sequence<Build> {
+    override fun all(): Sequence<Build> {
         val count1 = count
 
         val parameters = listOfNotNull(
@@ -336,10 +370,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return if (count1 != null) sequence.take(count1) else sequence
     }
 
-    override fun pinnedOnly(): BuildLocator {
-        this.pinnedOnly = true
-        return this
-    }
+    override fun list(): List<Build> = all().toList()
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
@@ -409,9 +440,17 @@ private class ProjectImpl(
     override val parentProjectId: ProjectId?
         get() = nullable { it.parentProjectId }?.let { ProjectId(it) }
 
-    override fun fetchChildProjects(): List<Project> = fullBean.projects!!.project.map { ProjectImpl(it, false, instance) }
-    override fun fetchBuildConfigurations(): List<BuildConfiguration> = fullBean.buildTypes!!.buildType.map { BuildConfigurationImpl(it, false, instance) }
-    override fun fetchParameters(): List<Parameter> = fullBean.parameters!!.property!!.map { ParameterImpl(it) }
+    override val childProjects: List<Project> by lazy {
+        fullBean.projects!!.project.map { ProjectImpl(it, false, instance) }
+    }
+
+    override val buildConfigurations: List<BuildConfiguration> by lazy {
+        fullBean.buildTypes!!.buildType.map { BuildConfigurationImpl(it, false, instance) }
+    }
+
+    override val parameters: List<Parameter> by lazy {
+        fullBean.parameters!!.property!!.map { ParameterImpl(it) }
+    }
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ProjectId=$idString")
@@ -463,13 +502,17 @@ private class ProjectImpl(
         val bean = instance.service.createBuildType(TypedString(buildTypeDescriptionXml))
         return BuildConfigurationImpl(bean, false, instance)
     }
+
+    override fun getWebUrl(branch: String?): String = getHomeUrl(branch = branch)
+    override fun fetchChildProjects(): List<Project> = childProjects
+    override fun fetchBuildConfigurations(): List<BuildConfiguration> = buildConfigurations
+    override fun fetchParameters(): List<Parameter> = parameters
 }
 
 private class BuildConfigurationImpl(bean: BuildTypeBean,
                                      isFullBean: Boolean,
                                      instance: TeamCityInstanceImpl) :
         BaseImpl<BuildTypeBean>(bean, isFullBean, instance), BuildConfiguration {
-
     override fun fetchFullBean(): BuildTypeBean = instance.service.buildConfiguration(idString)
 
     override fun toString(): String = "BuildConfiguration(id=$idString,name=$name)"
@@ -539,10 +582,15 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         val triggeredBuildBean = instance.service.triggerBuild(request)
         return instance.build(BuildId(triggeredBuildBean.id!!.toString()))
     }
+
+    override fun getWebUrl(branch: String?): String = getHomeUrl(branch = branch)
+    override fun fetchBuildTags(): List<String> = buildTags
+    override fun fetchFinishBuildTriggers(): List<FinishBuildTrigger> = finishBuildTriggers
+    override fun fetchArtifactDependencies(): List<ArtifactDependency> = artifactDependencies
 }
 
 private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : VcsRootLocator {
-    override fun list(): Sequence<VcsRoot> {
+    override fun all(): Sequence<VcsRoot> {
         return lazyPaging { start ->
             val locator = "start:$start"
             LOG.debug("Retrieving vcs roots from ${instance.serverUrl} using locator '$locator'")
@@ -554,13 +602,14 @@ private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : V
             )
         }
     }
+
+    override fun list(): List<VcsRoot> = all().toList()
 }
 
 private class ChangeImpl(bean: ChangeBean,
                          isFullBean: Boolean,
                          instance: TeamCityInstanceImpl) :
         BaseImpl<ChangeBean>(bean, isFullBean, instance), Change {
-
     override fun fetchFullBean(): ChangeBean = instance.service.change(changeId = idString)
 
     override fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String = getUserUrlPage(
@@ -595,6 +644,12 @@ private class ChangeImpl(bean: ChangeBean,
 
     override fun toString() =
             "Change(id=$id, version=$version, username=$username, user=$user, date=$date, comment=$comment)"
+
+    override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
+            getHomeUrl(
+                    specificBuildConfigurationId = specificBuildConfigurationId,
+                    includePersonalBuilds = includePersonalBuilds
+            )
 }
 
 private class UserImpl(bean: UserBean,
@@ -785,10 +840,9 @@ private class BuildImpl(bean: BuildBean,
                         isFullBean: Boolean,
                         instance: TeamCityInstanceImpl) :
         BaseImpl<BuildBean>(bean, isFullBean, instance), Build {
-
     override fun fetchFullBean(): BuildBean = instance.service.build(id.stringId)
 
-    override fun getBuildHomeUrl(): String = getUserUrlPage(
+    override fun getHomeUrl(): String = getUserUrlPage(
             instance.serverUrl, "viewLog.html",
             buildId = id
     )
@@ -980,6 +1034,17 @@ private class BuildImpl(bean: BuildBean,
         request.readdIntoQueue = reAddIntoQueue
         instance.service.cancelBuild(id.stringId, request)
     }
+
+    override fun getWebUrl(): String = getHomeUrl()
+    override fun fetchStatusText(): String? = statusText
+    override fun fetchQueuedDate(): Date = queuedDate
+    override fun fetchStartDate(): Date? = startDate
+    override fun fetchFinishDate(): Date? = finishDate
+    override fun fetchParameters(): List<Parameter> = parameters
+    override fun fetchRevisions(): List<Revision> = revisions
+    override fun fetchChanges(): List<Change> = changes
+    override fun fetchPinInfo(): PinInfo? = pinInfo
+    override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
 }
 
 private class VcsRootImpl(bean: VcsRootBean,

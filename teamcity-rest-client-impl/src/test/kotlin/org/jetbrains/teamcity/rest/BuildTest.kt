@@ -17,7 +17,7 @@ class BuildTest {
         val builds = publicInstance().builds()
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(3)
-                .list()
+                .all()
 
         println(builds.joinToString("\n"))
     }
@@ -31,7 +31,7 @@ class BuildTest {
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(3)
                 .sinceDate(monthAgo.time)
-                .list()
+                .all()
 
         for (build in builds) {
             assert(build.startDate!! >= monthAgo.time)
@@ -43,7 +43,7 @@ class BuildTest {
         publicInstance().builds()
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(10)
-                .list()
+                .all()
                 .forEach {
                     val revisions = it.revisions
                     Assert.assertTrue(revisions.isNotEmpty())
@@ -55,7 +55,7 @@ class BuildTest {
         val build = publicInstance().builds()
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(1)
-                .list().first()
+                .all().first()
 
         build.statusText
     }
@@ -65,7 +65,7 @@ class BuildTest {
         val build = publicInstance().builds()
                 .fromConfiguration(kotlinDevCompilerAllPlugins)
                 .limitResults(1)
-                .list().first()
+                .all().first()
 
         val artifacts = build.getArtifacts("maven")
         Assert.assertTrue(artifacts.any { it.fullName == "maven/org" && it.name == "org" && it.size == null })
@@ -79,8 +79,8 @@ class BuildTest {
         val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(1)
-                .list().first()
+                .all().first()
 
-        assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getBuildHomeUrl())
+        assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getHomeUrl())
     }
 }
