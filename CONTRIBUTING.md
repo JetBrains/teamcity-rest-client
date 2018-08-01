@@ -18,4 +18,12 @@ It's ok to use such objects to provide access to user-defined or custom non-stan
 3. Keep binary and source backward compatibility while doing changes.
 We suppose that users of the library don't implement interfaces from the API so it's ok to add new functions to it. 
 However removing functions and changing their signatures will break compatibility, so mark them as deprecated instead.
-Elements marked as deprecated may be removed in the next major version.  
+Elements marked as deprecated may be removed in the next major version.
+
+### Versioning
+The library use [semantic versioning](https://semver.org), its version is in `<major>.<minor>.<patch>` format: 
+* if you're fixing a bug just run the build on TeamCity, it'll automatically increase the patch component;
+* if you're adding new API increase the minor component of the version in [gradle.properties](gradle.properties) file;
+* if you're removing existing (deprecated) API or adding a big set of new APIs increase the major component of the version in [gradle.properties](gradle.properties) file.
+
+After updating `projectVersion` in [gradle.properties](gradle.properties) also reset the build counter on TeamCity before starting the build to reset the patch component. 
