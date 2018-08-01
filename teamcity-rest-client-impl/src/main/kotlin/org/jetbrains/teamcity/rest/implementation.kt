@@ -480,7 +480,7 @@ private class ProjectImpl(
                 attribute("vcsName", type.stringType)
 
                 element("project") {
-                    attribute("id", id.stringId)
+                    attribute("id", this@ProjectImpl.idString)
                 }
 
                 element("properties") {
