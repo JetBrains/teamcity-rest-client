@@ -126,8 +126,8 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun build(id: BuildId): Build = BuildImpl(
             BuildBean().also { it.id = id.stringId }, false, this)
 
-    override fun build(buildType: BuildConfigurationId, number: String): Build? =
-            BuildLocatorImpl(this).fromConfiguration(buildType).withNumber(number).latest()
+    override fun build(buildConfigurationId: BuildConfigurationId, number: String): Build? =
+            BuildLocatorImpl(this).fromConfiguration(buildConfigurationId).withNumber(number).latest()
 
     override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration =
             BuildConfigurationImpl(BuildTypeBean().also { it.id = id.stringId }, false, this)
@@ -150,9 +150,9 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun users(): UserLocator = UserLocatorImpl(this)
 
-    override fun change(buildType: BuildConfigurationId, vcsRevision: String): Change =
+    override fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change =
             ChangeImpl(service.change(
-                    buildType = buildType.stringId, version = vcsRevision), true, this)
+                    buildType = buildConfigurationId.stringId, version = vcsRevision), true, this)
 
     override fun change(id: ChangeId): Change =
             ChangeImpl(ChangeBean().also { it.id = id.stringId }, false, this)
@@ -498,8 +498,8 @@ private class ProjectImpl(
         return VcsRootImpl(vcsRootBean, true, instance)
     }
 
-    override fun createBuildConfiguration(buildTypeDescriptionXml: String): BuildConfiguration {
-        val bean = instance.service.createBuildType(TypedString(buildTypeDescriptionXml))
+    override fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration {
+        val bean = instance.service.createBuildType(TypedString(buildConfigurationDescriptionXml))
         return BuildConfigurationImpl(bean, false, instance)
     }
 
@@ -850,7 +850,7 @@ private class BuildImpl(bean: BuildBean,
     override val id: BuildId
         get() = BuildId(idString)
 
-    override val buildTypeId: BuildConfigurationId
+    override val buildConfigurationId: BuildConfigurationId
         get() = notNull { it.buildTypeId }.let { BuildConfigurationId(it) }
 
     override val buildNumber: String?
@@ -878,11 +878,11 @@ private class BuildImpl(bean: BuildBean,
         }
 
     override val name: String by lazy {
-        bean.buildType?.name ?: instance.buildConfiguration(buildTypeId).name
+        bean.buildType?.name ?: instance.buildConfiguration(buildConfigurationId).name
     }
 
     override fun toString(): String {
-        return "Build{id=$id, buildTypeId=$buildTypeId, buildNumber=$buildNumber, status=$status, branch=$branch}"
+        return "Build{id=$id, buildConfigurationId=$buildConfigurationId, buildNumber=$buildNumber, status=$status, branch=$branch}"
     }
 
     override val canceledInfo: BuildCanceledInfo?
@@ -1045,6 +1045,7 @@ private class BuildImpl(bean: BuildBean,
     override fun fetchChanges(): List<Change> = changes
     override fun fetchPinInfo(): PinInfo? = pinInfo
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
+    override val buildTypeId: BuildConfigurationId = buildConfigurationId
 }
 
 private class VcsRootImpl(bean: VcsRootBean,

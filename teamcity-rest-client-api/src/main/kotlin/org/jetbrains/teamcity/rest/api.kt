@@ -12,7 +12,7 @@ abstract class TeamCityInstance {
     abstract fun builds(): BuildLocator
 
     abstract fun build(id: BuildId): Build
-    abstract fun build(buildType: BuildConfigurationId, number: String): Build?
+    abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
@@ -24,7 +24,7 @@ abstract class TeamCityInstance {
     abstract fun user(userName: String): User
     abstract fun users(): UserLocator
 
-    abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
+    abstract fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
     abstract fun change(id: ChangeId): Change
 
     @Deprecated(message = "use project(projectId).getHomeUrl(branch)",
@@ -202,7 +202,7 @@ interface Project {
 
     fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot
     fun createProject(id: ProjectId, name: String): Project
-    fun createBuildConfiguration(buildTypeDescriptionXml: String): BuildConfiguration
+    fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch"))
@@ -289,7 +289,7 @@ interface BuildCanceledInfo {
 
 interface Build {
     val id: BuildId
-    val buildTypeId: BuildConfigurationId
+    val buildConfigurationId: BuildConfigurationId
     val buildNumber: String?
     val status: BuildStatus?
     val branch: Branch
@@ -351,8 +351,10 @@ interface Build {
     fun fetchChanges(): List<Change>
     @Deprecated(message = "use pinInfo", replaceWith = ReplaceWith("pinInfo"))
     fun fetchPinInfo(): PinInfo?
-    @Deprecated(message = "triggeredInfo", replaceWith = ReplaceWith("triggeredInfo"))
+    @Deprecated(message = "use triggeredInfo", replaceWith = ReplaceWith("triggeredInfo"))
     fun fetchTriggeredInfo(): TriggeredInfo?
+    @Deprecated(message = "use buildConfigurationId", replaceWith = ReplaceWith("buildConfigurationId"))
+    val buildTypeId: BuildConfigurationId
 }
 
 interface Change {
