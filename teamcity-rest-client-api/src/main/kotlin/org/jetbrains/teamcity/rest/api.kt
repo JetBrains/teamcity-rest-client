@@ -73,7 +73,7 @@ interface VcsRootLocator {
     fun all(): Sequence<VcsRoot>
 
     @Deprecated(message = "use all() which returns lazy sequence",
-                replaceWith = ReplaceWith("all()"))
+                replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<VcsRoot>
 }
 
@@ -85,7 +85,7 @@ interface UserLocator {
     @Deprecated(message = "use instance.user(userName)")
     fun withUsername(name: String): UserLocator
     @Deprecated(message = "use all() method which returns lazy sequence",
-            replaceWith = ReplaceWith("all()"))
+            replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<User>
 }
 
@@ -138,7 +138,7 @@ interface BuildLocator {
     fun all(): Sequence<Build>
 
     @Deprecated(message = "use all() which returns lazy sequence",
-                replaceWith = ReplaceWith("all()"))
+                replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<Build>
     @Deprecated(message = "use includeFailed()",
                 replaceWith = ReplaceWith("includeFailed()"))
