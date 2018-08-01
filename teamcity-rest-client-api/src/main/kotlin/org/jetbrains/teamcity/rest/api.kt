@@ -140,6 +140,9 @@ interface BuildLocator {
     @Deprecated(message = "use all() which returns lazy sequence",
                 replaceWith = ReplaceWith("all()"))
     fun list(): List<Build>
+    @Deprecated(message = "use includeFailed()",
+                replaceWith = ReplaceWith("includeFailed()"))
+    fun withAnyStatus(): BuildLocator
 }
 
 data class ProjectId(val stringId: String) {

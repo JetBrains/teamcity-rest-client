@@ -371,6 +371,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun list(): List<Build> = all().toList()
+    override fun withAnyStatus(): BuildLocator = includeFailed()
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
