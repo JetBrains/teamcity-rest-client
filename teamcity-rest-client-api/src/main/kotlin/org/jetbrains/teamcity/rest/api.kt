@@ -94,6 +94,9 @@ interface BuildLocator {
 
     fun withNumber(buildNumber: String): BuildLocator
 
+    /**
+     * Filters builds to include only ones which are built on top of the specified revision.
+     */
     fun withVcsRevision(vcsRevision: String): BuildLocator
 
     fun snapshotDependencyTo(buildId: BuildId): BuildLocator
@@ -365,6 +368,10 @@ interface Change {
      */
     fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
+    /**
+     * Returns an uncertain amount of builds which contain the revision. The builds are not necessarily from the same
+     * configuration as the revision. The feature is experimental, see https://youtrack.jetbrains.com/issue/TW-24633
+     */
     fun firstBuilds(): List<Build>
 
     @Deprecated(message = "use getHomeUrl()",

@@ -24,3 +24,7 @@ dependencies {
     compile "org.jetbrains.teamcity:teamcity-rest-client:PACKAGE_VERSION"
 }
 ```
+
+# Contributing
+
+Your contributions are welcome, please read the [CONTRIBUTING.md](CONTRIBUTING.md) for details. 
