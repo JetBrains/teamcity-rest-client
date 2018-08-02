@@ -348,7 +348,12 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 if (!includeAllBranches)
                     branch?.let { "branch:$it" }
                 else
-                    "branch:default:any"
+                    "branch:default:any",
+
+                // Always use default filter since sometimes TC automatically switches between
+                // defaultFilter:true and defaultFilter:false
+                // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
+                "defaultFilter:true"
         )
 
         if (parameters.isEmpty()) {
