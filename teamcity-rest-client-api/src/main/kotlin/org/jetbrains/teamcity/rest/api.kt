@@ -211,6 +211,12 @@ interface Project {
     fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot
 
     fun createProject(id: ProjectId, name: String): Project
+
+    /**
+     * XML in the same format as
+     * https://teamcity/app/rest/buildTypes/YourBuildConfigurationId
+     * returns
+     */
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
     @Deprecated(message = "use getHomeUrl(branch)",

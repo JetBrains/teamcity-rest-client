@@ -505,11 +505,6 @@ private class ProjectImpl(
         return VcsRootImpl(vcsRootBean, true, instance)
     }
 
-    /**
-     * XML in the same format as
-     * https://teamcity/app/rest/buildTypes/YourBuildConfigurationId
-     * returns
-     */
     override fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration {
         val bean = instance.service.createBuildType(TypedString(buildConfigurationDescriptionXml))
         return BuildConfigurationImpl(bean, false, instance)
