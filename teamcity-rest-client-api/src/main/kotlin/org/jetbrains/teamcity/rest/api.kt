@@ -404,7 +404,9 @@ interface Change {
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 }
 
-data class UserId(val stringId: String)
+data class UserId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
 interface User {
     val id: UserId
