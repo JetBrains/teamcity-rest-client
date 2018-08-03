@@ -2,6 +2,7 @@ package org.jetbrains.teamcity.rest
 
 import java.io.File
 import java.io.OutputStream
+import java.time.Duration
 import java.util.*
 
 abstract class TeamCityInstance {
@@ -240,12 +241,12 @@ interface BuildConfiguration {
     fun setParameter(name: String, value: String)
 
     fun runBuild(parameters: Map<String, String>? = null,
-                 queueAtTop: Boolean? = null,
-                 cleanSources: Boolean? = null,
-                 rebuildAllDependencies: Boolean? = null,
+                 queueAtTop: Boolean = false,
+                 cleanSources: Boolean = false,
+                 rebuildAllDependencies: Boolean = false,
                  comment: String? = null,
                  logicalBranchName: String? = null,
-                 personal: Boolean? = null): Build
+                 personal: Boolean = false): Build
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch)"))
@@ -312,8 +313,17 @@ interface Build {
 
     val parameters: List<Parameter>
 
+    /**
+     * The same as revisions table on the build's Changes tab in TeamCity UI:
+     * it lists the revisions of all of the VCS repositories associated with this build
+     * that will be checked out by the build on the agent.
+     */
     val revisions: List<Revision>
 
+    /**
+     * Changes is meant to represent changes the same way as displayed in the build's Changes in TeamCity UI.
+     * In the most cases these are the commits between the current and previous build.
+     */
     val changes: List<Change>
 
     val pinInfo: PinInfo?
@@ -459,10 +469,23 @@ enum class TestStatus {
 interface TestOccurrence {
     val name : String
     val status: TestStatus
-    val duration: Long
+
+    /**
+     * Test run duration. It may be ZERO if a test finished too fast (<1ms)
+     */
+    val duration: Duration
+
     val details : String
     val ignored: Boolean
+
+    /**
+     * Current 'muted' status of this test on TeamCity
+     */
     val currentlyMuted: Boolean
+
+    /**
+     * Muted at the moment of running tests
+     */
     val muted: Boolean
 
     val buildId: BuildId

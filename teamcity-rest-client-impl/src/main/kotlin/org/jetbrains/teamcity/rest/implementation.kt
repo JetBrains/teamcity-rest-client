@@ -14,6 +14,7 @@ import java.io.*
 import java.net.URLEncoder
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
@@ -563,12 +564,12 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
     }
 
     override fun runBuild(parameters: Map<String, String>?,
-                          queueAtTop: Boolean?,
-                          cleanSources: Boolean?,
-                          rebuildAllDependencies: Boolean?,
+                          queueAtTop: Boolean,
+                          cleanSources: Boolean,
+                          rebuildAllDependencies: Boolean,
                           comment: String?,
                           logicalBranchName: String?,
-                          personal: Boolean?): Build {
+                          personal: Boolean): Build {
         val request = TriggerBuildRequestBean()
 
         request.buildType = BuildTypeBean().apply { id = this@BuildConfigurationImpl.idString }
@@ -1150,7 +1151,7 @@ private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
         else -> TestStatus.UNKNOWN
     }
 
-    override val duration = bean.duration ?: 1L
+    override val duration = Duration.ofMillis(bean.duration ?: 0L)!!
 
     override val details = when (status) {
         TestStatus.IGNORED -> bean.ignoreDetails
