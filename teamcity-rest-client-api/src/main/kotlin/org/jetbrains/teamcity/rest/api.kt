@@ -204,7 +204,12 @@ interface Project {
 
     fun setParameter(name: String, value: String)
 
+    /**
+     * See properties example from existing VCS roots via inspection of the following url:
+     * https://teamcity/app/rest/vcs-roots/id:YourVcsRootId
+     */
     fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot
+
     fun createProject(id: ProjectId, name: String): Project
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
