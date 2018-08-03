@@ -160,8 +160,6 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
-    override fun buildResults(): BuildResults = BuildResultsImpl(service)
-
     override fun getWebUrl(projectId: ProjectId, branch: String?): String =
             project(projectId).getHomeUrl(branch = branch)
 
@@ -1134,12 +1132,6 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 }
 
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
-
-private class BuildResultsImpl(private val service: TeamCityService): BuildResults {
-    override fun tests(id: BuildId) {
-        service.tests("build:${id.stringId}")
-    }
-}
 
 private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!

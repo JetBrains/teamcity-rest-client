@@ -96,9 +96,6 @@ internal interface TeamCityService {
     @POST("/app/rest/buildQueue/id:{id}")
     fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
 
-    @GET("/app/rest/testOccurrences")
-    fun tests(@Query("locator") locator: String): Response
-
     @Headers("Accept: application/json")
     @GET("/app/rest/users")
     fun users(): UserListBean

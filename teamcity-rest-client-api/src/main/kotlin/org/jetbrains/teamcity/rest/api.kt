@@ -20,7 +20,6 @@ abstract class TeamCityInstance {
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
     abstract fun buildQueue(): BuildQueue
-    abstract fun buildResults(): BuildResults
     abstract fun user(id: UserId): User
     abstract fun user(userName: String): User
     abstract fun users(): UserLocator
@@ -547,8 +546,4 @@ open class TeamCityConversationException(message: String?, cause: Throwable? = n
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
     fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
-}
-
-interface BuildResults {
-    fun tests(id: BuildId)
 }
