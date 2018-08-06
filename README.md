@@ -9,6 +9,17 @@ val build = TeamCityInstance.guestAuth("https://teamcity.jetbrains.com").builds(
                             .latest()
 build!!.downloadArtifacts("*.zip", File("out"))
 ```
+
+Another snippet will run a build on your own server
+```kotlin
+val tc = TeamCityInstanceFactory.httpAuth(
+        "https://myserver.local", "login", "password")
+
+val buildConfiguration = tc.buildConfiguration(BuildConfigurationId("BuildConfId"))
+val build = buildConfiguration.runBuild(
+        parameters = mapOf("myparameter1" to "value", "myparameter2" to "value")
+)
+```
 # Published on jcenter
 https://bintray.com/bintray/jcenter?filterByPkgName=teamcity-rest-client
 

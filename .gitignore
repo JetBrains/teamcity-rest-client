@@ -2,4 +2,5 @@
 *.iml
 .gradle
 build
-src/test/resources/teamcity_connection.properties
+teamcity-rest-client-impl/src/test/resources/teamcity_connection.properties
+out

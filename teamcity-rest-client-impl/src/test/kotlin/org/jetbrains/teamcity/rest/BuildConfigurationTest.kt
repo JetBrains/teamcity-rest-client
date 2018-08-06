@@ -29,7 +29,7 @@ class BuildConfigurationTest {
         val conf = publicInstance().buildConfiguration(compilerAndPluginConfiguration)
         assertEquals(
                 "$publicInstanceUrl/viewType.html?buildTypeId=${compilerAndPluginConfiguration.stringId}",
-                conf.getWebUrl())
+                conf.getHomeUrl())
     }
 
     @Test
@@ -37,6 +37,6 @@ class BuildConfigurationTest {
         val conf = publicInstance().buildConfiguration(compilerAndPluginConfiguration)
         assertEquals(
                 "$publicInstanceUrl/viewType.html?buildTypeId=${compilerAndPluginConfiguration.stringId}&branch=%3Cdefault%3E",
-                conf.getWebUrl(branch = "<default>"))
+                conf.getHomeUrl(branch = "<default>"))
     }
 }

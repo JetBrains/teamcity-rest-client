@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.1.4-3'
+    ext.kotlin_version = '1.2.30'
 
     repositories {
         mavenCentral()
@@ -121,6 +121,6 @@ if (hasProperty("bintrayUser")) {
 }
 
 task wrapper(type: Wrapper) {
-  gradleVersion = '4.1'
-  distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
+  gradleVersion = '4.9'
+  distributionUrl = "https://cache-redirector.jetbrains.com/services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }

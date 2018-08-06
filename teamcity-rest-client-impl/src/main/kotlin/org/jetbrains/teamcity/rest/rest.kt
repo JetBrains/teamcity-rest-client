@@ -1,6 +1,7 @@
+@file:Suppress("RemoveRedundantBackticks")
+
 package org.jetbrains.teamcity.rest
 
-import com.google.gson.annotations.SerializedName
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
@@ -13,7 +14,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/buildQueue")
-    fun queuedBuilds(@Query("locator") locator: String?): QueuedBuildListBean
+    fun queuedBuilds(@Query("locator") locator: String?): BuildListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/builds/id:{id}")
@@ -24,8 +25,12 @@ internal interface TeamCityService {
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/testOccurrences/")
+    fun tests(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
-    fun vcsRoots(): VcsRootListBean
+    fun vcsRoots(@Query("locator") locator: String): VcsRootListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots/id:{id}")
@@ -79,6 +84,42 @@ internal interface TeamCityService {
     @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
     fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
 
+    @Headers("Accept: application/json")
+    @POST("/app/rest/buildQueue")
+    fun triggerBuild(@Body value: TriggerBuildRequestBean): TriggeredBuildBean
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/builds/id:{id}")
+    fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/buildQueue/id:{id}")
+    fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/users")
+    fun users(): UserListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/users/{userLocator}")
+    fun users(@Path("userLocator") userLocator: String): UserBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/problemOccurrences")
+    fun problemOccurrences(@Query("locator") locator: String, @Query("fields") fields: String): BuildProblemOccurrencesBean
+
+    @POST("/app/rest/projects")
+    @Headers("Accept: application/json", "Content-Type: application/xml")
+    fun createProject(@Body projectDescriptionXml: TypedString): ProjectBean
+
+    @POST("/app/rest/vcs-roots")
+    @Headers("Accept: application/json", "Content-Type: application/xml")
+    fun createVcsRoot(@Body vcsRootXml: TypedString): VcsRootBean
+
+    @POST("/app/rest/buildTypes")
+    @Headers("Accept: application/json", "Content-Type: application/xml")
+    fun createBuildType(@Body buildTypeXml: TypedString): BuildTypeBean
+
     @Streaming
     @GET("/downloadBuildLog.html")
     fun buildLog(@Query ("buildId") id: String): Response
@@ -86,6 +127,10 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/changes/buildType:{id},version:{version}")
     fun change(@Path("id") buildType: String, @Path("version") version: String): ChangeBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/changes/id:{id}")
+    fun change(@Path("id") changeId: String): ChangeBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/changes/{id}/firstBuilds")
@@ -111,13 +156,16 @@ internal class ArtifactFileBean {
     }
 }
 
-internal class VcsRootListBean {
-    @SerializedName("vcs-root")
-    var vcsRoot: List<VcsRootBean> = ArrayList()
+internal open class IdBean {
+    var id: String? = null
 }
 
-internal open class VcsRootBean {
-    var id: String? = null
+internal class VcsRootListBean {
+    var nextHref: String? = null
+    var `vcs-root`: List<VcsRootBean> = ArrayList()
+}
+
+internal open class VcsRootBean: IdBean() {
     var name: String? = null
 
     var properties: NameValuePropertiesBean? = null
@@ -129,14 +177,20 @@ internal open class VcsRootInstanceBean {
 }
 
 internal class BuildListBean {
+    var nextHref: String? = null
     var build: List<BuildBean> = ArrayList()
 }
 
-internal open class BuildBean {
-    var id: String? = null
+internal class UserListBean {
+    var user: List<UserBean> = ArrayList()
+}
+
+internal open class BuildBean: IdBean() {
     var buildTypeId: String? = null
+    var canceledInfo: BuildCanceledBean? = null
     var number: String? = null
     var status: BuildStatus? = null
+    var state: String? = null
     var branchName: String? = null
     var isDefaultBranch: Boolean? = null
 
@@ -152,28 +206,31 @@ internal open class BuildBean {
     var triggered: TriggeredBean? = null
 
     var properties: ParametersBean? = ParametersBean()
+    var buildType: BuildTypeBean? = BuildTypeBean()
 }
 
-internal class QueuedBuildListBean {
-    var build: List<QueuedBuildBean> = ArrayList()
-}
-
-internal open class QueuedBuildBean {
-    var id: String? = null
-    var buildTypeId: String? = null
-    var state: String? = null
-    var branchName: String? = null
-    var defaultBranch: Boolean? = null
-
-    var href: String? = null
-    var webUrl: String? = null
-}
-
-internal class BuildTypeBean {
-    var id: String? = null
+internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
-    var paused: Boolean = false
+    var paused: Boolean? = null
+}
+
+internal class BuildProblemBean {
+    var id: String? = null
+    var type: String? = null
+    var identity: String? = null
+}
+
+internal class BuildProblemOccurrencesBean {
+    var nextHref: String? = null
+    var problemOccurrence: List<BuildProblemOccurrenceBean> = ArrayList()
+}
+
+internal class BuildProblemOccurrenceBean {
+    var details: String? = null
+    var additionalData: String? = null
+    var problem: BuildProblemBean? = null
+    var build: BuildBean? = null
 }
 
 internal class BuildTypesBean {
@@ -188,6 +245,31 @@ internal class TagsBean {
     var tag: List<TagBean>? = ArrayList()
 }
 
+internal open class TriggerBuildRequestBean {
+    var branchName: String? = null
+    var personal: Boolean? = null
+    var triggeringOptions: TriggeringOptionsBean? = null
+
+    var properties: ParametersBean? = null
+    var buildType: BuildTypeBean? = null
+    var comment: CommentBean? = null
+
+//  TODO: lastChanges
+//    <lastChanges>
+//      <change id="modificationId"/>
+//    </lastChanges>
+}
+
+internal class TriggeringOptionsBean {
+    var cleanSources: Boolean? = null
+    var rebuildAllDependencies: Boolean? = null
+    var queueAtTop: Boolean? = null
+}
+
+internal class CommentBean {
+    var text: String? = null
+}
+
 internal class TriggerBean {
     var id: String? = null
     var type: String? = null
@@ -198,8 +280,7 @@ internal class TriggersBean {
     var trigger: List<TriggerBean>? = ArrayList()
 }
 
-internal class ArtifactDependencyBean {
-    var id: String? = null
+internal class ArtifactDependencyBean: IdBean() {
     var type: String? = null
     var disabled: Boolean? = false
     var inherited: Boolean? = false
@@ -211,11 +292,10 @@ internal class ArtifactDependenciesBean {
     var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
 }
 
-internal class ProjectBean {
-    var id: String? = null
+internal class ProjectBean: IdBean() {
     var name: String? = null
     var parentProjectId: String? = null
-    var archived: Boolean = false
+    var archived: Boolean? = null
 
     var projects: ProjectsBean? = ProjectsBean()
     var parameters: ParametersBean? = ParametersBean()
@@ -226,8 +306,7 @@ internal class ChangesBean {
     var change: List<ChangeBean>? = ArrayList()
 }
 
-internal class ChangeBean {
-    var id: String? = null
+internal class ChangeBean: IdBean() {
     var version: String? = null
     var user: UserBean? = null
     var date: String? = null
@@ -235,20 +314,29 @@ internal class ChangeBean {
     var username: String? = null
 }
 
-internal class UserBean {
-    var id: String? = null
+internal class UserBean: IdBean() {
     var username: String? = null
     var name: String? = null
+    var email: String? = null
 }
 
-internal class ParametersBean {
+internal class ParametersBean() {
     var property: List<ParameterBean>? = ArrayList()
+
+    constructor(properties: List<ParameterBean>) : this() {
+        property = properties
+    }
 }
 
-internal class ParameterBean {
+internal class ParameterBean() {
     var name: String? = null
     var value: String? = null
-    var own: Boolean = false
+    var own: Boolean? = null
+
+    constructor(name: String, value: String) : this() {
+        this.name = name
+        this.value = value
+    }
 }
 
 internal class PinInfoBean {
@@ -259,6 +347,16 @@ internal class PinInfoBean {
 internal class TriggeredBean {
     var user: UserBean? = null
     val build: BuildBean? = null
+}
+
+internal class BuildCanceledBean {
+    var user: UserBean? = null
+    val timestamp: String? = null
+}
+
+internal class TriggeredBuildBean {
+    val id: Int? = null
+    val buildTypeId: String? = null
 }
 
 internal class RevisionsBean {
@@ -278,4 +376,36 @@ internal class NameValuePropertiesBean {
 internal class NameValuePropertyBean {
     var name: String? = null
     var value: String? = null
+}
+
+internal class BuildCancelRequestBean {
+    var comment: String = ""
+    var readdIntoQueue = false
+}
+
+internal open class TestOccurrencesBean {
+    var nextHref: String? = null
+    var testOccurrence: List<TestOccurrenceBean> = ArrayList()
+}
+
+internal open class TestBean {
+    var id: String? = null
+}
+
+internal open class TestOccurrenceBean {
+    var name: String? = null
+    var status: String? = null
+    var ignored: Boolean? = null
+    var duration: Long? = null
+    var ignoreDetails: String? = null
+    var details: String? = null
+    val currentlyMuted: Boolean? = null
+    val muted: Boolean? = null
+
+    var build: BuildBean? = null
+    var test: TestBean? = null
+
+    companion object {
+        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,ignoreDetails,details,build(id),test(id))"
+    }
 }

@@ -1,29 +1,47 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
+import java.io.OutputStream
+import java.time.Duration
 import java.util.*
 
 abstract class TeamCityInstance {
+    abstract val serverUrl: String
+
     abstract fun withLogResponses(): TeamCityInstance
 
     abstract fun builds(): BuildLocator
-    abstract fun queuedBuilds(projectId: ProjectId? = null): List<QueuedBuild>
 
     abstract fun build(id: BuildId): Build
-    abstract fun build(buildType: BuildConfigurationId, number: String): Build?
+    abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
     abstract fun vcsRoot(id: VcsRootId): VcsRoot
     abstract fun project(id: ProjectId): Project
     abstract fun rootProject(): Project
+    abstract fun buildQueue(): BuildQueue
+    abstract fun user(id: UserId): User
+    abstract fun user(userName: String): User
+    abstract fun users(): UserLocator
 
-    abstract fun change(buildType: BuildConfigurationId, vcsRevision: String): Change
+    abstract fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
+    abstract fun change(id: ChangeId): Change
 
+    @Deprecated(message = "use project(projectId).getHomeUrl(branch)",
+                replaceWith = ReplaceWith("project(projectId).getHomeUrl(branch)"))
     abstract fun getWebUrl(projectId: ProjectId, branch: String? = null): String
+    @Deprecated(message = "use buildConfiguration(buildConfigurationId).getHomeUrl(branch)",
+                replaceWith = ReplaceWith("buildConfiguration(buildConfigurationId).getHomeUrl(branch)"))
     abstract fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String? = null): String
+    @Deprecated(message = "use build(buildId).getHomeUrl()",
+                replaceWith = ReplaceWith("build(buildId).getHomeUrl()"))
     abstract fun getWebUrl(buildId: BuildId): String
-    abstract fun getWebUrl(queuedBuildId: QueuedBuildId): String
+    @Deprecated(message = "use change(changeId).getHomeUrl()",
+            replaceWith = ReplaceWith("change(changeId).getHomeUrl(specificBuildConfigurationId, includePersonalBuilds)"))
     abstract fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+    @Deprecated(message = "use buildQueue().queuedBuilds(projectId)",
+                replaceWith = ReplaceWith("buildQueue().queuedBuilds(projectId)"))
+    abstract fun queuedBuilds(projectId: ProjectId? = null): List<Build>
 
     companion object {
         private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
@@ -45,8 +63,30 @@ abstract class TeamCityInstance {
     }
 }
 
+data class VcsRootType(val stringType: String) {
+    companion object {
+        val GIT = VcsRootType("jetbrains.git")
+    }
+}
+
 interface VcsRootLocator {
+    fun all(): Sequence<VcsRoot>
+
+    @Deprecated(message = "use all() which returns lazy sequence",
+                replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<VcsRoot>
+}
+
+interface UserLocator {
+    fun all(): Sequence<User>
+
+    @Deprecated("use instance.user(id)")
+    fun withId(id: UserId): UserLocator
+    @Deprecated(message = "use instance.user(userName)")
+    fun withUsername(name: String): UserLocator
+    @Deprecated(message = "use all() method which returns lazy sequence",
+            replaceWith = ReplaceWith("all().toList()"))
+    fun list(): List<User>
 }
 
 interface BuildLocator {
@@ -59,10 +99,24 @@ interface BuildLocator {
      */
     fun withVcsRevision(vcsRevision: String): BuildLocator
 
+    fun snapshotDependencyTo(buildId: BuildId): BuildLocator
+
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
      */
-    fun withAnyStatus(): BuildLocator
+    fun includeFailed(): BuildLocator
+
+    /**
+     * By default only finished builds are returned
+     */
+    fun includeRunning(): BuildLocator
+    fun onlyRunning(): BuildLocator
+
+    /**
+     * By default canceled builds are not returned
+     */
+    fun includeCanceled(): BuildLocator
+    fun onlyCanceled(): BuildLocator
 
     fun withStatus(status: BuildStatus): BuildLocator
     fun withTag(tag: String): BuildLocator
@@ -77,41 +131,106 @@ interface BuildLocator {
     fun pinnedOnly(): BuildLocator
 
     fun limitResults(count: Int): BuildLocator
-    
+
     fun sinceDate(date: Date) : BuildLocator
 
     fun latest(): Build?
+    fun all(): Sequence<Build>
+
+    @Deprecated(message = "use all() which returns lazy sequence",
+                replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<Build>
+    @Deprecated(message = "use includeFailed()",
+                replaceWith = ReplaceWith("includeFailed()"))
+    fun withAnyStatus(): BuildLocator
 }
 
-data class ProjectId(val stringId: String)
+data class ProjectId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class BuildId(val stringId: String)
+data class BuildId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class QueuedBuildId(val stringId: String)
+data class TestId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class ChangeId(val stringId: String)
+data class ChangeId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class BuildConfigurationId(val stringId: String)
+data class BuildConfigurationId(val stringId: String) {
+    override fun toString(): String = stringId
+}
 
-data class VcsRootId(val stringId: String)
+data class VcsRootId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class BuildProblemId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class BuildProblemType(val stringType: String) {
+    override fun toString(): String = stringType
+
+    val isSnapshotDependencyError: Boolean
+        get() = stringType == "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE" ||
+                stringType == "SNAPSHOT_DEPENDENCY_ERROR"
+
+    companion object {
+        val FAILED_TESTS = BuildProblemType("TC_FAILED_TESTS")
+    }
+}
 
 interface Project {
     val id: ProjectId
     val name: String
     val archived: Boolean
-    val parentProjectId: ProjectId
+    val parentProjectId: ProjectId?
 
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(branch: String? = null): String
+    fun getHomeUrl(branch: String? = null): String
+    fun getTestHomeUrl(testId: TestId): String
 
-    fun fetchChildProjects(): List<Project>
-    fun fetchBuildConfigurations(): List<BuildConfiguration>
-    fun fetchParameters(): List<Parameter>
+    val childProjects: List<Project>
+    val buildConfigurations: List<BuildConfiguration>
+    val parameters: List<Parameter>
 
     fun setParameter(name: String, value: String)
+
+    /**
+     * See properties example from existing VCS roots via inspection of the following url:
+     * https://teamcity/app/rest/vcs-roots/id:YourVcsRootId
+     */
+    fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot
+
+    fun createProject(id: ProjectId, name: String): Project
+
+    /**
+     * XML in the same format as
+     * https://teamcity/app/rest/buildTypes/YourBuildConfigurationId
+     * returns
+     */
+    fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
+
+    @Deprecated(message = "use getHomeUrl(branch)",
+                replaceWith = ReplaceWith("getHomeUrl(branch"))
+    fun getWebUrl(branch: String? = null): String
+
+    @Deprecated(message = "use childProjects",
+                replaceWith = ReplaceWith("childProjects"))
+    fun fetchChildProjects(): List<Project>
+    @Deprecated(message = "use buildConfigurations",
+            replaceWith = ReplaceWith("buildConfigurations"))
+    fun fetchBuildConfigurations(): List<BuildConfiguration>
+    @Deprecated(message = "use parameters",
+            replaceWith = ReplaceWith("parameters"))
+    fun fetchParameters(): List<Parameter>
 }
 
 interface BuildConfiguration {
@@ -123,20 +242,52 @@ interface BuildConfiguration {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(branch: String? = null): String
+    fun getHomeUrl(branch: String? = null): String
 
-    fun fetchBuildTags(): List<String>
-
-    fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
-
-    fun fetchArtifactDependencies(): List<ArtifactDependency>
+    val buildTags: List<String>
+    val finishBuildTriggers: List<FinishBuildTrigger>
+    val artifactDependencies: List<ArtifactDependency>
 
     fun setParameter(name: String, value: String)
+
+    fun runBuild(parameters: Map<String, String>? = null,
+                 queueAtTop: Boolean = false,
+                 cleanSources: Boolean = false,
+                 rebuildAllDependencies: Boolean = false,
+                 comment: String? = null,
+                 logicalBranchName: String? = null,
+                 personal: Boolean = false): Build
+
+    @Deprecated(message = "use getHomeUrl(branch)",
+                replaceWith = ReplaceWith("getHomeUrl(branch)"))
+    fun getWebUrl(branch: String? = null): String
+    @Deprecated(message = "use buildTags",
+                replaceWith = ReplaceWith("buildTags"))
+    fun fetchBuildTags(): List<String>
+    @Deprecated(message = "use finishBuildTriggers",
+                replaceWith = ReplaceWith("finishBuildTriggers"))
+    fun fetchFinishBuildTriggers(): List<FinishBuildTrigger>
+    @Deprecated(message = "use artifactDependencies",
+                replaceWith = ReplaceWith("artifactDependencies"))
+    fun fetchArtifactDependencies(): List<ArtifactDependency>
+}
+
+interface BuildProblem {
+    val id: BuildProblemId
+    val type: BuildProblemType
+    val identity: String
+}
+
+interface BuildProblemOccurrence {
+    val buildProblem: BuildProblem
+    val build: Build
+    val details: String
+    val additionalData: String?
 }
 
 interface Parameter {
     val name: String
-    val value: String?
+    val value: String
     val own: Boolean
 }
 
@@ -145,32 +296,53 @@ interface Branch {
     val isDefault: Boolean
 }
 
+interface BuildCanceledInfo {
+    val user: User?
+    val cancelDate: Date
+}
+
 interface Build {
     val id: BuildId
-    val buildTypeId: BuildConfigurationId
-    val buildNumber: String
-    val status: BuildStatus
+    val buildConfigurationId: BuildConfigurationId
+    val buildNumber: String?
+    val status: BuildStatus?
     val branch: Branch
+    val state: BuildState
+    val name: String
+    val canceledInfo: BuildCanceledInfo?
 
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(): String
+    fun getHomeUrl(): String
 
-    fun fetchStatusText(): String
-    fun fetchQueuedDate(): Date
-    fun fetchStartDate(): Date
-    fun fetchFinishDate(): Date
+    val statusText: String?
+    val queuedDate: Date
+    val startDate: Date?
+    val finishDate: Date?
 
-    fun fetchParameters(): List<Parameter>
+    val parameters: List<Parameter>
 
-    fun fetchRevisions(): List<Revision>
+    /**
+     * The same as revisions table on the build's Changes tab in TeamCity UI:
+     * it lists the revisions of all of the VCS repositories associated with this build
+     * that will be checked out by the build on the agent.
+     */
+    val revisions: List<Revision>
 
-    fun fetchChanges(): List<Change>
+    /**
+     * Changes is meant to represent changes the same way as displayed in the build's Changes in TeamCity UI.
+     * In the most cases these are the commits between the current and previous build.
+     */
+    val changes: List<Change>
 
-    fun fetchPinInfo(): PinInfo?
+    val pinInfo: PinInfo?
 
-    fun fetchTriggeredInfo(): TriggeredInfo?
+    val triggeredInfo: TriggeredInfo?
+
+    fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
+
+    val buildProblems: Sequence<BuildProblemOccurrence>
 
     fun addTag(tag: String)
     fun pin(comment: String = "pinned via REST API")
@@ -178,22 +350,34 @@ interface Build {
     fun getArtifacts(parentPath: String = "", recursive: Boolean = false, hidden: Boolean = false): List<BuildArtifact>
     fun findArtifact(pattern: String, parentPath: String = ""): BuildArtifact
     fun downloadArtifacts(pattern: String, outputDir: File)
+    fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
     fun downloadBuildLog(output: File)
-}
 
-interface QueuedBuild {
-    val id: QueuedBuildId
-    val buildTypeId: BuildConfigurationId
-    val status: QueuedBuildStatus
-    val branch : Branch
+    fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
 
+    @Deprecated(message = "use getHomeUrl()", replaceWith = ReplaceWith("getHomeUrl()"))
     fun getWebUrl(): String
-}
-
-enum class QueuedBuildStatus {
-    QUEUED,
-    FINISHED
+    @Deprecated(message = "use statusText", replaceWith = ReplaceWith("statusText"))
+    fun fetchStatusText(): String?
+    @Deprecated(message = "use queuedDate", replaceWith = ReplaceWith("queuedDate"))
+    fun fetchQueuedDate(): Date
+    @Deprecated(message = "use startDate", replaceWith = ReplaceWith("startDate"))
+    fun fetchStartDate(): Date?
+    @Deprecated(message = "use finishDate", replaceWith = ReplaceWith("finishDate"))
+    fun fetchFinishDate(): Date?
+    @Deprecated(message = "use parameters", replaceWith = ReplaceWith("parameters"))
+    fun fetchParameters(): List<Parameter>
+    @Deprecated(message = "use revisions", replaceWith = ReplaceWith("revisions"))
+    fun fetchRevisions(): List<Revision>
+    @Deprecated(message = "use changes", replaceWith = ReplaceWith("changes"))
+    fun fetchChanges(): List<Change>
+    @Deprecated(message = "use pinInfo", replaceWith = ReplaceWith("pinInfo"))
+    fun fetchPinInfo(): PinInfo?
+    @Deprecated(message = "use triggeredInfo", replaceWith = ReplaceWith("triggeredInfo"))
+    fun fetchTriggeredInfo(): TriggeredInfo?
+    @Deprecated(message = "use buildConfigurationId", replaceWith = ReplaceWith("buildConfigurationId"))
+    val buildTypeId: BuildConfigurationId
 }
 
 interface Change {
@@ -207,19 +391,33 @@ interface Change {
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
-    fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+    fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
 
     /**
      * Returns an uncertain amount of builds which contain the revision. The builds are not necessarily from the same
      * configuration as the revision. The feature is experimental, see https://youtrack.jetbrains.com/issue/TW-24633
      */
     fun firstBuilds(): List<Build>
+
+    @Deprecated(message = "use getHomeUrl()",
+                replaceWith = ReplaceWith("getHomeUrl(specificBuildConfigurationId, includePersonalBuilds)"))
+    fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+}
+
+data class UserId(val stringId: String) {
+    override fun toString(): String = stringId
 }
 
 interface User {
-    val id: String
+    val id: UserId
     val username: String
-    val name: String
+    val name: String?
+    val email: String?
+
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getHomeUrl(): String
 }
 
 interface BuildArtifact {
@@ -237,8 +435,8 @@ interface VcsRoot {
     val id: VcsRootId
     val name: String
 
-    fun getUrl(): String?
-    fun getDefaultBranch(): String?
+    val url: String?
+    val defaultBranch: String?
 }
 
 interface VcsRootInstance {
@@ -249,7 +447,16 @@ interface VcsRootInstance {
 enum class BuildStatus {
     SUCCESS,
     FAILURE,
-    ERROR
+    ERROR,
+    UNKNOWN,
+}
+
+enum class BuildState {
+    QUEUED,
+    RUNNING,
+    FINISHED,
+    DELETED,
+    UNKNOWN,
 }
 
 interface PinInfo {
@@ -261,6 +468,40 @@ interface Revision {
     val version: String
     val vcsBranchName: String
     val vcsRootInstance: VcsRootInstance
+}
+
+enum class TestStatus {
+    SUCCESSFUL,
+    IGNORED,
+    FAILED,
+
+    UNKNOWN,
+}
+
+interface TestOccurrence {
+    val name : String
+    val status: TestStatus
+
+    /**
+     * Test run duration. It may be ZERO if a test finished too fast (<1ms)
+     */
+    val duration: Duration
+
+    val details : String
+    val ignored: Boolean
+
+    /**
+     * Current 'muted' status of this test on TeamCity
+     */
+    val currentlyMuted: Boolean
+
+    /**
+     * Muted at the moment of running tests
+     */
+    val muted: Boolean
+
+    val buildId: BuildId
+    val testId: TestId
 }
 
 interface TriggeredInfo {
@@ -303,3 +544,8 @@ open class TeamCityRestException(message: String?, cause: Throwable?) : RuntimeE
 open class TeamCityQueryException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
 
 open class TeamCityConversationException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
+
+interface BuildQueue {
+    fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
+    fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
+}

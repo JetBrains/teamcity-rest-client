@@ -17,22 +17,22 @@ class ChangeTest {
         val change = publicInstance().builds()
                 .fromConfiguration(configuration.id)
                 .limitResults(10)
-                .list()
-                .firstOrNull { it.fetchChanges().isNotEmpty() }
+                .all()
+                .firstOrNull { it.changes.isNotEmpty() }
                 .let { build ->
                     assert(build != null) {
-                        "Unable to find a build with changes (tried top 10) in ${configuration.getWebUrl(branch = "<default>")}"
+                        "Unable to find a build with changes (tried top 10) in ${configuration.getHomeUrl(branch = "<default>")}"
                     }
 
-                    build!!.fetchChanges().first()
+                    build!!.changes.first()
                 }
         assertEquals(
                 "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}",
-                change.getWebUrl()
+                change.getHomeUrl()
         )
         assertEquals(
                 "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}&personal=true&buildTypeId=xxx",
-                change.getWebUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
+                change.getHomeUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
         )
     }
 
@@ -41,9 +41,9 @@ class ChangeTest {
         val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
-                .list()
-                .first { it.fetchChanges().isNotEmpty() }
-        val change = build.fetchChanges().first()
+                .all()
+                .first { it.changes.isNotEmpty() }
+        val change = build.changes.first()
 
         assertEquals(
                 change.toString(),
@@ -57,14 +57,14 @@ class ChangeTest {
         val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .limitResults(10)
-                .list()
-                .first { it.fetchChanges().isNotEmpty() }
-        val change = build.fetchChanges().first()
+                .all()
+                .first { it.changes.isNotEmpty() }
+        val change = build.changes.first()
 
         val builds = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .withVcsRevision(change.version)
-                .list()
+                .all()
         assertTrue(builds.map { it.toString() }.contains(build.toString()))
     }
 }

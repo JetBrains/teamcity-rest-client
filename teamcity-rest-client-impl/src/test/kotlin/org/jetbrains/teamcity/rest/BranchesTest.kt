@@ -14,7 +14,7 @@ class BranchesTest {
             .withAllBranches()
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(20)
-            .list().forEach {
+            .all().forEach {
       Assert.assertTrue(it.branch.isDefault)
     }
   }
@@ -25,10 +25,10 @@ class BranchesTest {
             .withAllBranches()
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(20)
-            .list().forEach {
-      it.fetchParameters()
-      it.fetchChanges().joinToString("\n")
-      it.fetchRevisions()
+            .all().forEach {
+      it.parameters
+      it.changes.joinToString("\n")
+      it.revisions
       it.getArtifacts()
     }
   }
@@ -40,7 +40,7 @@ class BranchesTest {
             .withAllBranches()
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(50)
-            .list().forEach {
+            .all().forEach {
       branches += it.branch.name!!
       println(it)
     }
@@ -54,7 +54,7 @@ class BranchesTest {
     kotlinBuilds()
             .withStatus(BuildStatus.SUCCESS)
             .limitResults(50)
-            .list().forEach {
+            .all().forEach {
       branches += it.branch.name!!
       println(it)
     }

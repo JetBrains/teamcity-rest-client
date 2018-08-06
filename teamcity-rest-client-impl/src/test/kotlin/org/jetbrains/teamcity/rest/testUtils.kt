@@ -24,6 +24,8 @@ fun customInstance(serverUrl: String, username: String, password: String) = Team
         .httpAuth(serverUrl, username, password)
         .withLogResponses()
 
+fun haveCustomInstance(): Boolean = ConnectionPropertiesFileLoader(TEAMCITY_CONNECTION_FILE_PATH).validate()
+
 fun customInstanceByConnectionFile(): TeamCityInstance {
     val connectionPropertiesFileLoader = ConnectionPropertiesFileLoader(TEAMCITY_CONNECTION_FILE_PATH)
     return if (connectionPropertiesFileLoader.validate()) {
@@ -45,11 +47,11 @@ val kotlinDevCompilerAllPlugins = BuildConfigurationId("Kotlin_dev_CompilerAllPl
 
 internal class ConnectionPropertiesFileLoader(filePath: String) {
 
-    private val connectionFile: File
+    private val connectionFile: File?
 
     init {
         val classLoader = javaClass.classLoader
-        connectionFile = File(classLoader.getResource(filePath).file)
+        connectionFile = classLoader.getResource(filePath)?.let { File(it.file) }
     }
 
     fun fetch(): ConnectionConfig {
@@ -65,7 +67,7 @@ internal class ConnectionPropertiesFileLoader(filePath: String) {
     }
 
     fun validate(): Boolean {
-        if (!connectionFile.exists()) return false
+        if (connectionFile == null || !connectionFile.exists()) return false
         val connectionProperties = Properties()
         connectionProperties.load(FileInputStream(connectionFile))
         return validateConnectionProperties(connectionProperties)
