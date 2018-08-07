@@ -64,8 +64,9 @@ class BuildTest {
     fun test_get_artifacts() {
         val build = publicInstance().builds()
                 .fromConfiguration(kotlinDevCompilerAllPlugins)
-                .limitResults(1)
-                .all().first()
+                .limitResults(15)
+                .all()
+                .first { it.getArtifacts().isNotEmpty() }
 
         val artifacts = build.getArtifacts("maven")
         Assert.assertTrue(artifacts.any { it.fullName == "maven/org" && it.name == "org" && it.size == null })
