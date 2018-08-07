@@ -51,7 +51,10 @@ dependencies {
 }
 
 group = 'org.jetbrains.teamcity'
-if (hasProperty("buildCounter")) {
+if (hasProperty("buildNumber")) {
+    ext.projectVersion = buildNumber
+    println "##teamcity[buildNumber '${ext.projectVersion}']"
+} else if (hasProperty("buildCounter")) {
     ext.projectVersion = projectVersion + "." + buildCounter
     println "##teamcity[buildNumber '${ext.projectVersion}']"
 } else {
