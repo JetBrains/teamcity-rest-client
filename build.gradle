@@ -52,15 +52,14 @@ dependencies {
 
 group = 'org.jetbrains.teamcity'
 if (hasProperty("buildNumber")) {
-    ext.projectVersion = buildNumber
-    println "##teamcity[buildNumber '${ext.projectVersion}']"
+    version buildNumber
+    println "##teamcity[buildNumber '$version']"
 } else if (hasProperty("buildCounter")) {
-    ext.projectVersion = projectVersion + "." + buildCounter
-    println "##teamcity[buildNumber '${ext.projectVersion}']"
+    version projectVersion + "." + buildCounter
+    println "##teamcity[buildNumber '$version']"
 } else {
-    ext.projectVersion = projectVersion + '.9999-SNAPSHOT'
+    version projectVersion + '.9999-SNAPSHOT'
 }
-version ext.projectVersion
 
 apply plugin: 'maven-publish'
 
@@ -117,7 +116,7 @@ if (hasProperty("bintrayUser")) {
             repo = "teamcity-rest-client"
             name = "teamcity-rest-client"
             version {
-                name = ext.projectVersion
+                name = project.version
             }
         }
     }
