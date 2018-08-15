@@ -199,6 +199,8 @@ internal open class BuildBean: IdBean() {
     var startDate: String? = null
     var finishDate: String? = null
 
+    var `running-info`: BuildRunningInfoBean? = null
+
     var revisions: RevisionsBean? = null
 
     var pinInfo: PinInfoBean? = null
@@ -207,6 +209,14 @@ internal open class BuildBean: IdBean() {
 
     var properties: ParametersBean? = ParametersBean()
     var buildType: BuildTypeBean? = BuildTypeBean()
+}
+
+internal class BuildRunningInfoBean {
+    val percentageComplete: Int = 0
+    val elapsedSeconds: Long = 0
+    val estimatedTotalSeconds: Long = 0
+    val outdated: Boolean = false
+    val probablyHanging: Boolean = false
 }
 
 internal class BuildTypeBean: IdBean() {
