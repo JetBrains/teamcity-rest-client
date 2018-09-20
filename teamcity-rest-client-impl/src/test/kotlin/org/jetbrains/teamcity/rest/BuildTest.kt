@@ -4,7 +4,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import java.util.*
-import kotlin.test.assertEquals
+import kotlin.test.*
 
 class BuildTest {
     @Before
@@ -83,5 +83,13 @@ class BuildTest {
                 .all().first()
 
         assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getHomeUrl())
+    }
+
+    @Test
+    fun test_get_tags() {
+        val build = publicInstance().build(BuildId("699994"))
+
+        assertTrue(build.tags.isNotEmpty())
+        assertTrue(build.tags.contains("1.0"))
     }
 }

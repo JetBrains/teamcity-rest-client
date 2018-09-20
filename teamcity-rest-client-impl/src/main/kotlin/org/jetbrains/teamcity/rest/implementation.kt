@@ -935,7 +935,8 @@ private class BuildImpl(bean: BuildBean,
 
     override val parameters: List<Parameter>
         get() = fullBean.properties!!.property!!.map { ParameterImpl(it) }
-
+    override val tags: List<String>
+        get() = fullBean.tags?.tag?.map { it.name!! } ?: emptyList()
     override val revisions: List<Revision>
         get() = fullBean.revisions!!.revision!!.map { RevisionImpl(it) }
 
