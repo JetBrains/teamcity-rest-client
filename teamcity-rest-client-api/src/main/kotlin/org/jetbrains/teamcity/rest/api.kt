@@ -323,6 +323,8 @@ interface Build {
 
     val parameters: List<Parameter>
 
+    val tags: List<String>
+
     /**
      * The same as revisions table on the build's Changes tab in TeamCity UI:
      * it lists the revisions of all of the VCS repositories associated with this build

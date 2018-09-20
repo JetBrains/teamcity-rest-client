@@ -199,6 +199,7 @@ internal open class BuildBean: IdBean() {
     var startDate: String? = null
     var finishDate: String? = null
 
+    var tags: TagsBean? = null
     var revisions: RevisionsBean? = null
 
     var pinInfo: PinInfoBean? = null
