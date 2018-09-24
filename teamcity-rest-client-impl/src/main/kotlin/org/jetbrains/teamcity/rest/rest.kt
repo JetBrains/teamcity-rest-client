@@ -218,6 +218,8 @@ internal open class BuildBean: IdBean() {
 
     var properties: ParametersBean? = ParametersBean()
     var buildType: BuildTypeBean? = BuildTypeBean()
+
+    var `snapshot-dependencies`: BuildListBean? = null
 }
 
 internal class BuildRunningInfoBean {

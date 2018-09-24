@@ -343,6 +343,11 @@ interface Build {
      */
     val changes: List<Change>
 
+    /**
+     * All snapshot-dependency-linked builds this build depends on
+     */
+    val snapshotDependencies: List<Build>
+
     val pinInfo: PinInfo?
 
     val triggeredInfo: TriggeredInfo?
