@@ -321,6 +321,8 @@ interface Build {
     val startDate: Date?
     val finishDate: Date?
 
+    val runningInfo: BuildRunningInfo?
+
     val parameters: List<Parameter>
 
     val tags: List<String>
@@ -380,6 +382,14 @@ interface Build {
     fun fetchTriggeredInfo(): TriggeredInfo?
     @Deprecated(message = "use buildConfigurationId", replaceWith = ReplaceWith("buildConfigurationId"))
     val buildTypeId: BuildConfigurationId
+}
+
+interface BuildRunningInfo {
+    val percentageComplete: Int
+    val elapsedSeconds: Long
+    val estimatedTotalSeconds: Long
+    val outdated: Boolean
+    val probablyHanging: Boolean
 }
 
 interface Change {

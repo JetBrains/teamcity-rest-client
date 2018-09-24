@@ -900,6 +900,10 @@ private class BuildImpl(bean: BuildBean,
         get() = fullBean.startDate?.let { teamCityServiceDateFormat.get().parse(it) }
     override val finishDate: Date?
         get() = fullBean.finishDate?.let { teamCityServiceDateFormat.get().parse(it) }
+
+    override val runningInfo: BuildRunningInfo?
+        get() = fullBean.`running-info`?.let { BuildRunningInfoImpl(it) }
+
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
 
@@ -1052,6 +1056,19 @@ private class BuildImpl(bean: BuildBean,
     override fun fetchPinInfo(): PinInfo? = pinInfo
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
     override val buildTypeId: BuildConfigurationId = buildConfigurationId
+}
+
+private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean): BuildRunningInfo {
+    override val percentageComplete: Int
+        get() = bean.percentageComplete
+    override val elapsedSeconds: Long
+        get() = bean.elapsedSeconds
+    override val estimatedTotalSeconds: Long
+        get() = bean.estimatedTotalSeconds
+    override val outdated: Boolean
+        get() = bean.outdated
+    override val probablyHanging: Boolean
+        get() = bean.probablyHanging
 }
 
 private class VcsRootImpl(bean: VcsRootBean,
