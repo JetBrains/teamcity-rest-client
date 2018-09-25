@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
 import retrofit.mime.TypedString
 import java.io.*
-import java.net.URLEncoder
 import java.net.HttpURLConnection
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.util.*
@@ -875,7 +875,7 @@ private class BuildImpl(bean: BuildBean,
     override val branch: Branch
         get() {
             val branchName = nullable { it.branchName }
-            val isDefaultBranch = nullable { it.isDefaultBranch }
+            val isDefaultBranch = nullable { it.defaultBranch }
             return BranchImpl(
                     name = branchName,
                     isDefault = isDefaultBranch ?: (branchName == null)

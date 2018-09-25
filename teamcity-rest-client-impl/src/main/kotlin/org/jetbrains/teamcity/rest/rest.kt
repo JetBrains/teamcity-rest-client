@@ -192,7 +192,7 @@ internal open class BuildBean: IdBean() {
     var status: BuildStatus? = null
     var state: String? = null
     var branchName: String? = null
-    var isDefaultBranch: Boolean? = null
+    var defaultBranch: Boolean? = null
 
     var statusText: String? = null
     var queuedDate: String? = null
