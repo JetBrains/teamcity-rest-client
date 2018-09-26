@@ -529,7 +529,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         get() = notNull { it.name }
 
     override val projectId: ProjectId
-        get() = notNull { it.projectId }.let { ProjectId(it) }
+        get() = ProjectId(notNull { it.projectId })
 
     override val id: BuildConfigurationId
         get() = BuildConfigurationId(idString)
@@ -856,7 +856,7 @@ private class BuildImpl(bean: BuildBean,
         get() = BuildId(idString)
 
     override val buildConfigurationId: BuildConfigurationId
-        get() = notNull { it.buildTypeId }.let { BuildConfigurationId(it) }
+        get() = BuildConfigurationId(notNull { it.buildTypeId })
 
     override val buildNumber: String?
         get() = nullable { it.number }
