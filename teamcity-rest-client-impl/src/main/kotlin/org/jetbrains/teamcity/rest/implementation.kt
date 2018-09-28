@@ -2,6 +2,7 @@
 
 package org.jetbrains.teamcity.rest
 
+import com.google.gson.Gson
 import com.jakewharton.retrofit.Ok3Client
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -9,6 +10,7 @@ import okhttp3.Response
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
+import retrofit.converter.GsonConverter
 import retrofit.mime.TypedString
 import java.io.*
 import java.net.HttpURLConnection
@@ -85,7 +87,7 @@ private fun XMLStreamWriter.element(name: String, init: XMLStreamWriter.() -> Un
 private fun XMLStreamWriter.attribute(name: String, value: String) = writeAttribute(name, value)
 
 internal class TeamCityInstanceImpl(override val serverUrl: String,
-                                    private val authMethod: String,
+                                    val authMethod: String,
                                     private val basicAuthHeader: String?,
                                     logResponses: Boolean) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
@@ -359,15 +361,14 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
-        val sequence = lazyPaging { start ->
-            val buildLocator = parameters.plus("start:$start").joinToString(",")
-
+        val sequence = lazyPaging(instance, {
+            val buildLocator = parameters.joinToString(",")
             LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
-            val buildsBean = instance.service.builds(buildLocator = buildLocator)
-
-            return@lazyPaging Page(
+            return@lazyPaging instance.service.builds(buildLocator = buildLocator)
+        }) { buildsBean ->
+            Page(
                     data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                    hasNextPage = buildsBean.nextHref.isNotBlank()
+                    nextHref = buildsBean.nextHref
             )
         }
 
@@ -529,7 +530,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         get() = notNull { it.name }
 
     override val projectId: ProjectId
-        get() = notNull { it.projectId }.let { ProjectId(it) }
+        get() = ProjectId(notNull { it.projectId })
 
     override val id: BuildConfigurationId
         get() = BuildConfigurationId(idString)
@@ -596,14 +597,13 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
 
 private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : VcsRootLocator {
     override fun all(): Sequence<VcsRoot> {
-        return lazyPaging { start ->
-            val locator = "start:$start"
-            LOG.debug("Retrieving vcs roots from ${instance.serverUrl} using locator '$locator'")
-
-            val vcsRootsBean = instance.service.vcsRoots(locator = locator)
-            return@lazyPaging Page(
+        return lazyPaging(instance, {
+            LOG.debug("Retrieving vcs roots from ${instance.serverUrl}")
+            return@lazyPaging instance.service.vcsRoots()
+        }) { vcsRootsBean ->
+            Page(
                     data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it, false, instance) },
-                    hasNextPage = vcsRootsBean.nextHref.isNotBlank()
+                    nextHref = vcsRootsBean.nextHref
             )
         }
     }
@@ -823,23 +823,28 @@ private data class BranchImpl(
         override val name: String?,
         override val isDefault: Boolean) : Branch
 
-private data class Page<out T>(val data: List<T>, val hasNextPage: Boolean)
+private data class Page<out T>(val data: List<T>, val nextHref: String?)
 
-private fun <T> lazyPaging(nextPage: (Int) -> Page<T>): Sequence<T> {
-    data class PageSeq(val nextStart: Int, val hasNext: Boolean, val data: List<T>?)
+private val CONVERTER = GsonConverter(Gson())
 
-    return generateSequence(PageSeq(0, true, null)) { prev ->
-        if (!prev.hasNext) return@generateSequence null
-
-        val data = nextPage(prev.nextStart)
-        return@generateSequence PageSeq(
-                nextStart = prev.nextStart + data.data.size,
-                hasNext = data.hasNextPage,
-                data = data.data)
+private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
+                                                crossinline getFirstBean: () -> Bean,
+                                                crossinline convertToPage: (Bean) -> Page<T>): Sequence<T> {
+    val initialValue = Page<T>(listOf(), null)
+    return generateSequence(initialValue) { prev ->
+        return@generateSequence when {
+            prev === initialValue -> convertToPage(getFirstBean())
+            prev.nextHref == null || prev.nextHref.isBlank() -> return@generateSequence null
+            else -> {
+                val path = prev.nextHref.trimStart(*"/${instance.authMethod}/".toCharArray())
+                val response = instance.service.root(path)
+                val body = response.body ?: return@generateSequence null
+                val bean = CONVERTER.fromBody(body, Bean::class.java) as Bean
+                convertToPage(bean)
+            }
+        }
     }.mapNotNull { it.data }.flatten()
 }
-
-private fun String?.isNotBlank(): Boolean = this != null && !this.isBlank()
 
 private class BuildImpl(bean: BuildBean,
                         isFullBean: Boolean,
@@ -856,7 +861,7 @@ private class BuildImpl(bean: BuildBean,
         get() = BuildId(idString)
 
     override val buildConfigurationId: BuildConfigurationId
-        get() = notNull { it.buildTypeId }.let { BuildConfigurationId(it) }
+        get() = BuildConfigurationId(notNull { it.buildTypeId })
 
     override val buildNumber: String?
         get() = nullable { it.number }
@@ -907,7 +912,7 @@ private class BuildImpl(bean: BuildBean,
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
 
-    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging { start ->
+    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging(instance, {
         val statusLocator = when (status) {
             null -> ""
             TestStatus.FAILED -> ",status:FAILURE"
@@ -916,24 +921,25 @@ private class BuildImpl(bean: BuildBean,
             TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
         }
 
-        val occurrencesBean = instance.service.tests(
-                locator = "build:(id:${id.stringId}),start:$start$statusLocator",
+        return@lazyPaging instance.service.tests(
+                locator = "build:(id:${id.stringId})$statusLocator",
                 fields = TestOccurrenceBean.filter)
-
-        return@lazyPaging Page(
+    }) { occurrencesBean ->
+        Page(
                 data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
-                hasNextPage = occurrencesBean.nextHref.isNotBlank()
+                nextHref = occurrencesBean.nextHref
         )
     }
 
     override val buildProblems: Sequence<BuildProblemOccurrence>
-        get() = lazyPaging { start ->
-            val occurrencesBean = instance.service.problemOccurrences(
-                    locator = "build:(id:${id.stringId}),start:$start",
+        get() = lazyPaging(instance, {
+            return@lazyPaging instance.service.problemOccurrences(
+                    locator = "build:(id:${id.stringId})",
                     fields = "\$long,problemOccurrence(\$long)")
-            return@lazyPaging Page(
+        }) { occurrencesBean ->
+            Page(
                     data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
-                    hasNextPage = occurrencesBean.nextHref.isNotBlank()
+                    nextHref = occurrencesBean.nextHref
             )
         }
 
@@ -1135,15 +1141,14 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     override fun queuedBuilds(projectId: ProjectId?): Sequence<Build> {
         val parameters = if (projectId == null) emptyList() else listOf("project:${projectId.stringId}")
 
-        return lazyPaging { start ->
-            val buildLocator = parameters.plus("start:$start").joinToString(",")
-
+        return lazyPaging(instance, {
+            val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
             LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
-            val buildsBean = instance.service.queuedBuilds(locator = buildLocator)
-
-            return@lazyPaging Page(
+            return@lazyPaging instance.service.queuedBuilds(locator = buildLocator)
+        }) { buildsBean ->
+            Page(
                     data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                    hasNextPage = buildsBean.nextHref.isNotBlank()
+                    nextHref = buildsBean.nextHref
             )
         }
     }
