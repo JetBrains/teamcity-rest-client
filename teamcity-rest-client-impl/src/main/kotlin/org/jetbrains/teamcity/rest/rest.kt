@@ -8,6 +8,12 @@ import retrofit.mime.TypedString
 import java.util.*
 
 internal interface TeamCityService {
+
+    @Streaming
+    @Headers("Accept: application/json")
+    @GET("/{path}")
+    fun root(@Path("path", encode = false) path: String): Response
+
     @Headers("Accept: application/json")
     @GET("/app/rest/builds")
     fun builds(@Query("locator") buildLocator: String): BuildListBean
@@ -30,7 +36,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
-    fun vcsRoots(@Query("locator") locator: String): VcsRootListBean
+    fun vcsRoots(@Query("locator") locator: String? = null): VcsRootListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots/id:{id}")

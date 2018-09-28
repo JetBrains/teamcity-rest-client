@@ -44,6 +44,7 @@ val compileExamplesConfiguration = BuildConfigurationId("bt446")
 val fSharpVSPowerToolsPausedConfiguration = BuildConfigurationId("bt1208")
 
 val kotlinDevCompilerAllPlugins = BuildConfigurationId("Kotlin_dev_CompilerAllPlugins")
+val KotlinDevBuildNumber = BuildConfigurationId("Kotlin_dev_BuildNumber")
 
 internal class ConnectionPropertiesFileLoader(filePath: String) {
 

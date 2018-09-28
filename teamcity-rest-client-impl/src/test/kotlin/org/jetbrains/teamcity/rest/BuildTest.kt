@@ -92,4 +92,18 @@ class BuildTest {
         assertTrue(build.tags.isNotEmpty())
         assertTrue(build.tags.contains("1.0"))
     }
+
+    @Test
+    fun pagination() {
+        val iterator = publicInstance().builds()
+                .fromConfiguration(KotlinDevBuildNumber)
+                .all()
+                .iterator()
+
+        var i = 0
+        while (i++ < 303) {
+            assertTrue(iterator.hasNext())
+            assertNotNull(iterator.next())
+        }
+    }
 }
