@@ -90,6 +90,9 @@ internal interface TeamCityService {
     @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
     fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
 
+    @PUT("/app/rest/buildTypes/id:{id}/settings/{name}")
+    fun setBuildTypeSettings(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
+
     @Headers("Accept: application/json")
     @POST("/app/rest/buildQueue")
     fun triggerBuild(@Body value: TriggerBuildRequestBean): TriggeredBuildBean
@@ -229,6 +232,11 @@ internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
     var paused: Boolean? = null
+    var settings: BuildTypeSettingsBean? = null
+}
+
+internal class BuildTypeSettingsBean {
+    var property: List<NameValuePropertyBean> = ArrayList()
 }
 
 internal class BuildProblemBean {
