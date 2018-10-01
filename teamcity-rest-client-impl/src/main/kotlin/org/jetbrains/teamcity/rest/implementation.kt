@@ -562,6 +562,25 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         instance.service.setBuildTypeParameter(idString, name, TypedString(value))
     }
 
+    override var buildCounter: Int
+        get() = getSetting("buildNumberCounter")?.toIntOrNull()
+                ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
+        set(value) {
+            LOG.info("Setting build counter to '$value' in BuildConfigurationId=$idString")
+            instance.service.setBuildTypeSettings(idString, "buildNumberCounter", TypedString(value.toString()))
+        }
+
+    override var buildNumberFormat: String
+        get() = getSetting("buildNumberPattern")
+                ?: throw TeamCityQueryException("Cannot get 'buildNumberPattern' setting for $idString")
+        set(value) {
+            LOG.info("Setting build number format to '$value' in BuildConfigurationId=$idString")
+            instance.service.setBuildTypeSettings(idString, "buildNumberPattern", TypedString(value))
+        }
+
+    private fun getSetting(settingName: String) =
+            nullable { it.settings }?.property?.firstOrNull { it.name == settingName }?.value
+
     override fun runBuild(parameters: Map<String, String>?,
                           queueAtTop: Boolean,
                           cleanSources: Boolean,

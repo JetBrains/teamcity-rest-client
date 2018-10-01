@@ -250,6 +250,9 @@ interface BuildConfiguration {
 
     fun setParameter(name: String, value: String)
 
+    var buildCounter: Int
+    var buildNumberFormat: String
+
     fun runBuild(parameters: Map<String, String>? = null,
                  queueAtTop: Boolean = false,
                  cleanSources: Boolean = false,
