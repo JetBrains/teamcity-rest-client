@@ -86,6 +86,16 @@ class BuildTest {
     }
 
     @Test
+    fun test_snapshot_dependencies() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .limitResults(1)
+                .all().first()
+
+        assertTrue(build.snapshotDependencies.isNotEmpty())
+    }
+
+    @Test
     fun test_get_tags() {
         val build = publicInstance().build(BuildId("699994"))
 

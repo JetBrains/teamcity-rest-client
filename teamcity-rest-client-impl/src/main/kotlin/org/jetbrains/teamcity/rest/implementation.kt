@@ -930,6 +930,8 @@ private class BuildImpl(bean: BuildBean,
 
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
+    override val snapshotDependencies: List<Build> get() =
+        fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
     override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging(instance, {
         val statusLocator = when (status) {
