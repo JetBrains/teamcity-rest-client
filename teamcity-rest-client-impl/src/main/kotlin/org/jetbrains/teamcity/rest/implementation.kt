@@ -230,6 +230,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var number: String? = null
     private var vcsRevision: String? = null
     private var sinceDate: Date? = null
+    private var untilDate: Date? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
@@ -304,6 +305,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun untilDate(date: Date): BuildLocator {
+        this.untilDate = date
+        return this
+    }
+
     override fun withAllBranches(): BuildLocator {
         if (branch != null) {
             LOG.warn("Branch is ignored because of #withAllBranches")
@@ -345,6 +351,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 count1?.let { "count:$it" },
 
                 sinceDate?.let {"sinceDate:${teamCityServiceDateFormat.get().format(sinceDate)}"},
+                untilDate?.let {"untilDate:${teamCityServiceDateFormat.get().format(untilDate)}"},
 
                 if (!includeAllBranches)
                     branch?.let { "branch:$it" }

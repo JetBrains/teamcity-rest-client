@@ -134,6 +134,8 @@ interface BuildLocator {
 
     fun sinceDate(date: Date) : BuildLocator
 
+    fun untilDate(date: Date) : BuildLocator
+
     fun latest(): Build?
     fun all(): Sequence<Build>
 
