@@ -21,9 +21,24 @@ class BuildTest {
 
         println(builds.joinToString("\n"))
     }
-    
+
     @Test
-    fun since_date() {
+    fun test_build_id() {
+        val builds = publicInstance().builds()
+                .withBuildId(BuildId("1173662"))
+                .includeFailed()
+                .limitResults(1)
+                .all()
+
+        val build = builds.first()
+
+        assert(build.id.stringId                   == "1173662")
+        assert(build.buildConfigurationId.stringId == "bt345")
+        assert(build.status                        == BuildStatus.FAILURE)
+    }
+
+    @Test
+    fun test_since_date() {
         val monthAgo = GregorianCalendar()
         monthAgo.add(Calendar.MONTH, -1)
         
@@ -104,7 +119,7 @@ class BuildTest {
     }
 
     @Test
-    fun pagination() {
+    fun test_pagination() {
         val iterator = publicInstance().builds()
                 .fromConfiguration(KotlinDevBuildNumber)
                 .all()

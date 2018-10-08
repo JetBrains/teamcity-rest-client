@@ -225,6 +225,7 @@ private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserL
 }
 
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
+    private var buildId: BuildId? = null
     private var buildConfigurationId: BuildConfigurationId? = null
     private var snapshotDependencyTo: BuildId? = null
     private var number: String? = null
@@ -239,8 +240,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var running: String? = null
     private var canceled: String? = null
 
-    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
+    override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator {
         this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun withBuildId(buildId: BuildId): BuildLocator {
+        this.buildId = buildId
         return this
     }
 
@@ -331,6 +337,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         val count1 = count
 
         val parameters = listOfNotNull(
+                buildId?.stringId?.let { "id:$it" },
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
@@ -351,10 +358,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 else
                     "branch:default:any",
 
-                // Always use default filter since sometimes TC automatically switches between
-                // defaultFilter:true and defaultFilter:false
+                // Always use default filter (if not querying for specific buildId) since sometimes TC automatically
+                // switches between defaultFilter:true and defaultFilter:false
                 // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
-                "defaultFilter:true"
+                if (buildId == null)
+                    "defaultFilter:true"
+                else
+                    "defaultFilter:false"
         )
 
         if (parameters.isEmpty()) {
