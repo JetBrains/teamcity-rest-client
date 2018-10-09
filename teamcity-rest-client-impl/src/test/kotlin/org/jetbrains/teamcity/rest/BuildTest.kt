@@ -6,6 +6,8 @@ import org.junit.Test
 import java.util.*
 import kotlin.test.*
 
+import org.hamcrest.CoreMatchers.containsString
+
 class BuildTest {
     @Before
     fun setupLog4j() {
@@ -73,6 +75,28 @@ class BuildTest {
 
         val artifactsRecursive = build.getArtifacts("maven", recursive = true)
         Assert.assertTrue(artifactsRecursive.size > artifacts.size)
+    }
+
+    @Test
+    fun test_find_artifact_recursively() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .withNumber("1.1.50-dev-1499")
+                .includeFailed()
+                .limitResults(1)
+                .all()
+                .first()
+
+        val existingArtifact = build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", true)
+        Assert.assertTrue(existingArtifact.name == "kotlin-test-1.1.50-dev-1499.jar")
+
+        try {
+            build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", false)
+            Assert.fail("Querying TC artifact without recursive search should not work.")
+        }
+        catch (e: TeamCityQueryException) {
+            Assert.assertThat(e.message, containsString("Artifact kotlin-test-*99.jar not found in build 1.1.50-dev-1499."))
+        }
     }
 
     @Test
