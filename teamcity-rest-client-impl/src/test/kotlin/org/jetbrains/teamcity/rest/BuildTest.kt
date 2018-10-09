@@ -6,7 +6,8 @@ import org.junit.Test
 import java.util.*
 import kotlin.test.*
 
-import org.hamcrest.CoreMatchers.containsString
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.catchThrowable
 
 class BuildTest {
     @Before
@@ -78,7 +79,7 @@ class BuildTest {
     }
 
     @Test
-    fun test_find_artifact_recursively() {
+    fun `should be able to find artifact recursively`() {
         val build = publicInstance().builds()
                 .fromConfiguration(compilerAndPluginConfiguration)
                 .withNumber("1.1.50-dev-1499")
@@ -87,16 +88,14 @@ class BuildTest {
                 .all()
                 .first()
 
-        val existingArtifact = build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", true)
-        Assert.assertTrue(existingArtifact.name == "kotlin-test-1.1.50-dev-1499.jar")
+        val thrownException = catchThrowable { build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", false) }
 
-        try {
-            build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", false)
-            Assert.fail("Querying TC artifact without recursive search should not work.")
-        }
-        catch (e: TeamCityQueryException) {
-            Assert.assertThat(e.message, containsString("Artifact kotlin-test-*99.jar not found in build 1.1.50-dev-1499."))
-        }
+        assertThat(thrownException).isInstanceOf(TeamCityQueryException::class.java)
+                                   .hasMessageContaining("Artifact kotlin-test-*99.jar not found in build 1.1.50-dev-1499.")
+
+        val existingArtifact = build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", true)
+
+        assertThat(existingArtifact.name).isEqualTo("kotlin-test-1.1.50-dev-1499.jar")
     }
 
     @Test

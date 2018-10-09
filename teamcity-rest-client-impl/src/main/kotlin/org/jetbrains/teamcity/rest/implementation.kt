@@ -1000,6 +1000,10 @@ private class BuildImpl(bean: BuildBean,
                 .map { BuildArtifactImpl(this, it.name!!, it.fullName!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!)) }
     }
 
+    override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
+        return findArtifact(pattern, parentPath, false)
+    }
+
     override fun findArtifact(pattern: String, parentPath: String, recursive: Boolean): BuildArtifact {
         val list = getArtifacts(parentPath, recursive)
         val regexp = convertToJavaRegexp(pattern)
