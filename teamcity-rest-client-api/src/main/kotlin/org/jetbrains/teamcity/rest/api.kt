@@ -143,9 +143,12 @@ interface BuildLocator {
     @Deprecated(message = "use all() which returns lazy sequence",
                 replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<Build>
-    @Deprecated(message = "use overload with new java.time Instant",
+    @Deprecated(message = "use `since` with java.time.Instant",
                 replaceWith = ReplaceWith("since(date.toInstant())"))
     fun sinceDate(date: Date) : BuildLocator
+    @Deprecated(message = "use `until` with java.time.Instant",
+                replaceWith = ReplaceWith("until(date.toInstant())"))
+    fun untilDate(date: Date) : BuildLocator
     @Deprecated(message = "use includeFailed()",
                 replaceWith = ReplaceWith("includeFailed()"))
     fun withAnyStatus(): BuildLocator
