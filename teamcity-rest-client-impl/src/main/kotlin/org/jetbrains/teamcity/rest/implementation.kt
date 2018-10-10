@@ -1001,7 +1001,11 @@ private class BuildImpl(bean: BuildBean,
     }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
-        val list = getArtifacts(parentPath)
+        return findArtifact(pattern, parentPath, false)
+    }
+
+    override fun findArtifact(pattern: String, parentPath: String, recursive: Boolean): BuildArtifact {
+        val list = getArtifacts(parentPath, recursive)
         val regexp = convertToJavaRegexp(pattern)
         val result = list.filter { regexp.matches(it.name) }
         if (result.isEmpty()) {

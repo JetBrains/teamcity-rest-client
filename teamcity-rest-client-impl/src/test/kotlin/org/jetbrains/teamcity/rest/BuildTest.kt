@@ -6,6 +6,9 @@ import org.junit.Test
 import java.util.*
 import kotlin.test.*
 
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.catchThrowable
+
 class BuildTest {
     @Before
     fun setupLog4j() {
@@ -73,6 +76,26 @@ class BuildTest {
 
         val artifactsRecursive = build.getArtifacts("maven", recursive = true)
         Assert.assertTrue(artifactsRecursive.size > artifacts.size)
+    }
+
+    @Test
+    fun `should be able to find artifact recursively`() {
+        val build = publicInstance().builds()
+                .fromConfiguration(compilerAndPluginConfiguration)
+                .withNumber("1.1.50-dev-1499")
+                .includeFailed()
+                .limitResults(1)
+                .all()
+                .first()
+
+        val thrownException = catchThrowable { build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", false) }
+
+        assertThat(thrownException).isInstanceOf(TeamCityQueryException::class.java)
+                                   .hasMessageContaining("Artifact kotlin-test-*99.jar not found in build 1.1.50-dev-1499.")
+
+        val existingArtifact = build.findArtifact("kotlin-test-*99.jar", "maven/org/jetbrains/kotlin/kotlin-test", true)
+
+        assertThat(existingArtifact.name).isEqualTo("kotlin-test-1.1.50-dev-1499.jar")
     }
 
     @Test
