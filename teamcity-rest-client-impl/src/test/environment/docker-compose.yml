@@ -1,0 +1,22 @@
+version: "3"
+services:
+  git-server:
+    build:
+      context: git-daemon
+      dockerfile: Dockerfile
+    ports:
+      - "9418:9418"
+  teamcity-server:
+    image: docker-registry.labs.intellij.net/teamcity-server:2018.1.2
+    ports:
+      - "8111:8111"
+    environment:
+      - TEAMCITY_SERVER_OPTS=-Dteamcity.licenseAgreement.accepted=true -Dteamcity.startup.maintenance=false -Dteamcity.superUser.token=superUserTokenDA08FAD50DE9497DB3EB1CEBDF511ECC
+      - TEAMCITY_SERVER_MEM_OPTS=-Xmx2500m
+  teamcity-agent:
+    image: docker-registry.labs.intellij.net/teamcity-agent:2018.1.2
+    ports:
+      - "5006:5005"
+    environment:
+      - SERVER_URL=http://teamcity-server:8111
+      - AGENT_NAME=agent

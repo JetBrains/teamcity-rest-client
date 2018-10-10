@@ -12,6 +12,8 @@ abstract class TeamCityInstance {
 
     abstract fun builds(): BuildLocator
 
+    abstract fun agents(): Agents
+    abstract fun agent(id: AgentId): Agent
     abstract fun build(id: BuildId): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
@@ -185,6 +187,26 @@ data class BuildProblemType(val stringType: String) {
     }
 }
 
+interface Agents {
+    fun all(): Sequence<Agent>
+    fun byName(name: String): Agent?
+}
+
+interface Agent {
+    val id: AgentId
+    val name: String
+    val connected: Boolean
+    val enabled: Boolean
+    var authorized: Boolean
+
+    val properties: Map<String, String>
+
+    /**
+     * Web UI URL for user, especially useful for error and log messages
+     */
+    fun getHomeUrl(): String
+}
+
 interface Project {
     val id: ProjectId
     val name: String
@@ -217,6 +239,8 @@ interface Project {
      * returns
      */
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
+
+    fun delete()
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch"))
@@ -422,6 +446,10 @@ interface Change {
     @Deprecated(message = "use getHomeUrl()",
                 replaceWith = ReplaceWith("getHomeUrl(specificBuildConfigurationId, includePersonalBuilds)"))
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+}
+
+data class AgentId(val stringId: String) {
+    override fun toString(): String = stringId
 }
 
 data class UserId(val stringId: String) {

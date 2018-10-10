@@ -27,6 +27,18 @@ internal interface TeamCityService {
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/agents/id:{id}")
+    fun agent(@Path("id") id: String): AgentBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agents")
+    fun agents(): AgentListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agents/name:{name}")
+    fun agentByName(@Query("name") name: String): AgentListBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
@@ -83,6 +95,9 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/buildTypes/id:{id}/artifact-dependencies")
     fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): ArtifactDependenciesBean
+
+    @PUT("/app/rest/agents/id:{id}/{name}")
+    fun setAgentSetting(@Path("id") agentId: String, @Path("name") name: String, @Body value: TypedString): Response
 
     @PUT("/app/rest/projects/id:{id}/parameters/{name}")
     fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: TypedString): Response
@@ -148,6 +163,18 @@ internal interface TeamCityService {
 
 internal class ProjectsBean {
     var project: List<ProjectBean> = ArrayList()
+}
+
+internal class AgentBean : IdBean() {
+    var name: String? = null
+    var connected: Boolean? = null
+    var enabled: Boolean? = null
+    var authorized: Boolean? = null
+    var properties: NameValuePropertiesBean? = null
+}
+
+internal class AgentListBean {
+    var agent: List<AgentBean> = ArrayList()
 }
 
 internal class ArtifactFileListBean {

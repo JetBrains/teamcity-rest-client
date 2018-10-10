@@ -25,5 +25,3 @@ The library use [semantic versioning](https://semver.org), its version is in `<m
 * if you're fixing a bug just run the build on TeamCity, it'll automatically increase the patch component;
 * if you're adding new API increase the minor component of the version in [gradle.properties](gradle.properties) file;
 * if you're removing existing (deprecated) API or adding a big set of new APIs increase the major component of the version in [gradle.properties](gradle.properties) file.
-
-After updating `projectVersion` in [gradle.properties](gradle.properties) also reset the build counter on TeamCity before starting the build to reset the patch component. 

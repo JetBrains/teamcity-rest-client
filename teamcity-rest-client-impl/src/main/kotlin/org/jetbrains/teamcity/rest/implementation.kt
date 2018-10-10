@@ -113,7 +113,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             }
             .setErrorHandler {
                 val responseText = try {
-                    it.response.body.`in`().reader().use { it.readText() }
+                    it.response.body.`in`().reader().use { reader -> reader.readText() }
                 } catch (t: Throwable) {
                     LOG.warn("Exception while reading error response text: ${t.message}", t)
                     ""
@@ -123,6 +123,9 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             }
             .build()
             .create(TeamCityService::class.java)
+
+    override fun agents(): Agents = AgentsImpl(this)
+    override fun agent(id: AgentId): Agent = AgentImpl(AgentBean().also { it.id = id.stringId }, false, this)
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
 
@@ -179,6 +182,61 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun queuedBuilds(projectId: ProjectId?): List<Build> =
             buildQueue().queuedBuilds(projectId = projectId).toList()
+}
+
+private class AgentsImpl(private val instance: TeamCityInstanceImpl): Agents {
+    override fun all(): Sequence<Agent> =
+        instance.service.agents().agent
+                .map { AgentImpl(it, false, instance) }
+                .toSequence()
+
+    override fun byName(name: String): Agent? =
+        // TODO Handle 404
+        instance.service.agentByName(name).agent
+                .map { AgentImpl(it, false, instance) }
+                .firstOrNull()
+}
+
+private class AgentImpl(bean: AgentBean,
+                       isFullBuildBean: Boolean,
+                       instance: TeamCityInstanceImpl) :
+        BaseImpl<AgentBean>(bean, isFullBuildBean, instance), Agent {
+
+    override val connected: Boolean
+        get() = notNull { it.connected }
+
+    override val enabled: Boolean
+        get() = notNull { it.enabled }
+
+    override var authorized: Boolean
+        get() = notNull { it.authorized }
+        set(value) {
+            instance.service.setAgentSetting(
+                    agentId = id.stringId,
+                    name = AgentBean::authorized.name,
+                    value = TypedString(value.toString()))
+            fullBean.authorized = value
+        }
+
+    override val properties: Map<String, String>
+        get() = notNull { it.properties }.property
+                ?.filter { it.name != null && it.value != null }
+                ?.map { it.name!! to it.value!! }
+                ?.toMap() ?: emptyMap()
+
+    override fun fetchFullBean(): AgentBean = instance.service.agent(id.stringId)
+
+    override val id: AgentId
+        get() = AgentId(idString)
+
+    override val name: String
+        get() = notNull { it.name }
+
+    override fun getHomeUrl(): String = getUserUrlPage(instance.serverUrl, "agentDetails.html", agentId = id)
+
+    override fun toString(): String {
+        return "Agent(id=${id.stringId}, name=$name)"
+    }
 }
 
 private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
@@ -600,7 +658,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
             this.queueAtTop = queueAtTop
         }
         parameters?.let {
-            val parametersBean = ParametersBean(it.map { ParameterBean(it.key, it.value) })
+            val parametersBean = ParametersBean(parameters.map { keyValue -> ParameterBean(keyValue.key, keyValue.value) })
             request.properties = parametersBean
         }
 
@@ -1218,6 +1276,7 @@ private fun getUserUrlPage(serverUrl: String,
                            pageName: String,
                            tab: String? = null,
                            projectId: ProjectId? = null,
+                           agentId: AgentId? = null,
                            buildId: BuildId? = null,
                            testNameId: TestId? = null,
                            userId: UserId? = null,
@@ -1229,6 +1288,7 @@ private fun getUserUrlPage(serverUrl: String,
 
     tab?.let { params.add("tab=" + tab.urlencode()) }
     projectId?.let { params.add("projectId=" + projectId.stringId.urlencode()) }
+    agentId?.let { params.add("id=" + agentId.stringId.urlencode()) }
     buildId?.let { params.add("buildId=" + buildId.stringId.urlencode()) }
     testNameId?.let { params.add("testNameId=" + testNameId.stringId.urlencode()) }
     userId?.let { params.add("userId=" + userId.stringId.urlencode()) }
