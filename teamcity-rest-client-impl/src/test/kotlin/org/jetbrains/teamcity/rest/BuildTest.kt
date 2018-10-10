@@ -24,20 +24,23 @@ class BuildTest {
 
         println(builds.joinToString("\n"))
     }
-    
+
     @Test
-    fun since_date() {
+    fun since_date_and_until_date() {
         val monthAgo = GregorianCalendar()
         monthAgo.add(Calendar.MONTH, -1)
-        
+        val weekAgo = GregorianCalendar()
+        monthAgo.add(Calendar.DAY_OF_MONTH, -7)
+
         val builds = publicInstance().builds()
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(3)
                 .sinceDate(monthAgo.time)
+                .untilDate(weekAgo.time)
                 .all()
 
         for (build in builds) {
-            assert(build.startDate!! >= monthAgo.time)
+            assert(build.startDate!! >= monthAgo.time && build.startDate!! <= weekAgo.time)
         }
     }
 
