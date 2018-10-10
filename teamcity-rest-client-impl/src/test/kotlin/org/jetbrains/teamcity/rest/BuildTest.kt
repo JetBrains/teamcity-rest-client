@@ -35,12 +35,12 @@ class BuildTest {
         val builds = publicInstance().builds()
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(3)
-                .sinceDate(monthAgo.time)
-                .untilDate(weekAgo.time)
+                .since(monthAgo.toInstant())
+                .until(weekAgo.toInstant())
                 .all()
 
         for (build in builds) {
-            assert(build.startDate!! >= monthAgo.time && build.startDate!! <= weekAgo.time)
+            assert(build.startDateTime!! >= monthAgo.toZonedDateTime() && build.startDateTime!! <= weekAgo.toZonedDateTime())
         }
     }
 
