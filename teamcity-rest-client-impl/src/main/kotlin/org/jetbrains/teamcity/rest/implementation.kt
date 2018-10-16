@@ -15,8 +15,11 @@ import retrofit.mime.TypedString
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URLEncoder
-import java.text.SimpleDateFormat
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
@@ -24,10 +27,7 @@ import javax.xml.stream.XMLStreamWriter
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
-private val teamCityServiceDateFormat =
-        object : ThreadLocal<SimpleDateFormat>() {
-            override fun initialValue(): SimpleDateFormat? = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
-        }
+private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
     return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "guestAuth", null, false)
@@ -229,8 +229,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var snapshotDependencyTo: BuildId? = null
     private var number: String? = null
     private var vcsRevision: String? = null
-    private var sinceDate: Date? = null
-    private var untilDate: Date? = null
+    private var since: Instant? = null
+    private var until: Instant? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
@@ -300,13 +300,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
-    override fun sinceDate(date: Date): BuildLocator {
-        this.sinceDate = date
+    override fun since(date: Instant): BuildLocator {
+        this.since = date
         return this
     }
 
-    override fun untilDate(date: Date): BuildLocator {
-        this.untilDate = date
+    override fun until(date: Instant): BuildLocator {
+        this.until = date
         return this
     }
 
@@ -350,8 +350,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 if (pinnedOnly) "pinned:true" else null,
                 count1?.let { "count:$it" },
 
-                sinceDate?.let {"sinceDate:${teamCityServiceDateFormat.get().format(sinceDate)}"},
-                untilDate?.let {"untilDate:${teamCityServiceDateFormat.get().format(untilDate)}"},
+                since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
+                until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
 
                 if (!includeAllBranches)
                     branch?.let { "branch:$it" }
@@ -384,6 +384,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun list(): List<Build> = all().toList()
     override fun withAnyStatus(): BuildLocator = includeFailed()
+    override fun sinceDate(date: Date): BuildLocator = since(date.toInstant())
+    override fun untilDate(date: Date): BuildLocator = until(date.toInstant())
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
@@ -667,20 +669,22 @@ private class ChangeImpl(bean: ChangeBean,
     override val user: User?
         get() = nullable { it.user }?.let { UserImpl(it, false, instance) }
 
-    override val date: Date
-        get() = teamCityServiceDateFormat.get().parse(notNull { it.date })
+    override val dateTime: ZonedDateTime
+        get() = ZonedDateTime.parse(notNull { it.date }, teamCityServiceDateFormat)
 
     override val comment: String
         get() = notNull { it.comment }
 
     override fun toString() =
-            "Change(id=$id, version=$version, username=$username, user=$user, date=$date, comment=$comment)"
+            "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment)"
 
     override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
             getHomeUrl(
                     specificBuildConfigurationId = specificBuildConfigurationId,
                     includePersonalBuilds = includePersonalBuilds
             )
+    override val date: Date
+        get() = Date.from(dateTime.toInstant())
 }
 
 private class UserImpl(bean: UserBean,
@@ -714,7 +718,8 @@ private class UserImpl(bean: UserBean,
 
 private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityInstanceImpl) : PinInfo {
     override val user = UserImpl(bean.user!!, false, instance)
-    override val time = teamCityServiceDateFormat.get().parse(bean.timestamp!!)!!
+    override val dateTime: ZonedDateTime = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
+    override val time: Date = Date.from(dateTime.toInstant())
 }
 
 private class TriggeredImpl(private val bean: TriggeredBean,
@@ -727,10 +732,12 @@ private class TriggeredImpl(private val bean: TriggeredBean,
 
 private class BuildCanceledInfoImpl(private val bean: BuildCanceledBean,
                                     private val instance: TeamCityInstanceImpl) : BuildCanceledInfo {
+    override val cancelDateTime: ZonedDateTime
+        get() = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
     override val user: User?
         get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val cancelDate: Date
-        get() = teamCityServiceDateFormat.get().parse(bean.timestamp!!)!!
+        get() = Date.from(cancelDateTime.toInstant())
 }
 
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {
@@ -925,12 +932,12 @@ private class BuildImpl(bean: BuildBean,
         get() = fullBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
     override val statusText: String?
         get() = fullBean.statusText
-    override val queuedDate: Date
-        get() = teamCityServiceDateFormat.get().parse(fullBean.queuedDate!!)
-    override val startDate: Date?
-        get() = fullBean.startDate?.let { teamCityServiceDateFormat.get().parse(it) }
-    override val finishDate: Date?
-        get() = fullBean.finishDate?.let { teamCityServiceDateFormat.get().parse(it) }
+    override val queuedDateTime: ZonedDateTime
+        get() = fullBean.queuedDate!!.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+    override val startDateTime: ZonedDateTime?
+        get() = fullBean.startDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+    override val finishDateTime: ZonedDateTime?
+        get() = fullBean.finishDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
 
     override val runningInfo: BuildRunningInfo?
         get() = fullBean.`running-info`?.let { BuildRunningInfoImpl(it) }
@@ -1004,7 +1011,7 @@ private class BuildImpl(bean: BuildBean,
         val fields = "file(${ArtifactFileBean.FIELDS})"
         return instance.service.artifactChildren(id.stringId, parentPath, locator, fields).file
                 .filter { it.fullName != null && it.modificationTime != null }
-                .map { BuildArtifactImpl(this, it.name!!, it.fullName!!, it.size, teamCityServiceDateFormat.get().parse(it.modificationTime!!)) }
+                .map { BuildArtifactImpl(this, it.name!!, it.fullName!!, it.size, ZonedDateTime.parse(it.modificationTime!!, teamCityServiceDateFormat)) }
     }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
@@ -1085,15 +1092,21 @@ private class BuildImpl(bean: BuildBean,
 
     override fun getWebUrl(): String = getHomeUrl()
     override fun fetchStatusText(): String? = statusText
-    override fun fetchQueuedDate(): Date = queuedDate
-    override fun fetchStartDate(): Date? = startDate
-    override fun fetchFinishDate(): Date? = finishDate
+    override fun fetchQueuedDate(): Date = Date.from(queuedDateTime.toInstant())
+    override fun fetchStartDate(): Date? = startDateTime?.let { Date.from(it.toInstant()) }
+    override fun fetchFinishDate(): Date? = finishDateTime?.let { Date.from(it.toInstant()) }
     override fun fetchParameters(): List<Parameter> = parameters
     override fun fetchRevisions(): List<Revision> = revisions
     override fun fetchChanges(): List<Change> = changes
     override fun fetchPinInfo(): PinInfo? = pinInfo
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
     override val buildTypeId: BuildConfigurationId = buildConfigurationId
+    override val queuedDate: Date
+        get() = Date.from(queuedDateTime.toInstant())
+    override val startDate: Date?
+        get() = startDateTime?.let { Date.from(it.toInstant()) }
+    override val finishDate: Date?
+        get() = finishDateTime?.let { Date.from(it.toInstant()) }
 }
 
 private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean): BuildRunningInfo {
@@ -1156,7 +1169,11 @@ private class BuildArtifactImpl(
         override val name: String,
         override val fullName: String,
         override val size: Long?,
-        override val modificationTime: Date) : BuildArtifact {
+        override val modificationDateTime: ZonedDateTime) : BuildArtifact {
+
+    override val modificationTime: Date
+        get() = Date.from(modificationDateTime.toInstant())
+
     override fun download(output: File) {
         build.downloadArtifact(fullName, output)
     }

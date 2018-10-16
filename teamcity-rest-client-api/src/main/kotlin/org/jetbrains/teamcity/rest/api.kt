@@ -3,6 +3,8 @@ package org.jetbrains.teamcity.rest
 import java.io.File
 import java.io.OutputStream
 import java.time.Duration
+import java.time.Instant
+import java.time.ZonedDateTime
 import java.util.*
 
 abstract class TeamCityInstance {
@@ -132,9 +134,8 @@ interface BuildLocator {
 
     fun limitResults(count: Int): BuildLocator
 
-    fun sinceDate(date: Date) : BuildLocator
-
-    fun untilDate(date: Date) : BuildLocator
+    fun since(date: Instant) : BuildLocator
+    fun until(date: Instant) : BuildLocator
 
     fun latest(): Build?
     fun all(): Sequence<Build>
@@ -142,6 +143,12 @@ interface BuildLocator {
     @Deprecated(message = "use all() which returns lazy sequence",
                 replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<Build>
+    @Deprecated(message = "use `since` with java.time.Instant",
+                replaceWith = ReplaceWith("since(date.toInstant())"))
+    fun sinceDate(date: Date) : BuildLocator
+    @Deprecated(message = "use `until` with java.time.Instant",
+                replaceWith = ReplaceWith("until(date.toInstant())"))
+    fun untilDate(date: Date) : BuildLocator
     @Deprecated(message = "use includeFailed()",
                 replaceWith = ReplaceWith("includeFailed()"))
     fun withAnyStatus(): BuildLocator
@@ -303,6 +310,9 @@ interface Branch {
 
 interface BuildCanceledInfo {
     val user: User?
+    val cancelDateTime: ZonedDateTime
+
+    @Deprecated(message = "use cancelDateTime", replaceWith = ReplaceWith("Date.from(cancelDateTime.toInstant())"))
     val cancelDate: Date
 }
 
@@ -322,9 +332,9 @@ interface Build {
     fun getHomeUrl(): String
 
     val statusText: String?
-    val queuedDate: Date
-    val startDate: Date?
-    val finishDate: Date?
+    val queuedDateTime: ZonedDateTime
+    val startDateTime: ZonedDateTime?
+    val finishDateTime: ZonedDateTime?
 
     val runningInfo: BuildRunningInfo?
 
@@ -375,11 +385,11 @@ interface Build {
     fun getWebUrl(): String
     @Deprecated(message = "use statusText", replaceWith = ReplaceWith("statusText"))
     fun fetchStatusText(): String?
-    @Deprecated(message = "use queuedDate", replaceWith = ReplaceWith("queuedDate"))
+    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
     fun fetchQueuedDate(): Date
-    @Deprecated(message = "use startDate", replaceWith = ReplaceWith("startDate"))
+    @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("Date.from(startDateTime.toInstant())"))
     fun fetchStartDate(): Date?
-    @Deprecated(message = "use finishDate", replaceWith = ReplaceWith("finishDate"))
+    @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("Date.from(finishDateTime.toInstant())"))
     fun fetchFinishDate(): Date?
     @Deprecated(message = "use parameters", replaceWith = ReplaceWith("parameters"))
     fun fetchParameters(): List<Parameter>
@@ -393,6 +403,12 @@ interface Build {
     fun fetchTriggeredInfo(): TriggeredInfo?
     @Deprecated(message = "use buildConfigurationId", replaceWith = ReplaceWith("buildConfigurationId"))
     val buildTypeId: BuildConfigurationId
+    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
+    val queuedDate: Date
+    @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("Date.from(startDateTime.toInstant())"))
+    val startDate: Date?
+    @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("Date.from(finishDateTime.toInstant())"))
+    val finishDate: Date?
 }
 
 interface BuildRunningInfo {
@@ -408,7 +424,7 @@ interface Change {
     val version: String
     val username: String
     val user: User?
-    val date: Date
+    val dateTime: ZonedDateTime
     val comment: String
 
     /**
@@ -425,6 +441,9 @@ interface Change {
     @Deprecated(message = "use getHomeUrl()",
                 replaceWith = ReplaceWith("getHomeUrl(specificBuildConfigurationId, includePersonalBuilds)"))
     fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId? = null, includePersonalBuilds: Boolean? = null): String
+    @Deprecated(message = "use datetime",
+            replaceWith = ReplaceWith("Date.from(datetime.toInstant())"))
+    val date: Date
 }
 
 data class UserId(val stringId: String) {
@@ -449,9 +468,13 @@ interface BuildArtifact {
     /** Artifact name with path. e.g. directory/my.jar */
     val fullName: String
     val size: Long?
-    val modificationTime: Date
+    val modificationDateTime: ZonedDateTime
 
     fun download(output: File)
+
+    @Deprecated(message = "use modificationDateTime",
+            replaceWith = ReplaceWith("Date.from(modificationDateTime.toInstant())"))
+    val modificationTime: Date
 }
 
 interface VcsRoot {
@@ -484,6 +507,10 @@ enum class BuildState {
 
 interface PinInfo {
     val user: User
+    val dateTime: ZonedDateTime
+
+    @Deprecated(message = "use dateTime",
+            replaceWith = ReplaceWith("Date.from(dateTime.toInstant())"))
     val time: Date
 }
 
