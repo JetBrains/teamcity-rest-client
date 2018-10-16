@@ -387,9 +387,9 @@ interface Build {
     fun fetchStatusText(): String?
     @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
     fun fetchQueuedDate(): Date
-    @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("Date.from(startDateTime.toInstant())"))
+    @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("startDateTime?.toInstant()?.let { Date.from(it) }"))
     fun fetchStartDate(): Date?
-    @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("Date.from(finishDateTime.toInstant())"))
+    @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("finishDateTime?.toInstant()?.let { Date.from(it) }"))
     fun fetchFinishDate(): Date?
     @Deprecated(message = "use parameters", replaceWith = ReplaceWith("parameters"))
     fun fetchParameters(): List<Parameter>
@@ -405,9 +405,9 @@ interface Build {
     val buildTypeId: BuildConfigurationId
     @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
     val queuedDate: Date
-    @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("Date.from(startDateTime.toInstant())"))
+    @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("startDateTime?.toInstant()?.let { Date.from(it) }"))
     val startDate: Date?
-    @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("Date.from(finishDateTime.toInstant())"))
+    @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("finishDateTime?.toInstant()?.let { Date.from(it) }"))
     val finishDate: Date?
 }
 
