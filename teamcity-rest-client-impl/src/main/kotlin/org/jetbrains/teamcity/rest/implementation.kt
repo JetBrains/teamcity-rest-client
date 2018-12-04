@@ -941,6 +941,8 @@ private class BuildImpl(bean: BuildBean,
 
     override val runningInfo: BuildRunningInfo?
         get() = fullBean.`running-info`?.let { BuildRunningInfoImpl(it) }
+    override val comment: BuildCommentInfo?
+        get() = fullBean.comment?.let { BuildCommentInfoImpl(it, instance) }
 
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
@@ -1120,6 +1122,20 @@ private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean): Buil
         get() = bean.outdated
     override val probablyHanging: Boolean
         get() = bean.probablyHanging
+}
+
+private class BuildCommentInfoImpl(private val bean: BuildCommentBean,
+                                   private val instance: TeamCityInstanceImpl): BuildCommentInfo {
+    override val timestamp: ZonedDateTime
+        get() = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
+    override val user: User?
+        get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
+    override val text: String
+        get() = bean.text ?: ""
+
+    override fun toString(): String {
+        return "BuildCommentInfo(timestamp=$timestamp,user=${user?.username},text=$text)"
+    }
 }
 
 private class VcsRootImpl(bean: VcsRootBean,

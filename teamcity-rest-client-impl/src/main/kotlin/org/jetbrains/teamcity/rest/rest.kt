@@ -215,6 +215,7 @@ internal open class BuildBean: IdBean() {
     var pinInfo: PinInfoBean? = null
 
     var triggered: TriggeredBean? = null
+    var comment: BuildCommentBean? = null
 
     var properties: ParametersBean? = ParametersBean()
     var buildType: BuildTypeBean? = BuildTypeBean()
@@ -373,6 +374,12 @@ internal class PinInfoBean {
 internal class TriggeredBean {
     var user: UserBean? = null
     val build: BuildBean? = null
+}
+
+internal class BuildCommentBean {
+    var user: UserBean? = null
+    var timestamp: String? = null
+    var text: String? = null
 }
 
 internal class BuildCanceledBean {

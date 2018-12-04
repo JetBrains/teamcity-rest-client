@@ -308,6 +308,12 @@ interface Branch {
     val isDefault: Boolean
 }
 
+interface BuildCommentInfo {
+    val user: User?
+    val timestamp: ZonedDateTime
+    val text: String
+}
+
 interface BuildCanceledInfo {
     val user: User?
     val cancelDateTime: ZonedDateTime
@@ -325,6 +331,7 @@ interface Build {
     val state: BuildState
     val name: String
     val canceledInfo: BuildCanceledInfo?
+    val comment: BuildCommentInfo?
 
     /**
      * Web UI URL for user, especially useful for error and log messages
