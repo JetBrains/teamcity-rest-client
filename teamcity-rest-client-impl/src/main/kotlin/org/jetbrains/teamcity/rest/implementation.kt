@@ -162,6 +162,10 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
+    override fun buildAgents(): BuildAgentLocator = BuildAgentLocatorImpl(this)
+
+    override fun buildAgentPools(): BuildAgentPoolLocator = BuildAgentPoolLocatorImpl(this)
+
     override fun getWebUrl(projectId: ProjectId, branch: String?): String =
             project(projectId).getHomeUrl(branch = branch)
 
@@ -183,6 +187,16 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
 private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
     override fun iterator(): Iterator<T> = this@toSequence.iterator()
+}
+
+private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentLocator {
+    override fun all(): Sequence<BuildAgent> =
+        instance.service.agents().agent.map { BuildAgentImpl(it, false, instance) }.toSequence()
+}
+
+private class BuildAgentPoolLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentPoolLocator {
+    override fun all(): Sequence<BuildAgentPool> =
+        instance.service.agentPools().agentPool.map { BuildAgentPoolImpl(it, false, instance) }.toSequence()
 }
 
 private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserLocator {
@@ -943,6 +957,15 @@ private class BuildImpl(bean: BuildBean,
         get() = fullBean.`running-info`?.let { BuildRunningInfoImpl(it) }
     override val comment: BuildCommentInfo?
         get() = fullBean.comment?.let { BuildCommentInfoImpl(it, instance) }
+    override val agent: BuildAgent?
+        get() {
+            val agentBean = fullBean.agent
+
+            if (agentBean?.id == null)
+                return null
+
+            return BuildAgentImpl(agentBean, false, instance)
+        }
 
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
@@ -1162,6 +1185,102 @@ private class VcsRootImpl(bean: VcsRootBean,
 
     override val defaultBranch: String?
         get() = getNameValueProperty(properties, "branch")
+}
+
+private class BuildAgentPoolImpl(bean: BuildAgentPoolBean,
+                                 isFullBean: Boolean,
+                                 instance: TeamCityInstanceImpl) :
+        BaseImpl<BuildAgentPoolBean>(bean, isFullBean, instance), BuildAgentPool {
+
+    override fun fetchFullBean(): BuildAgentPoolBean = instance.service.agentPools("id:$idString")
+
+    override fun toString(): String = "BuildAgentPool(id=$id, name=$name)"
+
+    override val id: BuildAgentPoolId
+        get() = BuildAgentPoolId(idString)
+
+    override val name: String
+        get() = notNull { it.name }
+
+    override val projects: List<Project>
+        get() = fullBean.projects?.project?.map { ProjectImpl(it, false, instance) } ?: emptyList()
+
+    override val agents: List<BuildAgent>
+        get() = fullBean.agents?.agent?.map { BuildAgentImpl(it, false, instance) } ?: emptyList()
+}
+
+private class BuildAgentImpl(bean: BuildAgentBean,
+                                 isFullBean: Boolean,
+                                 instance: TeamCityInstanceImpl) :
+        BaseImpl<BuildAgentBean>(bean, isFullBean, instance), BuildAgent {
+
+    override fun fetchFullBean(): BuildAgentBean = instance.service.agents("id:$idString")
+
+    override fun toString(): String = "BuildAgent(id=$id, name=$name)"
+
+    override val id: BuildAgentId
+        get() = BuildAgentId(idString)
+
+    override val name: String
+        get() = notNull { it.name }
+
+    override val pool: BuildAgentPool
+        get() = BuildAgentPoolImpl(fullBean.pool!!, false, instance)
+
+    override val connected: Boolean
+        get() = notNull { it.connected }
+
+    override val enabled: Boolean
+        get() = notNull { it.enabled }
+    override val authorized: Boolean
+        get() = notNull { it.authorized }
+    override val outdated: Boolean
+        get() = !notNull { it.uptodate }
+    override val ipAddress: String
+        get() = notNull { it.ip }
+
+    override val parameters: List<Parameter>
+        get() = fullBean.properties!!.property!!.map { ParameterImpl(it) }
+
+    override val enabledInfo: BuildAgentEnabledInfo?
+        get() = fullBean.enabledInfo?.let { info ->
+            info.comment?.let { comment ->
+                BuildAgentEnabledInfoImpl(
+                        user = comment.user?.let { UserImpl(it, false, instance) },
+                        timestamp = ZonedDateTime.parse(comment.timestamp!!, teamCityServiceDateFormat),
+                        text = comment.text ?: ""
+                )
+            }
+        }
+
+    override val authorizedInfo: BuildAgentAuthorizedInfo?
+        get() = fullBean.authorizedInfo?.let { info ->
+            info.comment?.let { comment ->
+                BuildAgentAuthorizedInfoImpl(
+                        user = comment.user?.let { UserImpl(it, false, instance) },
+                        timestamp = ZonedDateTime.parse(comment.timestamp!!, teamCityServiceDateFormat),
+                        text = comment.text ?: ""
+                )
+            }
+        }
+
+    override val currentBuild: Build?
+        get() = fullBean.build?.let {
+            // API may return an empty build bean, pass it as null
+            if (it.id == null) null else BuildImpl(it, false, instance)
+        }
+
+    override fun getHomeUrl(): String = "${instance.serverUrl}/agentDetails.html?id=${id.stringId}"
+
+    private class BuildAgentAuthorizedInfoImpl(
+            override val user: User?,
+            override val timestamp: ZonedDateTime,
+            override val text: String) : BuildAgentAuthorizedInfo
+
+    private class BuildAgentEnabledInfoImpl(
+            override val user: User?,
+            override val timestamp: ZonedDateTime,
+            override val text: String) : BuildAgentEnabledInfo
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {

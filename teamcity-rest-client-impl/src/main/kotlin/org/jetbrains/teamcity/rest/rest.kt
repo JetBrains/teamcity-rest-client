@@ -114,6 +114,22 @@ internal interface TeamCityService {
     fun users(@Path("userLocator") userLocator: String): UserBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/agents")
+    fun agents(): BuildAgentsBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agentPools")
+    fun agentPools(): BuildAgentPoolsBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agents/{locator}")
+    fun agents(@Path("locator") agentLocator: String? = null): BuildAgentBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agentPools/{locator}")
+    fun agentPools(@Path("locator") agentLocator: String? = null): BuildAgentPoolBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/problemOccurrences")
     fun problemOccurrences(@Query("locator") locator: String, @Query("fields") fields: String): BuildProblemOccurrencesBean
 
@@ -148,6 +164,14 @@ internal interface TeamCityService {
 
 internal class ProjectsBean {
     var project: List<ProjectBean> = ArrayList()
+}
+
+internal class BuildAgentsBean {
+    var agent: List<BuildAgentBean> = ArrayList()
+}
+
+internal class BuildAgentPoolsBean {
+    var agentPool: List<BuildAgentPoolBean> = ArrayList()
 }
 
 internal class ArtifactFileListBean {
@@ -216,6 +240,7 @@ internal open class BuildBean: IdBean() {
 
     var triggered: TriggeredBean? = null
     var comment: BuildCommentBean? = null
+    var agent: BuildAgentBean? = null
 
     var properties: ParametersBean? = ParametersBean()
     var buildType: BuildTypeBean? = BuildTypeBean()
@@ -329,6 +354,29 @@ internal class ProjectBean: IdBean() {
     var buildTypes: BuildTypesBean? = BuildTypesBean()
 }
 
+internal class BuildAgentBean: IdBean() {
+    var name: String? = null
+    var connected: Boolean? = null
+    var enabled: Boolean? = null
+    var authorized: Boolean? = null
+    var uptodate: Boolean? = null
+    var ip: String? = null
+
+    var enabledInfo: EnabledInfoBean? = null
+    var authorizedInfo: AuthorizedInfoBean? = null
+
+    var properties: ParametersBean? = null
+    var pool: BuildAgentPoolBean? = null
+    var build: BuildBean? = null
+}
+
+internal class BuildAgentPoolBean: IdBean() {
+    var name: String? = null
+
+    var projects: ProjectsBean? = ProjectsBean()
+    var agents: BuildAgentsBean? = BuildAgentsBean()
+}
+
 internal class ChangesBean {
     var change: List<ChangeBean>? = ArrayList()
 }
@@ -380,6 +428,26 @@ internal class BuildCommentBean {
     var user: UserBean? = null
     var timestamp: String? = null
     var text: String? = null
+}
+
+internal class EnabledInfoCommentBean {
+    var user: UserBean? = null
+    var timestamp: String? = null
+    var text: String? = null
+}
+
+internal class EnabledInfoBean {
+    var comment: EnabledInfoCommentBean? = null
+}
+
+internal class AuthorizedInfoCommentBean {
+    var user: UserBean? = null
+    var timestamp: String? = null
+    var text: String? = null
+}
+
+internal class AuthorizedInfoBean {
+    var comment: AuthorizedInfoCommentBean? = null
 }
 
 internal class BuildCanceledBean {

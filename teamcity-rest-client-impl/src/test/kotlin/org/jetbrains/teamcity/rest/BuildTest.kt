@@ -8,6 +8,7 @@ import kotlin.test.*
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.catchThrowable
+import kotlin.reflect.KFunction
 
 class BuildTest {
     @Before
@@ -22,7 +23,10 @@ class BuildTest {
                 .limitResults(3)
                 .all()
 
-        println(builds.joinToString("\n"))
+        builds.forEach {
+            it.getArtifacts()
+            callPublicPropertiesAndFetchMethods(it)
+        }
     }
 
     @Test

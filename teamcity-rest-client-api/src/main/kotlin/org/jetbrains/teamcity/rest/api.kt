@@ -25,6 +25,8 @@ abstract class TeamCityInstance {
     abstract fun user(id: UserId): User
     abstract fun user(userName: String): User
     abstract fun users(): UserLocator
+    abstract fun buildAgents(): BuildAgentLocator
+    abstract fun buildAgentPools(): BuildAgentPoolLocator
 
     abstract fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
     abstract fun change(id: ChangeId): Change
@@ -77,6 +79,14 @@ interface VcsRootLocator {
     @Deprecated(message = "use all() which returns lazy sequence",
                 replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<VcsRoot>
+}
+
+interface BuildAgentLocator {
+    fun all(): Sequence<BuildAgent>
+}
+
+interface BuildAgentPoolLocator {
+    fun all(): Sequence<BuildAgentPool>
 }
 
 interface UserLocator {
@@ -179,6 +189,14 @@ data class VcsRootId(val stringId: String) {
 }
 
 data class BuildProblemId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class BuildAgentPoolId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class BuildAgentId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
@@ -314,6 +332,18 @@ interface BuildCommentInfo {
     val text: String
 }
 
+interface BuildAgentEnabledInfo {
+    val user: User?
+    val timestamp: ZonedDateTime
+    val text: String
+}
+
+interface BuildAgentAuthorizedInfo {
+    val user: User?
+    val timestamp: ZonedDateTime
+    val text: String
+}
+
 interface BuildCanceledInfo {
     val user: User?
     val cancelDateTime: ZonedDateTime
@@ -370,6 +400,8 @@ interface Build {
     val pinInfo: PinInfo?
 
     val triggeredInfo: TriggeredInfo?
+
+    val agent: BuildAgent?
 
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
 
@@ -490,6 +522,35 @@ interface VcsRoot {
 
     val url: String?
     val defaultBranch: String?
+}
+
+interface BuildAgent {
+    val id: BuildAgentId
+    val name: String
+    val pool: BuildAgentPool
+
+    val connected: Boolean
+    val enabled: Boolean
+    val authorized: Boolean
+    val outdated: Boolean
+
+    val ipAddress: String
+
+    val parameters: List<Parameter>
+    val enabledInfo: BuildAgentEnabledInfo?
+    val authorizedInfo: BuildAgentAuthorizedInfo?
+
+    val currentBuild: Build?
+
+    fun getHomeUrl(): String
+}
+
+interface BuildAgentPool {
+    val id: BuildAgentPoolId
+    val name: String
+
+    val projects: List<Project>
+    val agents: List<BuildAgent>
 }
 
 interface VcsRootInstance {
