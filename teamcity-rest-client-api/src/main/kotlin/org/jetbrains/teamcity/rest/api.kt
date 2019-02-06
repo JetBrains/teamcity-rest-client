@@ -532,9 +532,9 @@ interface BuildAgent {
     val connected: Boolean
     val enabled: Boolean
     val authorized: Boolean
-    val uptodate: Boolean
+    val outdated: Boolean
 
-    val ip: String
+    val ipAddress: String
 
     val parameters: List<Parameter>
     val enabledInfo: BuildAgentEnabledInfo?

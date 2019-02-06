@@ -1234,9 +1234,9 @@ private class BuildAgentImpl(bean: BuildAgentBean,
         get() = notNull { it.enabled }
     override val authorized: Boolean
         get() = notNull { it.authorized }
-    override val uptodate: Boolean
-        get() = notNull { it.uptodate }
-    override val ip: String
+    override val outdated: Boolean
+        get() = !notNull { it.uptodate }
+    override val ipAddress: String
         get() = notNull { it.ip }
 
     override val parameters: List<Parameter>
