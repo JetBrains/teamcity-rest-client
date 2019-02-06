@@ -4,6 +4,9 @@ import org.apache.log4j.*
 import java.io.File
 import java.io.FileInputStream
 import java.util.*
+import kotlin.reflect.KFunction
+import kotlin.reflect.KProperty
+import kotlin.reflect.full.valueParameters
 
 private val TEAMCITY_CONNECTION_FILE_PATH = "teamcity_connection.properties"
 
@@ -92,3 +95,25 @@ internal class ConnectionPropertiesFileLoader(filePath: String) {
 }
 
 internal class ConnectionConfig(val serverUrl: String, val username: String, val password: String)
+
+inline fun <reified T> callPublicPropertiesAndFetchMethods(instance: T) {
+    instance.toString()
+
+    for (member in T::class.members) {
+        when (member) {
+            is KProperty<*> -> {
+                member.getter.call(instance)
+//                    println("${member.name} = ${member.getter.call(instance)}")
+            }
+
+            is KFunction<*> -> if (
+                    member.name.startsWith("fetch") ||
+                    member.name.startsWith("get")) {
+                if (member.valueParameters.isEmpty()) {
+                    member.call(instance)
+//                    println("${member.name} = ${member.call(instance)}")
+                }
+            }
+        }
+    }
+}
