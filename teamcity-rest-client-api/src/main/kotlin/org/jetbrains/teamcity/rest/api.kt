@@ -13,6 +13,7 @@ abstract class TeamCityInstance {
     abstract fun withLogResponses(): TeamCityInstance
 
     abstract fun builds(): BuildLocator
+    abstract fun investigations(): InvestigationLocator
 
     abstract fun build(id: BuildId): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
@@ -164,6 +165,11 @@ interface BuildLocator {
     fun withAnyStatus(): BuildLocator
 }
 
+interface InvestigationLocator {
+    fun limitResults(count: Int): InvestigationLocator
+    fun all(): Sequence<Investigation>
+}
+
 data class ProjectId(val stringId: String) {
     override fun toString(): String = stringId
 }
@@ -197,6 +203,10 @@ data class BuildAgentPoolId(val stringId: String) {
 }
 
 data class BuildAgentId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class InvestigationId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
@@ -450,6 +460,15 @@ interface Build {
     val finishDate: Date?
 }
 
+interface Investigation {
+    val id: InvestigationId
+    val state: InvestigationState
+    val assigneeUsername: String
+    val reporterUsername: String?
+    val comment: String
+    val removeMethod: InvestigationRemoveMethod
+}
+
 interface BuildRunningInfo {
     val percentageComplete: Int
     val elapsedSeconds: Long
@@ -571,6 +590,17 @@ enum class BuildState {
     FINISHED,
     DELETED,
     UNKNOWN,
+}
+
+enum class InvestigationState {
+    TAKEN,
+    FIXED,
+    GIVEN_UP
+}
+
+enum class InvestigationRemoveMethod {
+    MANUALLY,
+    WHEN_FIXED;
 }
 
 interface PinInfo {

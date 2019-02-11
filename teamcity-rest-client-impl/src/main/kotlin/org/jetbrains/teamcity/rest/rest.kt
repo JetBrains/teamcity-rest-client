@@ -27,6 +27,14 @@ internal interface TeamCityService {
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/investigations")
+    fun investigations(@Query("locator") investigationLocator: String?): InvestigationListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/investigations/id:{id}")
+    fun investigation(@Path("id") id: String): InvestigationBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
@@ -509,4 +517,25 @@ internal open class TestOccurrenceBean {
     companion object {
         val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,ignoreDetails,details,build(id),test(id))"
     }
+}
+
+internal class InvestigationListBean {
+    var investigation: List<InvestigationBean> = ArrayList()
+}
+
+internal class InvestigationBean: IdBean() {
+    val state: InvestigationState? = null
+    val assignee: UserBean? = null
+    val assignment: AssignmentBean? = null
+    val resolution: InvestigationResolutionBean? = null
+}
+
+class InvestigationResolutionBean {
+    val type: String? = null
+}
+
+internal class AssignmentBean {
+    val user: UserBean? = null
+    val text: String? = null
+    val timestamp: String? = null
 }
