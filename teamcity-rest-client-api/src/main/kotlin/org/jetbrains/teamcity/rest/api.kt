@@ -468,7 +468,7 @@ interface Investigation {
     val assigneeUsername: String
     val reporterUsername: String?
     val comment: String
-    val removeMethod: InvestigationRemoveMethod
+    val resolveMethod: InvestigationResolveMethod
     val targetType: InvestigationTargetType
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
@@ -603,7 +603,7 @@ enum class InvestigationState {
     GIVEN_UP
 }
 
-enum class InvestigationRemoveMethod {
+enum class InvestigationResolveMethod {
     MANUALLY,
     WHEN_FIXED;
 }

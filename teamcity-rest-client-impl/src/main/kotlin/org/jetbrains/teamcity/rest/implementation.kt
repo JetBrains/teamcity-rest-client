@@ -502,13 +502,13 @@ private class InvestigationImpl(
         get() = nullable { it.assignment?.user?.username }
     override val comment: String
         get() = notNull { it.assignment?.text ?: "" }
-    override val removeMethod: InvestigationRemoveMethod
+    override val resolveMethod: InvestigationResolveMethod
         get() {
             val asString = notNull { it.resolution?.type }
             if (asString == "whenFixed") {
-                return InvestigationRemoveMethod.WHEN_FIXED
+                return InvestigationResolveMethod.WHEN_FIXED
             } else if (asString == "manually") {
-                return InvestigationRemoveMethod.MANUALLY
+                return InvestigationResolveMethod.MANUALLY
             }
 
             throw IllegalStateException("Properties are invalid")
