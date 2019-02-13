@@ -27,6 +27,14 @@ internal interface TeamCityService {
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/investigations")
+    fun investigations(@Query("locator") investigationLocator: String?): InvestigationListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/investigations/id:{id}")
+    fun investigation(@Path("id") id: String): InvestigationBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
@@ -509,4 +517,43 @@ internal open class TestOccurrenceBean {
     companion object {
         val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,ignoreDetails,details,build(id),test(id))"
     }
+}
+
+internal class InvestigationListBean {
+    var investigation: List<InvestigationBean> = ArrayList()
+}
+
+internal class InvestigationBean: IdBean() {
+    val state: InvestigationState? = null
+    val assignee: UserBean? = null
+    val assignment: AssignmentBean? = null
+    val resolution: InvestigationResolutionBean? = null
+    val target: InvestigationTargetBean? = null
+}
+
+class InvestigationResolutionBean {
+    val type: String? = null
+}
+
+internal class AssignmentBean {
+    val user: UserBean? = null
+    val text: String? = null
+    val timestamp: String? = null
+}
+
+internal open class InvestigationTargetBean {
+    val tests : TestUnderInvestigationListBean? = null
+    val problems: ProblemUnderInvestigationListBean? = null
+    val anyProblem: Boolean? = null
+}
+
+internal class TestUnderInvestigationListBean {
+    val count : Int? = null
+    var test : List<TestBean> = ArrayList()
+
+}
+
+internal class ProblemUnderInvestigationListBean {
+    val count : Int? = null
+    var problem : List<BuildProblemBean> = ArrayList()
 }

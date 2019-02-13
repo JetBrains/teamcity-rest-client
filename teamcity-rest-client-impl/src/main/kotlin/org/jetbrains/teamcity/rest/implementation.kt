@@ -126,6 +126,8 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
 
+    override fun investigations(): InvestigationLocator = InvestigationLocatorImpl(this)
+
     override fun build(id: BuildId): Build = BuildImpl(
             BuildBean().also { it.id = id.stringId }, false, this)
 
@@ -402,6 +404,48 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     override fun untilDate(date: Date): BuildLocator = until(date.toInstant())
 }
 
+private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImpl) : InvestigationLocator {
+    private var count: Int? = null
+    private var targetType: InvestigationTargetType? = null
+    private var affectedProjectId: ProjectId? = null
+
+    override fun limitResults(count: Int): InvestigationLocator {
+        this.count = count
+        return this
+    }
+
+    override fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator {
+        this.targetType = targetType
+        return this
+    }
+
+    override fun forProject(projectId: ProjectId): InvestigationLocator {
+        this.affectedProjectId = projectId
+        return this
+    }
+
+    override fun all(): Sequence<Investigation> {
+        var investigationLocator : String? = null
+
+        val parameters = listOfNotNull(
+                count?.let { "count:$it" },
+                affectedProjectId?.let { "affectedProject:$it" },
+                targetType?.let { "type:${it.value}" }
+        )
+
+        if (parameters.isNotEmpty()) {
+            investigationLocator = parameters.joinToString(",")
+            LOG.debug("Retrieving investigations from ${instance.serverUrl} using query '$investigationLocator'")
+        }
+
+        return instance.service
+                .investigations(investigationLocator = investigationLocator)
+                .investigation.map { InvestigationImpl(it, true, instance) }
+                .toSequence()
+    }
+
+}
+
 private abstract class BaseImpl<TBean : IdBean>(
         private val bean: TBean,
         private val isFullBean: Boolean,
@@ -436,6 +480,52 @@ private abstract class BaseImpl<TBean : IdBean>(
     }
 
     override fun hashCode(): Int = idString.hashCode()
+}
+
+
+private class InvestigationImpl(
+        bean: InvestigationBean,
+        isFullProjectBean: Boolean,
+        instance: TeamCityInstanceImpl) :
+        BaseImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
+    override fun fetchFullBean(): InvestigationBean = instance.service.investigation(id.stringId)
+
+    override fun toString(): String = "Investigation(id=$idString,state=$state)"
+
+    override val id: InvestigationId
+        get() = InvestigationId(idString)
+    override val state: InvestigationState
+        get() = notNull { it.state }
+    override val assigneeUsername: String
+        get() = notNull { it.assignee?.username }
+    override val reporterUsername: String?
+        get() = nullable { it.assignment?.user?.username }
+    override val comment: String
+        get() = notNull { it.assignment?.text ?: "" }
+    override val resolveMethod: InvestigationResolveMethod
+        get() {
+            val asString = notNull { it.resolution?.type }
+            if (asString == "whenFixed") {
+                return InvestigationResolveMethod.WHEN_FIXED
+            } else if (asString == "manually") {
+                return InvestigationResolveMethod.MANUALLY
+            }
+
+            throw IllegalStateException("Properties are invalid")
+        }
+    override val targetType: InvestigationTargetType
+        get() {
+            val target = notNull { it.target}
+            if (target.tests != null) return InvestigationTargetType.TEST
+            if (target.problems != null) return InvestigationTargetType.BUILD_PROBLEM
+            return InvestigationTargetType.BUILD_CONFIGURATION
+        }
+
+    override val testIds: List<TestId>?
+        get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id })} }
+
+    override val problemIds: List<BuildProblemId>?
+        get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id })} }
 }
 
 private class ProjectImpl(
