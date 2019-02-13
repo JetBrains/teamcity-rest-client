@@ -528,6 +528,7 @@ internal class InvestigationBean: IdBean() {
     val assignee: UserBean? = null
     val assignment: AssignmentBean? = null
     val resolution: InvestigationResolutionBean? = null
+    val target: InvestigationTargetBean? = null
 }
 
 class InvestigationResolutionBean {
@@ -538,4 +539,21 @@ internal class AssignmentBean {
     val user: UserBean? = null
     val text: String? = null
     val timestamp: String? = null
+}
+
+internal open class InvestigationTargetBean {
+    val tests : TestUnderInvestigationListBean? = null
+    val problems: ProblemUnderInvestigationListBean? = null
+    val anyProblem: Boolean? = null
+}
+
+internal class TestUnderInvestigationListBean {
+    val count : Int? = null
+    var test : List<TestBean> = ArrayList()
+
+}
+
+internal class ProblemUnderInvestigationListBean {
+    val count : Int? = null
+    var problem : List<BuildProblemBean> = ArrayList()
 }

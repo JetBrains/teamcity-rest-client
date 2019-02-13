@@ -406,9 +406,21 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
 private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImpl) : InvestigationLocator {
     private var count: Int? = null
+    private var targetType: InvestigationTargetType? = null
+    private var affectedProjectId: ProjectId? = null
 
     override fun limitResults(count: Int): InvestigationLocator {
         this.count = count
+        return this
+    }
+
+    override fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator {
+        this.targetType = targetType
+        return this
+    }
+
+    override fun forProject(projectId: ProjectId): InvestigationLocator {
+        this.affectedProjectId = projectId
         return this
     }
 
@@ -416,7 +428,9 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
         var investigationLocator : String? = null
 
         val parameters = listOfNotNull(
-                count?.let { "count:$it" }
+                count?.let { "count:$it" },
+                affectedProjectId?.let { "affectedProject:$it" },
+                targetType?.let { "type:${it.value}" }
         )
 
         if (parameters.isNotEmpty()) {
@@ -426,7 +440,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
         return instance.service
                 .investigations(investigationLocator = investigationLocator)
-                .investigation.map { InvestigationImpl(it, false, instance) }
+                .investigation.map { InvestigationImpl(it, true, instance) }
                 .toSequence()
     }
 
@@ -485,9 +499,9 @@ private class InvestigationImpl(
     override val assigneeUsername: String
         get() = notNull { it.assignee?.username }
     override val reporterUsername: String?
-        get() =  nullable { it.assignment?.user?.username }
+        get() = nullable { it.assignment?.user?.username }
     override val comment: String
-        get() =  notNull { it.assignment?.text ?: "" }
+        get() = notNull { it.assignment?.text ?: "" }
     override val removeMethod: InvestigationRemoveMethod
         get() {
             val asString = notNull { it.resolution?.type }
@@ -499,6 +513,19 @@ private class InvestigationImpl(
 
             throw IllegalStateException("Properties are invalid")
         }
+    override val targetType: InvestigationTargetType
+        get() {
+            val target = notNull { it.target}
+            if (target.tests != null) return InvestigationTargetType.TEST
+            if (target.problems != null) return InvestigationTargetType.BUILD_PROBLEM
+            return InvestigationTargetType.BUILD_CONFIGURATION
+        }
+
+    override val testIds: List<TestId>?
+        get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id })} }
+
+    override val problemIds: List<BuildProblemId>?
+        get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id })} }
 }
 
 private class ProjectImpl(

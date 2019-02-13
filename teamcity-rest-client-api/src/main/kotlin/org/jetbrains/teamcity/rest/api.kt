@@ -167,6 +167,8 @@ interface BuildLocator {
 
 interface InvestigationLocator {
     fun limitResults(count: Int): InvestigationLocator
+    fun forProject(projectId: ProjectId): InvestigationLocator
+    fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator
     fun all(): Sequence<Investigation>
 }
 
@@ -467,6 +469,9 @@ interface Investigation {
     val reporterUsername: String?
     val comment: String
     val removeMethod: InvestigationRemoveMethod
+    val targetType: InvestigationTargetType
+    val testIds: List<TestId>?
+    val problemIds: List<BuildProblemId>?
 }
 
 interface BuildRunningInfo {
@@ -601,6 +606,12 @@ enum class InvestigationState {
 enum class InvestigationRemoveMethod {
     MANUALLY,
     WHEN_FIXED;
+}
+
+enum class InvestigationTargetType(val value: String) {
+    TEST("test"),
+    BUILD_PROBLEM("problem"),
+    BUILD_CONFIGURATION("anyProblem")
 }
 
 interface PinInfo {
