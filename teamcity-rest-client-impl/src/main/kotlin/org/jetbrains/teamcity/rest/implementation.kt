@@ -569,10 +569,14 @@ private class InvestigationImpl(
         get() = InvestigationId(idString)
     override val state: InvestigationState
         get() = notNull { it.state }
-    override val assigneeUsername: String
-        get() = notNull { it.assignee?.username }
-    override val reporterUsername: String?
-        get() = nullable { it.assignment?.user?.username }
+    override val assignee: User
+        get() = UserImpl( notNull { it.assignee }, false, instance)
+    override val reporter: User?
+        get() {
+            val assignment = nullable { it.assignment } ?: return null
+            val userBean = assignment.user ?: return null
+            return UserImpl( userBean, false, instance)
+        }
     override val comment: String
         get() = notNull { it.assignment?.text ?: "" }
     override val resolveMethod: InvestigationResolveMethod

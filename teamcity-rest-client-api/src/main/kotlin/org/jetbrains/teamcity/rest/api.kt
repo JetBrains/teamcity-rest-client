@@ -475,8 +475,8 @@ interface Build {
 interface Investigation {
     val id: InvestigationId
     val state: InvestigationState
-    val assigneeUsername: String
-    val reporterUsername: String?
+    val assignee: User
+    val reporter: User?
     val comment: String
     val resolveMethod: InvestigationResolveMethod
     val targetType: InvestigationTargetType
