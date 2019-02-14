@@ -20,6 +20,37 @@ class InvestigationTest {
     }
 
     @Test
+    fun test_assignee() {
+        var hasAtLeastOneName = false
+        val investigations = publicInstance().investigations().limitResults(10).all()
+        for (investigation in investigations) {
+            Assert.assertNotNull(investigation.assignee)
+            Assert.assertNotNull(investigation.assignee.id)
+            Assert.assertNotNull(investigation.assignee.username)
+            if (investigation.assignee.name != null) {
+                hasAtLeastOneName = true
+            }
+        }
+
+        Assert.assertTrue(hasAtLeastOneName)
+    }
+
+    @Test
+    fun test_reporter() {
+        var hasAtLeastOneReporter = false
+        val investigations = publicInstance().investigations().limitResults(10).all()
+        for (investigation in investigations) {
+            if (investigation.reporter != null) {
+                hasAtLeastOneReporter = true
+                Assert.assertNotNull(investigation.reporter?.id)
+                Assert.assertNotNull(investigation.reporter?.username)
+            }
+        }
+
+        Assert.assertTrue(hasAtLeastOneReporter)
+    }
+
+    @Test
     fun test_forProject() {
         val filteredInvestigations = publicInstance().investigations().forProject(ProjectId("Kotlin")).all()
         val allInvestigations = publicInstance().investigations().all()
