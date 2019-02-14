@@ -40,7 +40,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/testOccurrences/")
-    fun tests(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
+    fun testOccurrences(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")

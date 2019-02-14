@@ -507,7 +507,7 @@ private class TestOccurrencesLocatorImpl(private val instance: TeamCityInstanceI
             val testOccurrencesLocator = parameters.joinToString(",")
             LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
 
-            return@lazyPaging instance.service.tests(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
+            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
         }) { testOccurrencesBean ->
             Page(
                     data = testOccurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
@@ -1144,7 +1144,7 @@ private class BuildImpl(bean: BuildBean,
             TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
         }
 
-        return@lazyPaging instance.service.tests(
+        return@lazyPaging instance.service.testOccurrences(
                 locator = "build:(id:${id.stringId})$statusLocator",
                 fields = TestOccurrenceBean.filter)
     }) { occurrencesBean ->
