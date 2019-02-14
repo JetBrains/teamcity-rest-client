@@ -495,7 +495,6 @@ private class TestOccurrencesLocatorImpl(private val instance: TeamCityInstanceI
                 affectedProjectId?.let { "affectedProject:$it" },
                 buildId?.let { "build:$it" },
                 testId?.let { "test:$it" },
-                affectedProjectId?.let { "affectedProject:$it" },
                 statusLocator
         )
 
