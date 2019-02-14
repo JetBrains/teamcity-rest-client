@@ -48,6 +48,7 @@ val fSharpVSPowerToolsPausedConfiguration = BuildConfigurationId("bt1208")
 
 val kotlinDevCompilerAllPlugins = BuildConfigurationId("Kotlin_dev_CompilerAllPlugins")
 val KotlinDevBuildNumber = BuildConfigurationId("Kotlin_dev_BuildNumber")
+val TeamCityRestApiClientsKotlinClientBuild = BuildConfigurationId("TeamCityRestApiClients_KotlinClient_Build")
 
 internal class ConnectionPropertiesFileLoader(filePath: String) {
 

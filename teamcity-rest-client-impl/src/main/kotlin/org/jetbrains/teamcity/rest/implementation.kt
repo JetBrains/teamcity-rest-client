@@ -185,6 +185,8 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun queuedBuilds(projectId: ProjectId?): List<Build> =
             buildQueue().queuedBuilds(projectId = projectId).toList()
+
+    override fun testOccurrences(): TestOccurrencesLocator = TestOccurrencesLocatorImpl(this)
 }
 
 private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
@@ -444,6 +446,77 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
                 .toSequence()
     }
 
+}
+
+private class TestOccurrencesLocatorImpl(private val instance: TeamCityInstanceImpl) : TestOccurrencesLocator {
+    private var count: Int? = null
+    private var buildId: BuildId? = null
+    private var testId: TestId? = null
+    private var affectedProjectId: ProjectId? = null
+    private var testStatus: TestStatus? = null
+
+    override fun limitResults(count: Int): TestOccurrencesLocator {
+        this.count = count
+        return this
+    }
+
+    override fun forProject(projectId: ProjectId): TestOccurrencesLocator {
+        this.affectedProjectId = projectId
+        return this
+    }
+
+    override fun forBuild(buildId: BuildId): TestOccurrencesLocator {
+        this.buildId = buildId
+        return this
+    }
+
+    override fun forTest(testId: TestId): TestOccurrencesLocator {
+        this.testId = testId
+        return this
+    }
+
+    override fun withStatus(testStatus: TestStatus): TestOccurrencesLocator {
+        this.testStatus = testStatus
+        return this
+    }
+
+    override fun all(): Sequence<TestOccurrence> {
+        val count1 = count
+        val statusLocator = when (testStatus) {
+            null -> null
+            TestStatus.FAILED -> "tatus:FAILURE"
+            TestStatus.SUCCESSFUL -> "status:SUCCESS"
+            TestStatus.IGNORED -> "ignored:true"
+            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
+        }
+
+        val parameters = listOfNotNull(
+                count1?.let { "count:$it" },
+                affectedProjectId?.let { "affectedProject:$it" },
+                buildId?.let { "build:$it" },
+                testId?.let { "test:$it" },
+                affectedProjectId?.let { "affectedProject:$it" },
+                statusLocator
+        )
+
+        if (parameters.isEmpty()) {
+            throw IllegalArgumentException("At least one parameter should be specified")
+        }
+
+        val sequence = lazyPaging(instance, {
+            val testOccurrencesLocator = parameters.joinToString(",")
+            LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
+
+            return@lazyPaging instance.service.tests(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
+        }) { testOccurrencesBean ->
+            Page(
+                    data = testOccurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
+                    nextHref = testOccurrencesBean.nextHref
+            )
+        }
+
+        return if (count1 != null) sequence.take(count1) else sequence
+    }
 }
 
 private abstract class BaseImpl<TBean : IdBean>(

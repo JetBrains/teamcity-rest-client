@@ -28,6 +28,7 @@ abstract class TeamCityInstance {
     abstract fun users(): UserLocator
     abstract fun buildAgents(): BuildAgentLocator
     abstract fun buildAgentPools(): BuildAgentPoolLocator
+    abstract fun testOccurrences(): TestOccurrencesLocator
 
     abstract fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
     abstract fun change(id: ChangeId): Change
@@ -170,6 +171,15 @@ interface InvestigationLocator {
     fun forProject(projectId: ProjectId): InvestigationLocator
     fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator
     fun all(): Sequence<Investigation>
+}
+
+interface TestOccurrencesLocator {
+    fun limitResults(count: Int): TestOccurrencesLocator
+    fun forBuild(buildId: BuildId): TestOccurrencesLocator
+    fun forTest(testId: TestId): TestOccurrencesLocator
+    fun forProject(projectId: ProjectId): TestOccurrencesLocator
+    fun withStatus(testStatus: TestStatus): TestOccurrencesLocator
+    fun all(): Sequence<TestOccurrence>
 }
 
 data class ProjectId(val stringId: String) {
@@ -633,8 +643,7 @@ enum class TestStatus {
     SUCCESSFUL,
     IGNORED,
     FAILED,
-
-    UNKNOWN,
+    UNKNOWN
 }
 
 interface TestOccurrence {
