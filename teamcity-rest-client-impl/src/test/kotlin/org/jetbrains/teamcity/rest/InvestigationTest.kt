@@ -59,22 +59,45 @@ class InvestigationTest {
     }
 
     @Test
+    fun test_assignmentProjectForTestInvestigations() {
+        val investigations = publicInstance().investigations().withTargetType(InvestigationTargetType.TEST).all()
+
+        Assert.assertTrue(investigations.all { inv -> inv.assignmentProject != null })
+        Assert.assertTrue(investigations.all { inv -> inv.assignmentBuildConfiguration == null })
+    }
+
+    @Test
+    fun test_assignmentProjectForBuildProblemsInvestigations() {
+        val investigations = publicInstance().investigations().withTargetType(InvestigationTargetType.BUILD_PROBLEM).all()
+
+        Assert.assertTrue(investigations.all { inv -> inv.assignmentProject != null })
+        Assert.assertTrue(investigations.all { inv -> inv.assignmentBuildConfiguration == null })
+    }
+
+    @Test
+    fun test_assignmentProjectForBuildType() {
+        val investigations = publicInstance().investigations().withTargetType(InvestigationTargetType.BUILD_CONFIGURATION).all()
+        Assert.assertTrue(investigations.all { inv -> inv.assignmentProject == null })
+        Assert.assertTrue(investigations.all { inv -> inv.assignmentBuildConfiguration != null })
+    }
+
+    @Test
     fun test_withType() {
         val allInvestigations = publicInstance().investigations().all()
 
         var filteredInvestigations = publicInstance().investigations().withTargetType(InvestigationTargetType.TEST).all()
         Assert.assertTrue(filteredInvestigations.any())
-        Assert.assertTrue(filteredInvestigations.all{it.targetType == InvestigationTargetType.TEST})
+        Assert.assertTrue(filteredInvestigations.all { it.targetType == InvestigationTargetType.TEST })
         Assert.assertTrue(filteredInvestigations.count() < allInvestigations.count())
 
         filteredInvestigations = publicInstance().investigations().withTargetType(InvestigationTargetType.BUILD_PROBLEM).all()
         Assert.assertTrue(filteredInvestigations.any())
-        Assert.assertTrue(filteredInvestigations.all{it.targetType == InvestigationTargetType.BUILD_PROBLEM})
+        Assert.assertTrue(filteredInvestigations.all { it.targetType == InvestigationTargetType.BUILD_PROBLEM })
         Assert.assertTrue(filteredInvestigations.count() < allInvestigations.count())
 
         filteredInvestigations = publicInstance().investigations().withTargetType(InvestigationTargetType.BUILD_CONFIGURATION).all()
         Assert.assertTrue(filteredInvestigations.any())
-        Assert.assertTrue(filteredInvestigations.all{it.targetType == InvestigationTargetType.BUILD_CONFIGURATION})
+        Assert.assertTrue(filteredInvestigations.all { it.targetType == InvestigationTargetType.BUILD_CONFIGURATION })
         Assert.assertTrue(filteredInvestigations.count() < allInvestigations.count())
     }
 

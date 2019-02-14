@@ -482,6 +482,8 @@ interface Investigation {
     val targetType: InvestigationTargetType
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
+    val assignmentProject: Project?
+    val assignmentBuildConfiguration: BuildConfiguration?
 }
 
 interface BuildRunningInfo {
