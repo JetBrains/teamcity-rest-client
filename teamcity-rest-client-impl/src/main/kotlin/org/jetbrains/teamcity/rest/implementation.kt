@@ -1158,7 +1158,26 @@ private class BuildImpl(bean: BuildBean,
     override val snapshotDependencies: List<Build> get() =
         fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
-    override fun tests(status: TestStatus?): Sequence<TestRun> = lazyPaging(instance, {
+    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging(instance, {
+        val statusLocator = when (status) {
+            null -> ""
+            TestStatus.FAILED -> ",status:FAILURE"
+            TestStatus.SUCCESSFUL -> ",status:SUCCESS"
+            TestStatus.IGNORED -> ",ignored:true"
+            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
+        }
+
+        return@lazyPaging instance.service.testOccurrences(
+                locator = "build:(id:${id.stringId})$statusLocator",
+                fields = TestOccurrenceBean.filter)
+    }) { occurrencesBean ->
+        Page(
+                data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
+                nextHref = occurrencesBean.nextHref
+        )
+    }
+
+    override fun testRuns(status: TestStatus?): Sequence<TestRun> = lazyPaging(instance, {
         val statusLocator = when (status) {
             null -> ""
             TestStatus.FAILED -> ",status:FAILURE"
@@ -1526,7 +1545,8 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
-private class TestRunImpl(bean: TestOccurrenceBean): TestRun {
+@Deprecated(message = "Deprecated due to unclear naming. use TestRunImpl class", replaceWith = ReplaceWith("TestRunImpl"))
+private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!
 
     override val status = when {
@@ -1556,6 +1576,8 @@ private class TestRunImpl(bean: TestOccurrenceBean): TestRun {
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
+
+private class TestRunImpl(bean: TestOccurrenceBean) : TestRun, TestOccurrenceImpl(bean)
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()

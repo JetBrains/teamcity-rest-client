@@ -425,7 +425,10 @@ interface Build {
 
     val agent: BuildAgent?
 
-    fun tests(status: TestStatus? = null) : Sequence<TestRun>
+    @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
+    fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
+
+    fun testRuns(status: TestStatus? = null) : Sequence<TestRun>
 
     val buildProblems: Sequence<BuildProblemOccurrence>
 
@@ -647,7 +650,8 @@ enum class TestStatus {
     UNKNOWN
 }
 
-interface TestRun {
+@Deprecated(message = "Deprecated due to unclear naming. use TestRun class", replaceWith = ReplaceWith("TestRun"))
+interface TestOccurrence {
     val name : String
     val status: TestStatus
 
@@ -672,6 +676,8 @@ interface TestRun {
     val buildId: BuildId
     val testId: TestId
 }
+
+interface TestRun : TestOccurrence
 
 interface TriggeredInfo {
     val user: User?
