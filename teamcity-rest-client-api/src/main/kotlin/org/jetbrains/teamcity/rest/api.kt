@@ -28,7 +28,7 @@ abstract class TeamCityInstance {
     abstract fun users(): UserLocator
     abstract fun buildAgents(): BuildAgentLocator
     abstract fun buildAgentPools(): BuildAgentPoolLocator
-    abstract fun testOccurrences(): TestOccurrencesLocator
+    abstract fun testRuns(): TestRunsLocator
 
     abstract fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
     abstract fun change(id: ChangeId): Change
@@ -173,13 +173,13 @@ interface InvestigationLocator {
     fun all(): Sequence<Investigation>
 }
 
-interface TestOccurrencesLocator {
-    fun limitResults(count: Int): TestOccurrencesLocator
-    fun forBuild(buildId: BuildId): TestOccurrencesLocator
-    fun forTest(testId: TestId): TestOccurrencesLocator
-    fun forProject(projectId: ProjectId): TestOccurrencesLocator
-    fun withStatus(testStatus: TestStatus): TestOccurrencesLocator
-    fun all(): Sequence<TestOccurrence>
+interface TestRunsLocator {
+    fun limitResults(count: Int): TestRunsLocator
+    fun forBuild(buildId: BuildId): TestRunsLocator
+    fun forTest(testId: TestId): TestRunsLocator
+    fun forProject(projectId: ProjectId): TestRunsLocator
+    fun withStatus(testStatus: TestStatus): TestRunsLocator
+    fun all(): Sequence<TestRun>
 }
 
 data class ProjectId(val stringId: String) {
@@ -425,7 +425,7 @@ interface Build {
 
     val agent: BuildAgent?
 
-    fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
+    fun tests(status: TestStatus? = null) : Sequence<TestRun>
 
     val buildProblems: Sequence<BuildProblemOccurrence>
 
@@ -648,7 +648,7 @@ enum class TestStatus {
     UNKNOWN
 }
 
-interface TestOccurrence {
+interface TestRun {
     val name : String
     val status: TestStatus
 

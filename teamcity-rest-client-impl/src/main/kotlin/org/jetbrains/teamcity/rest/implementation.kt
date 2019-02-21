@@ -186,7 +186,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun queuedBuilds(projectId: ProjectId?): List<Build> =
             buildQueue().queuedBuilds(projectId = projectId).toList()
 
-    override fun testOccurrences(): TestOccurrencesLocator = TestOccurrencesLocatorImpl(this)
+    override fun testRuns(): TestRunsLocator = TestRunsLocatorImpl(this)
 }
 
 private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
@@ -448,39 +448,39 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
 }
 
-private class TestOccurrencesLocatorImpl(private val instance: TeamCityInstanceImpl) : TestOccurrencesLocator {
+private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
     private var count: Int? = null
     private var buildId: BuildId? = null
     private var testId: TestId? = null
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
 
-    override fun limitResults(count: Int): TestOccurrencesLocator {
+    override fun limitResults(count: Int): TestRunsLocator {
         this.count = count
         return this
     }
 
-    override fun forProject(projectId: ProjectId): TestOccurrencesLocator {
+    override fun forProject(projectId: ProjectId): TestRunsLocator {
         this.affectedProjectId = projectId
         return this
     }
 
-    override fun forBuild(buildId: BuildId): TestOccurrencesLocator {
+    override fun forBuild(buildId: BuildId): TestRunsLocator {
         this.buildId = buildId
         return this
     }
 
-    override fun forTest(testId: TestId): TestOccurrencesLocator {
+    override fun forTest(testId: TestId): TestRunsLocator {
         this.testId = testId
         return this
     }
 
-    override fun withStatus(testStatus: TestStatus): TestOccurrencesLocator {
+    override fun withStatus(testStatus: TestStatus): TestRunsLocator {
         this.testStatus = testStatus
         return this
     }
 
-    override fun all(): Sequence<TestOccurrence> {
+    override fun all(): Sequence<TestRun> {
         val count1 = count
         val statusLocator = when (testStatus) {
             null -> null
@@ -509,7 +509,7 @@ private class TestOccurrencesLocatorImpl(private val instance: TeamCityInstanceI
             return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
         }) { testOccurrencesBean ->
             Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it) },
                     nextHref = testOccurrencesBean.nextHref
             )
         }
@@ -1155,7 +1155,7 @@ private class BuildImpl(bean: BuildBean,
     override val snapshotDependencies: List<Build> get() =
         fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
-    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging(instance, {
+    override fun tests(status: TestStatus?): Sequence<TestRun> = lazyPaging(instance, {
         val statusLocator = when (status) {
             null -> ""
             TestStatus.FAILED -> ",status:FAILURE"
@@ -1169,7 +1169,7 @@ private class BuildImpl(bean: BuildBean,
                 fields = TestOccurrenceBean.filter)
     }) { occurrencesBean ->
         Page(
-                data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
+                data = occurrencesBean.testOccurrence.map { TestRunImpl(it) },
                 nextHref = occurrencesBean.nextHref
         )
     }
@@ -1523,7 +1523,7 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
-private class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
+private class TestRunImpl(bean: TestOccurrenceBean): TestRun {
     override val name = bean.name!!
 
     override val status = when {

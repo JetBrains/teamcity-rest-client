@@ -4,7 +4,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-class TestOccurrencesTest {
+class TestRunsTest {
     @Before
     fun setupLog4j() {
         setupLog4jDebug()
@@ -17,9 +17,9 @@ class TestOccurrencesTest {
                 .fromConfiguration(TeamCityRestApiClientsKotlinClientBuild)
                 .latest() ?: throw IllegalArgumentException("At least one build should be found")
 
-        val occurrences = publicInstance().testOccurrences().forBuild(testBuild.id).limitResults(3).all()
-        Assert.assertEquals(occurrences.count(), 3)
-        occurrences.forEach {
+        val testRuns = publicInstance().testRuns().forBuild(testBuild.id).limitResults(3).all()
+        Assert.assertEquals(testRuns.count(), 3)
+        testRuns.forEach {
             callPublicPropertiesAndFetchMethods(it)
         }
     }
@@ -31,8 +31,8 @@ class TestOccurrencesTest {
                 .fromConfiguration(TeamCityRestApiClientsKotlinClientBuild)
                 .latest() ?: throw IllegalArgumentException("At least one build should be found")
 
-        val occurrences = publicInstance().testOccurrences().forBuild(testBuild.id).limitResults(3).all()
-        Assert.assertTrue(occurrences.any())
-        Assert.assertTrue(occurrences.all { x -> publicInstance().build(x.buildId).buildConfigurationId == TeamCityRestApiClientsKotlinClientBuild })
+        val testRuns = publicInstance().testRuns().forBuild(testBuild.id).limitResults(3).all()
+        Assert.assertTrue(testRuns.any())
+        Assert.assertTrue(testRuns.all { x -> publicInstance().build(x.buildId).buildConfigurationId == TeamCityRestApiClientsKotlinClientBuild })
     }
 }
