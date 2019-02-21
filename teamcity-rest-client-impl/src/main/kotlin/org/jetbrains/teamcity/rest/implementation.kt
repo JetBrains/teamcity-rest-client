@@ -603,21 +603,24 @@ private class InvestigationImpl(
     override val problemIds: List<BuildProblemId>?
         get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id })} }
 
-    override val assignmentProject: Project?
+    override val scope: InvestigationScope
         get() {
             val scope = notNull { it.scope }
-            return scope.project?.let { bean -> ProjectImpl(bean, false, instance) }
-        }
-
-    override val assignmentBuildConfiguration: BuildConfiguration?
-        get() {
-            val scope = notNull { it.scope }
+            val project = scope.project?.let { bean -> ProjectImpl(bean, false, instance) }
+            if (project != null) {
+                return InvestigationScope.InProject(project)
+            }
 
             /* neither teamcity.jetbrains nor buildserer contain more then one assignment build type */
             if (scope.buildTypes?.buildType != null && scope.buildTypes.buildType.size > 1) {
                 throw IllegalStateException("more then one buildType")
             }
-            return scope.buildTypes?.let { bean -> BuildConfigurationImpl(bean.buildType[0], false, instance) }
+            val buildConfiguration = scope.buildTypes?.let { bean -> BuildConfigurationImpl(bean.buildType[0], false, instance) }
+            if (buildConfiguration != null) {
+                return InvestigationScope.InBuildConfiguration(buildConfiguration)
+            }
+
+            throw IllegalStateException("scope is missed in the bean")
         }
 }
 

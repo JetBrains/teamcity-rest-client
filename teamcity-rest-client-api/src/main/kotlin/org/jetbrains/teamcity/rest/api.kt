@@ -482,8 +482,7 @@ interface Investigation {
     val targetType: InvestigationTargetType
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
-    val assignmentProject: Project?
-    val assignmentBuildConfiguration: BuildConfiguration?
+    val scope: InvestigationScope
 }
 
 interface BuildRunningInfo {
@@ -718,4 +717,9 @@ open class TeamCityConversationException(message: String?, cause: Throwable? = n
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
     fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
+}
+
+sealed class InvestigationScope {
+    class InProject(val project: Project): InvestigationScope()
+    class InBuildConfiguration(val configuration: BuildConfiguration): InvestigationScope()
 }

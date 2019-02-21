@@ -61,24 +61,19 @@ class InvestigationTest {
     @Test
     fun test_assignmentProjectForTestInvestigations() {
         val investigations = publicInstance().investigations().withTargetType(InvestigationTargetType.TEST).all()
-
-        Assert.assertTrue(investigations.all { inv -> inv.assignmentProject != null })
-        Assert.assertTrue(investigations.all { inv -> inv.assignmentBuildConfiguration == null })
+        Assert.assertTrue(investigations.all { inv -> inv.scope is InvestigationScope.InProject })
     }
 
     @Test
     fun test_assignmentProjectForBuildProblemsInvestigations() {
         val investigations = publicInstance().investigations().withTargetType(InvestigationTargetType.BUILD_PROBLEM).all()
-
-        Assert.assertTrue(investigations.all { inv -> inv.assignmentProject != null })
-        Assert.assertTrue(investigations.all { inv -> inv.assignmentBuildConfiguration == null })
+        Assert.assertTrue(investigations.all { inv -> inv.scope is InvestigationScope.InProject })
     }
 
     @Test
     fun test_assignmentProjectForBuildType() {
         val investigations = publicInstance().investigations().withTargetType(InvestigationTargetType.BUILD_CONFIGURATION).all()
-        Assert.assertTrue(investigations.all { inv -> inv.assignmentProject == null })
-        Assert.assertTrue(investigations.all { inv -> inv.assignmentBuildConfiguration != null })
+        Assert.assertTrue(investigations.all { inv -> inv.scope is InvestigationScope.InBuildConfiguration })
     }
 
     @Test
