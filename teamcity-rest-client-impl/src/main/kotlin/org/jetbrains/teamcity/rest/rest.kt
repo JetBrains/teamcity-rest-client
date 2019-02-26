@@ -5,7 +5,7 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
-import java.util.*
+import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
 
@@ -40,7 +40,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/testOccurrences/")
-    fun tests(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
+    fun testOccurrences(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
@@ -528,6 +528,7 @@ internal class InvestigationBean: IdBean() {
     val assignee: UserBean? = null
     val assignment: AssignmentBean? = null
     val resolution: InvestigationResolutionBean? = null
+    val scope: InvestigationScopeBean? = null
     val target: InvestigationTargetBean? = null
 }
 
@@ -556,4 +557,9 @@ internal class TestUnderInvestigationListBean {
 internal class ProblemUnderInvestigationListBean {
     val count : Int? = null
     var problem : List<BuildProblemBean> = ArrayList()
+}
+
+internal class InvestigationScopeBean {
+    val buildTypes : BuildTypesBean? = null
+    val project : ProjectBean? = null
 }

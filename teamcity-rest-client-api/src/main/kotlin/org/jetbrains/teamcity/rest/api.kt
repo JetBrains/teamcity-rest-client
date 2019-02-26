@@ -28,6 +28,7 @@ abstract class TeamCityInstance {
     abstract fun users(): UserLocator
     abstract fun buildAgents(): BuildAgentLocator
     abstract fun buildAgentPools(): BuildAgentPoolLocator
+    abstract fun testRuns(): TestRunsLocator
 
     abstract fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
     abstract fun change(id: ChangeId): Change
@@ -170,6 +171,15 @@ interface InvestigationLocator {
     fun forProject(projectId: ProjectId): InvestigationLocator
     fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator
     fun all(): Sequence<Investigation>
+}
+
+interface TestRunsLocator {
+    fun limitResults(count: Int): TestRunsLocator
+    fun forBuild(buildId: BuildId): TestRunsLocator
+    fun forTest(testId: TestId): TestRunsLocator
+    fun forProject(projectId: ProjectId): TestRunsLocator
+    fun withStatus(testStatus: TestStatus): TestRunsLocator
+    fun all(): Sequence<TestRun>
 }
 
 data class ProjectId(val stringId: String) {
@@ -415,7 +425,10 @@ interface Build {
 
     val agent: BuildAgent?
 
+    @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
+
+    fun testRuns(status: TestStatus? = null) : Sequence<TestRun>
 
     val buildProblems: Sequence<BuildProblemOccurrence>
 
@@ -465,13 +478,14 @@ interface Build {
 interface Investigation {
     val id: InvestigationId
     val state: InvestigationState
-    val assigneeUsername: String
-    val reporterUsername: String?
+    val assignee: User
+    val reporter: User?
     val comment: String
     val resolveMethod: InvestigationResolveMethod
     val targetType: InvestigationTargetType
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
+    val scope: InvestigationScope
 }
 
 interface BuildRunningInfo {
@@ -633,10 +647,10 @@ enum class TestStatus {
     SUCCESSFUL,
     IGNORED,
     FAILED,
-
-    UNKNOWN,
+    UNKNOWN
 }
 
+@Deprecated(message = "Deprecated due to unclear naming. use TestRun class", replaceWith = ReplaceWith("TestRun"))
 interface TestOccurrence {
     val name : String
     val status: TestStatus
@@ -662,6 +676,8 @@ interface TestOccurrence {
     val buildId: BuildId
     val testId: TestId
 }
+
+interface TestRun : TestOccurrence
 
 interface TriggeredInfo {
     val user: User?
@@ -707,4 +723,9 @@ open class TeamCityConversationException(message: String?, cause: Throwable? = n
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
     fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
+}
+
+sealed class InvestigationScope {
+    class InProject(val project: Project): InvestigationScope()
+    class InBuildConfiguration(val configuration: BuildConfiguration): InvestigationScope()
 }
