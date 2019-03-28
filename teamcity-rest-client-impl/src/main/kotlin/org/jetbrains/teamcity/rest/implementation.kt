@@ -1069,7 +1069,7 @@ private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
             prev === initialValue -> convertToPage(getFirstBean())
             prev.nextHref == null || prev.nextHref.isBlank() -> return@generateSequence null
             else -> {
-                val path = prev.nextHref.trimStart(*"/${instance.authMethod}/".toCharArray())
+                val path = prev.nextHref.removePrefix("/${instance.authMethod}/")
                 val response = instance.service.root(path)
                 val body = response.body ?: return@generateSequence null
                 val bean = CONVERTER.fromBody(body, Bean::class.java) as Bean
