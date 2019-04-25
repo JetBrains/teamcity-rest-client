@@ -1158,43 +1158,13 @@ private class BuildImpl(bean: BuildBean,
     override val snapshotDependencies: List<Build> get() =
         fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
-    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging(instance, {
-        val statusLocator = when (status) {
-            null -> ""
-            TestStatus.FAILED -> ",status:FAILURE"
-            TestStatus.SUCCESSFUL -> ",status:SUCCESS"
-            TestStatus.IGNORED -> ",ignored:true"
-            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
-        }
+    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = testRuns(status)
 
-        return@lazyPaging instance.service.testOccurrences(
-                locator = "build:(id:${id.stringId})$statusLocator",
-                fields = TestOccurrenceBean.filter)
-    }) { occurrencesBean ->
-        Page(
-                data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
-                nextHref = occurrencesBean.nextHref
-        )
-    }
-
-    override fun testRuns(status: TestStatus?): Sequence<TestRun> = lazyPaging(instance, {
-        val statusLocator = when (status) {
-            null -> ""
-            TestStatus.FAILED -> ",status:FAILURE"
-            TestStatus.SUCCESSFUL -> ",status:SUCCESS"
-            TestStatus.IGNORED -> ",ignored:true"
-            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
-        }
-
-        return@lazyPaging instance.service.testOccurrences(
-                locator = "build:(id:${id.stringId})$statusLocator",
-                fields = TestOccurrenceBean.filter)
-    }) { occurrencesBean ->
-        Page(
-                data = occurrencesBean.testOccurrence.map { TestRunImpl(it) },
-                nextHref = occurrencesBean.nextHref
-        )
-    }
+    override fun testRuns(status: TestStatus?): Sequence<TestRun> = instance
+            .testRuns()
+            .forBuild(id)
+            .let { if (status == null) it else it.withStatus(status) }
+            .all()
 
     override val buildProblems: Sequence<BuildProblemOccurrence>
         get() = lazyPaging(instance, {
