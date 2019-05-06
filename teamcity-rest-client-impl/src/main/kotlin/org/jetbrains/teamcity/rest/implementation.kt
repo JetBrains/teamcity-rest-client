@@ -484,7 +484,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         val count1 = count
         val statusLocator = when (testStatus) {
             null -> null
-            TestStatus.FAILED -> "tatus:FAILURE"
+            TestStatus.FAILED -> "status:FAILURE"
             TestStatus.SUCCESSFUL -> "status:SUCCESS"
             TestStatus.IGNORED -> "ignored:true"
             TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
