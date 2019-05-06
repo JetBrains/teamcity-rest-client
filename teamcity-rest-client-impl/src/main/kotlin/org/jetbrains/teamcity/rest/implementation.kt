@@ -252,6 +252,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
+    private var truncate: Boolean = false
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
@@ -344,6 +345,12 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun limitResults(count: Int): BuildLocator {
         this.count = count
+        this.truncate = true
+        return this
+    }
+
+    override fun pageSize(count: Int): BuildLocator {
+        this.count = count
         return this
     }
 
@@ -353,6 +360,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun all(): Sequence<Build> {
         val count1 = count
+        val truncate1 = truncate
 
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
@@ -397,7 +405,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             )
         }
 
-        return if (count1 != null) sequence.take(count1) else sequence
+        return if (truncate1) sequence.take(count1!!) else sequence
     }
 
     override fun list(): List<Build> = all().toList()
@@ -450,12 +458,19 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
     private var count: Int? = null
+    private var truncate: Boolean = false
     private var buildId: BuildId? = null
     private var testId: TestId? = null
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
 
     override fun limitResults(count: Int): TestRunsLocator {
+        this.count = count
+        this.truncate = true
+        return this
+    }
+
+    override fun pageSize(count: Int): TestRunsLocator {
         this.count = count
         return this
     }
@@ -482,6 +497,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 
     override fun all(): Sequence<TestRun> {
         val count1 = count
+        val truncate1 = truncate
+
         val statusLocator = when (testStatus) {
             null -> null
             TestStatus.FAILED -> "status:FAILURE"
@@ -514,7 +531,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             )
         }
 
-        return if (count1 != null) sequence.take(count1) else sequence
+        return if (truncate1) sequence.take(count1!!) else sequence
     }
 }
 
@@ -1158,7 +1175,7 @@ private class BuildImpl(bean: BuildBean,
     override val snapshotDependencies: List<Build> get() =
         fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
-    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = testRuns(status)
+    override fun tests(status: TestStatus?): Sequence<TestRun> = testRuns(status)
 
     override fun testRuns(status: TestStatus?): Sequence<TestRun> = instance
             .testRuns()

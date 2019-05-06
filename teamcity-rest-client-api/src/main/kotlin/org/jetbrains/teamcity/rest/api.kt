@@ -145,6 +145,7 @@ interface BuildLocator {
     fun pinnedOnly(): BuildLocator
 
     fun limitResults(count: Int): BuildLocator
+    fun pageSize(count: Int): BuildLocator
 
     fun since(date: Instant) : BuildLocator
     fun until(date: Instant) : BuildLocator
@@ -175,6 +176,7 @@ interface InvestigationLocator {
 
 interface TestRunsLocator {
     fun limitResults(count: Int): TestRunsLocator
+    fun pageSize(count: Int): TestRunsLocator
     fun forBuild(buildId: BuildId): TestRunsLocator
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
