@@ -252,7 +252,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
-    private var truncate: Boolean = false
+    private var pageSize: Int? = null
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
@@ -345,12 +345,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun limitResults(count: Int): BuildLocator {
         this.count = count
-        this.truncate = true
         return this
     }
 
-    override fun pageSize(count: Int): BuildLocator {
-        this.count = count
+    override fun pageSize(pageSize: Int): BuildLocator {
+        this.pageSize = pageSize
         return this
     }
 
@@ -360,7 +359,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun all(): Sequence<Build> {
         val count1 = count
-        val truncate1 = truncate
+        val pageSize1 = pageSize
 
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
@@ -374,7 +373,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
-                count1?.let { "count:$it" },
+                pageSize1?.let { "count:$it" },
 
                 since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
                 until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
@@ -405,7 +404,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             )
         }
 
-        return if (truncate1) sequence.take(count1!!) else sequence
+        return if (count1 != null) sequence.take(count1) else sequence
     }
 
     override fun list(): List<Build> = all().toList()
@@ -458,7 +457,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
     private var count: Int? = null
-    private var truncate: Boolean = false
+    private var pageSize: Int? = null
     private var buildId: BuildId? = null
     private var testId: TestId? = null
     private var affectedProjectId: ProjectId? = null
@@ -466,12 +465,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.count = count
-        this.truncate = true
         return this
     }
 
-    override fun pageSize(count: Int): TestRunsLocator {
-        this.count = count
+    override fun pageSize(pageSize: Int): TestRunsLocator {
+        this.pageSize= pageSize
         return this
     }
 
@@ -497,7 +495,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 
     override fun all(): Sequence<TestRun> {
         val count1 = count
-        val truncate1 = truncate
+        val pageSize1 = pageSize
 
         val statusLocator = when (testStatus) {
             null -> null
@@ -508,7 +506,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         }
 
         val parameters = listOfNotNull(
-                count1?.let { "count:$it" },
+                pageSize1?.let { "count:$it" },
                 affectedProjectId?.let { "affectedProject:$it" },
                 buildId?.let { "build:$it" },
                 testId?.let { "test:$it" },
@@ -531,7 +529,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             )
         }
 
-        return if (truncate1) sequence.take(count1!!) else sequence
+        return if (count1 != null) sequence.take(count1) else sequence
     }
 }
 
