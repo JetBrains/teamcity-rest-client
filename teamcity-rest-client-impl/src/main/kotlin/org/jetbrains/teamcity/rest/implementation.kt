@@ -24,6 +24,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
+import kotlin.math.min
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -85,6 +86,11 @@ private fun XMLStreamWriter.element(name: String, init: XMLStreamWriter.() -> Un
 }
 
 private fun XMLStreamWriter.attribute(name: String, value: String) = writeAttribute(name, value)
+
+private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int?): Int? {
+    val reasonableMaxPageSize = 1024
+    return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
+}
 
 internal class TeamCityInstanceImpl(override val serverUrl: String,
                                     val authMethod: String,
@@ -358,8 +364,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun all(): Sequence<Build> {
-        val count1 = limitResults
-        val pageSize1 = pageSize
+        val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
 
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
@@ -373,7 +378,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
-                pageSize1?.let { "count:$it" },
+                count?.let { "count:$it" },
 
                 since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
                 until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
@@ -404,7 +409,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             )
         }
 
-        return if (count1 != null) sequence.take(count1) else sequence
+        val limitResults1 = limitResults
+        return if (limitResults1 != null) sequence.take(limitResults1) else sequence
     }
 
     override fun list(): List<Build> = all().toList()
@@ -494,9 +500,6 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     }
 
     override fun all(): Sequence<TestRun> {
-        val count1 = limitResults
-        val pageSize1 = pageSize
-
         val statusLocator = when (testStatus) {
             null -> null
             TestStatus.FAILED -> "status:FAILURE"
@@ -505,8 +508,9 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
         }
 
+        val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
         val parameters = listOfNotNull(
-                pageSize1?.let { "count:$it" },
+                count?.let { "count:$it" },
                 affectedProjectId?.let { "affectedProject:$it" },
                 buildId?.let { "build:$it" },
                 testId?.let { "test:$it" },
@@ -529,7 +533,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             )
         }
 
-        return if (count1 != null) sequence.take(count1) else sequence
+        val limitResults1 = limitResults
+        return if (limitResults1 != null) sequence.take(limitResults1) else sequence
     }
 }
 
