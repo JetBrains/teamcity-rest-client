@@ -565,7 +565,7 @@ interface VcsRoot {
     val name: String
 
     val url: String?
-        val defaultBranch: String?
+    val defaultBranch: String?
 }
 
 interface BuildAgent {
