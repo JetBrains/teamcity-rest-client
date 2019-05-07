@@ -251,7 +251,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var until: Instant? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
-    private var count: Int? = null
+    private var limitResults: Int? = null
     private var pageSize: Int? = null
     private var branch: String? = null
     private var includeAllBranches = false
@@ -344,7 +344,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun limitResults(count: Int): BuildLocator {
-        this.count = count
+        this.limitResults = count
         return this
     }
 
@@ -358,7 +358,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun all(): Sequence<Build> {
-        val count1 = count
+        val count1 = limitResults
         val pageSize1 = pageSize
 
         val parameters = listOfNotNull(
@@ -414,12 +414,12 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 }
 
 private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImpl) : InvestigationLocator {
-    private var count: Int? = null
+    private var limitResults: Int? = null
     private var targetType: InvestigationTargetType? = null
     private var affectedProjectId: ProjectId? = null
 
     override fun limitResults(count: Int): InvestigationLocator {
-        this.count = count
+        this.limitResults = count
         return this
     }
 
@@ -437,7 +437,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
         var investigationLocator : String? = null
 
         val parameters = listOfNotNull(
-                count?.let { "count:$it" },
+                limitResults?.let { "count:$it" },
                 affectedProjectId?.let { "affectedProject:$it" },
                 targetType?.let { "type:${it.value}" }
         )
@@ -456,7 +456,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 }
 
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
-    private var count: Int? = null
+    private var limitResults: Int? = null
     private var pageSize: Int? = null
     private var buildId: BuildId? = null
     private var testId: TestId? = null
@@ -464,7 +464,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     private var testStatus: TestStatus? = null
 
     override fun limitResults(count: Int): TestRunsLocator {
-        this.count = count
+        this.limitResults = count
         return this
     }
 
@@ -494,7 +494,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     }
 
     override fun all(): Sequence<TestRun> {
-        val count1 = count
+        val count1 = limitResults
         val pageSize1 = pageSize
 
         val statusLocator = when (testStatus) {
