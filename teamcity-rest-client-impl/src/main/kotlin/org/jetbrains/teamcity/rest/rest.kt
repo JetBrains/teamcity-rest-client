@@ -234,6 +234,7 @@ internal open class BuildBean: IdBean() {
     var state: String? = null
     var branchName: String? = null
     var defaultBranch: Boolean? = null
+    var composite: Boolean? = null
 
     var statusText: String? = null
     var queuedDate: String? = null

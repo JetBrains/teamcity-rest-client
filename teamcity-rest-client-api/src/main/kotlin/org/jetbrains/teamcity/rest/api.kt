@@ -387,6 +387,7 @@ interface Build {
     val canceledInfo: BuildCanceledInfo?
     val comment: BuildCommentInfo?
 
+    val composite: Boolean?
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
@@ -561,7 +562,7 @@ interface VcsRoot {
     val name: String
 
     val url: String?
-    val defaultBranch: String?
+        val defaultBranch: String?
 }
 
 interface BuildAgent {
