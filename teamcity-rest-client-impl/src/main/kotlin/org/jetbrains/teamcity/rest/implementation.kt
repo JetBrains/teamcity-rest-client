@@ -553,10 +553,10 @@ private abstract class BaseImpl<TBean : IdBean>(
             getter(bean) ?: getter(fullBean)
 
     val fullBean: TBean by lazy {
-        if (!isFullBean)
+        if (!isFullBean) {
             bean = fetchFullBean()
             isFullBean = true
-
+        }
         bean
     }
 
