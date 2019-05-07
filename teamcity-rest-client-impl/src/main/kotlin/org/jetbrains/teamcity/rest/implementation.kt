@@ -252,6 +252,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
     private var count: Int? = null
+    private var pageSize: Int? = null
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
@@ -347,12 +348,18 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun pageSize(pageSize: Int): BuildLocator {
+        this.pageSize = pageSize
+        return this
+    }
+
     override fun latest(): Build? {
         return limitResults(1).all().firstOrNull()
     }
 
     override fun all(): Sequence<Build> {
         val count1 = count
+        val pageSize1 = pageSize
 
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
@@ -366,7 +373,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
-                count1?.let { "count:$it" },
+                pageSize1?.let { "count:$it" },
 
                 since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
                 until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
@@ -450,6 +457,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
     private var count: Int? = null
+    private var pageSize: Int? = null
     private var buildId: BuildId? = null
     private var testId: TestId? = null
     private var affectedProjectId: ProjectId? = null
@@ -457,6 +465,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.count = count
+        return this
+    }
+
+    override fun pageSize(pageSize: Int): TestRunsLocator {
+        this.pageSize= pageSize
         return this
     }
 
@@ -482,6 +495,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 
     override fun all(): Sequence<TestRun> {
         val count1 = count
+        val pageSize1 = pageSize
+
         val statusLocator = when (testStatus) {
             null -> null
             TestStatus.FAILED -> "status:FAILURE"
@@ -491,7 +506,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         }
 
         val parameters = listOfNotNull(
-                count1?.let { "count:$it" },
+                pageSize1?.let { "count:$it" },
                 affectedProjectId?.let { "affectedProject:$it" },
                 buildId?.let { "build:$it" },
                 testId?.let { "test:$it" },
@@ -519,8 +534,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
-        private val bean: TBean,
-        private val isFullBean: Boolean,
+        private var bean: TBean,
+        private var isFullBean: Boolean,
         protected val instance: TeamCityInstanceImpl) {
     init {
         if (bean.id == null) {
@@ -538,7 +553,11 @@ private abstract class BaseImpl<TBean : IdBean>(
             getter(bean) ?: getter(fullBean)
 
     val fullBean: TBean by lazy {
-        if (isFullBean) bean else fetchFullBean()
+        if (!isFullBean) {
+            bean = fetchFullBean()
+            isFullBean = true
+        }
+        bean
     }
 
     abstract fun fetchFullBean(): TBean
@@ -1158,43 +1177,13 @@ private class BuildImpl(bean: BuildBean,
     override val snapshotDependencies: List<Build> get() =
         fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
-    override fun tests(status: TestStatus?): Sequence<TestOccurrence> = lazyPaging(instance, {
-        val statusLocator = when (status) {
-            null -> ""
-            TestStatus.FAILED -> ",status:FAILURE"
-            TestStatus.SUCCESSFUL -> ",status:SUCCESS"
-            TestStatus.IGNORED -> ",ignored:true"
-            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
-        }
+    override fun tests(status: TestStatus?): Sequence<TestRun> = testRuns(status)
 
-        return@lazyPaging instance.service.testOccurrences(
-                locator = "build:(id:${id.stringId})$statusLocator",
-                fields = TestOccurrenceBean.filter)
-    }) { occurrencesBean ->
-        Page(
-                data = occurrencesBean.testOccurrence.map { TestOccurrenceImpl(it) },
-                nextHref = occurrencesBean.nextHref
-        )
-    }
-
-    override fun testRuns(status: TestStatus?): Sequence<TestRun> = lazyPaging(instance, {
-        val statusLocator = when (status) {
-            null -> ""
-            TestStatus.FAILED -> ",status:FAILURE"
-            TestStatus.SUCCESSFUL -> ",status:SUCCESS"
-            TestStatus.IGNORED -> ",ignored:true"
-            TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
-        }
-
-        return@lazyPaging instance.service.testOccurrences(
-                locator = "build:(id:${id.stringId})$statusLocator",
-                fields = TestOccurrenceBean.filter)
-    }) { occurrencesBean ->
-        Page(
-                data = occurrencesBean.testOccurrence.map { TestRunImpl(it) },
-                nextHref = occurrencesBean.nextHref
-        )
-    }
+    override fun testRuns(status: TestStatus?): Sequence<TestRun> = instance
+            .testRuns()
+            .forBuild(id)
+            .let { if (status == null) it else it.withStatus(status) }
+            .all()
 
     override val buildProblems: Sequence<BuildProblemOccurrence>
         get() = lazyPaging(instance, {
