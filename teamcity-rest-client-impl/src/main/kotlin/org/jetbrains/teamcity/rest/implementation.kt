@@ -534,8 +534,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
-        private val bean: TBean,
-        private val isFullBean: Boolean,
+        private var bean: TBean,
+        private var isFullBean: Boolean,
         protected val instance: TeamCityInstanceImpl) {
     init {
         if (bean.id == null) {
@@ -553,7 +553,11 @@ private abstract class BaseImpl<TBean : IdBean>(
             getter(bean) ?: getter(fullBean)
 
     val fullBean: TBean by lazy {
-        if (isFullBean) bean else fetchFullBean()
+        if (!isFullBean)
+            bean = fetchFullBean()
+            isFullBean = true
+
+        bean
     }
 
     abstract fun fetchFullBean(): TBean
