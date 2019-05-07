@@ -428,6 +428,7 @@ interface Build {
 
     val agent: BuildAgent?
 
+    @Suppress("DEPRECATION")
     @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
 
@@ -680,6 +681,7 @@ interface TestOccurrence {
     val testId: TestId
 }
 
+@Suppress("DEPRECATION")
 interface TestRun : TestOccurrence
 
 interface TriggeredInfo {

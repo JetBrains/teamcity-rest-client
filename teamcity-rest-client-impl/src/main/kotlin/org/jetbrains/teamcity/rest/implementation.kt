@@ -24,6 +24,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
+import kotlin.math.min
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
@@ -86,6 +87,11 @@ private fun XMLStreamWriter.element(name: String, init: XMLStreamWriter.() -> Un
 
 private fun XMLStreamWriter.attribute(name: String, value: String) = writeAttribute(name, value)
 
+private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int?): Int? {
+    val reasonableMaxPageSize = 1024
+    return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
+}
+
 internal class TeamCityInstanceImpl(override val serverUrl: String,
                                     val authMethod: String,
                                     private val basicAuthHeader: String?,
@@ -105,21 +111,21 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
             .setLog { restLog.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) }
-            .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
+            .setLogLevel(if (logResponses) RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor { request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
             }
-            .setErrorHandler {
+            .setErrorHandler { retrofitError ->
                 val responseText = try {
-                    it.response.body.`in`().reader().use { it.readText() }
+                    retrofitError.response.body.`in`().reader().use { it.readText() }
                 } catch (t: Throwable) {
                     LOG.warn("Exception while reading error response text: ${t.message}", t)
                     ""
                 }
 
-                throw TeamCityConversationException("Failed to connect to ${it.url}: ${it.message} $responseText", it)
+                throw TeamCityConversationException("Failed to connect to ${retrofitError.url}: ${retrofitError.message} $responseText", retrofitError)
             }
             .build()
             .create(TeamCityService::class.java)
@@ -251,7 +257,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var until: Instant? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
     private var tags = ArrayList<String>()
-    private var count: Int? = null
+    private var limitResults: Int? = null
     private var pageSize: Int? = null
     private var branch: String? = null
     private var includeAllBranches = false
@@ -344,7 +350,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun limitResults(count: Int): BuildLocator {
-        this.count = count
+        this.limitResults = count
         return this
     }
 
@@ -358,8 +364,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun all(): Sequence<Build> {
-        val count1 = count
-        val pageSize1 = pageSize
+        val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
 
         val parameters = listOfNotNull(
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
@@ -369,11 +374,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 canceled?.let { "canceled:$it" },
                 vcsRevision?.let { "revision:$it" },
                 status?.name?.let { "status:$it" },
-                if (!tags.isEmpty())
+                if (tags.isNotEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
-                pageSize1?.let { "count:$it" },
+                count?.let { "count:$it" },
 
                 since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
                 until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
@@ -404,7 +409,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             )
         }
 
-        return if (count1 != null) sequence.take(count1) else sequence
+        val limitResults1 = limitResults
+        return if (limitResults1 != null) sequence.take(limitResults1) else sequence
     }
 
     override fun list(): List<Build> = all().toList()
@@ -414,12 +420,12 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 }
 
 private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImpl) : InvestigationLocator {
-    private var count: Int? = null
+    private var limitResults: Int? = null
     private var targetType: InvestigationTargetType? = null
     private var affectedProjectId: ProjectId? = null
 
     override fun limitResults(count: Int): InvestigationLocator {
-        this.count = count
+        this.limitResults = count
         return this
     }
 
@@ -437,7 +443,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
         var investigationLocator : String? = null
 
         val parameters = listOfNotNull(
-                count?.let { "count:$it" },
+                limitResults?.let { "count:$it" },
                 affectedProjectId?.let { "affectedProject:$it" },
                 targetType?.let { "type:${it.value}" }
         )
@@ -456,7 +462,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 }
 
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
-    private var count: Int? = null
+    private var limitResults: Int? = null
     private var pageSize: Int? = null
     private var buildId: BuildId? = null
     private var testId: TestId? = null
@@ -464,7 +470,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     private var testStatus: TestStatus? = null
 
     override fun limitResults(count: Int): TestRunsLocator {
-        this.count = count
+        this.limitResults = count
         return this
     }
 
@@ -494,9 +500,6 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     }
 
     override fun all(): Sequence<TestRun> {
-        val count1 = count
-        val pageSize1 = pageSize
-
         val statusLocator = when (testStatus) {
             null -> null
             TestStatus.FAILED -> "status:FAILURE"
@@ -505,8 +508,9 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             TestStatus.UNKNOWN -> error("Unsupported filter by test status UNKNOWN")
         }
 
+        val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
         val parameters = listOfNotNull(
-                pageSize1?.let { "count:$it" },
+                count?.let { "count:$it" },
                 affectedProjectId?.let { "affectedProject:$it" },
                 buildId?.let { "build:$it" },
                 testId?.let { "test:$it" },
@@ -529,7 +533,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             )
         }
 
-        return if (count1 != null) sequence.take(count1) else sequence
+        val limitResults1 = limitResults
+        return if (limitResults1 != null) sequence.take(limitResults1) else sequence
     }
 }
 
@@ -630,7 +635,7 @@ private class InvestigationImpl(
                 return InvestigationScope.InProject(project)
             }
 
-            /* neither teamcity.jetbrains nor buildserer contain more then one assignment build type */
+            /* neither teamcity.jetbrains nor buildserver contain more then one assignment build type */
             if (scope.buildTypes?.buildType != null && scope.buildTypes.buildType.size > 1) {
                 throw IllegalStateException("more then one buildType")
             }
@@ -827,8 +832,8 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
             this.rebuildAllDependencies = rebuildAllDependencies
             this.queueAtTop = queueAtTop
         }
-        parameters?.let {
-            val parametersBean = ParametersBean(it.map { ParameterBean(it.key, it.value) })
+        parameters?.let { parametersMap ->
+            val parametersBean = ParametersBean(parametersMap.map { ParameterBean(it.key, it.value) })
             request.properties = parametersBean
         }
 
@@ -1537,11 +1542,11 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
-@Deprecated(message = "Deprecated due to unclear naming. use TestRunImpl class", replaceWith = ReplaceWith("TestRunImpl"))
+@Suppress("DEPRECATION")
 private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!
 
-    override val status = when {
+    final override val status = when {
         bean.ignored == true -> TestStatus.IGNORED
         bean.status == "FAILURE" -> TestStatus.FAILED
         bean.status == "SUCCESS" -> TestStatus.SUCCESSFUL
