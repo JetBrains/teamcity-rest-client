@@ -111,21 +111,21 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             .setClient(Ok3Client(client))
             .setEndpoint("$serverUrl/$authMethod")
             .setLog { restLog.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) }
-            .setLogLevel(if (logResponses) retrofit.RestAdapter.LogLevel.FULL else retrofit.RestAdapter.LogLevel.HEADERS_AND_ARGS)
+            .setLogLevel(if (logResponses) RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor { request ->
                 if (basicAuthHeader != null) {
                     request.addHeader("Authorization", "Basic $basicAuthHeader")
                 }
             }
-            .setErrorHandler {
+            .setErrorHandler { retrofitError ->
                 val responseText = try {
-                    it.response.body.`in`().reader().use { it.readText() }
+                    retrofitError.response.body.`in`().reader().use { it.readText() }
                 } catch (t: Throwable) {
                     LOG.warn("Exception while reading error response text: ${t.message}", t)
                     ""
                 }
 
-                throw TeamCityConversationException("Failed to connect to ${it.url}: ${it.message} $responseText", it)
+                throw TeamCityConversationException("Failed to connect to ${retrofitError.url}: ${retrofitError.message} $responseText", retrofitError)
             }
             .build()
             .create(TeamCityService::class.java)
@@ -374,7 +374,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 canceled?.let { "canceled:$it" },
                 vcsRevision?.let { "revision:$it" },
                 status?.name?.let { "status:$it" },
-                if (!tags.isEmpty())
+                if (tags.isNotEmpty())
                     tags.joinToString(",", prefix = "tags:(", postfix = ")")
                 else null,
                 if (pinnedOnly) "pinned:true" else null,
@@ -635,7 +635,7 @@ private class InvestigationImpl(
                 return InvestigationScope.InProject(project)
             }
 
-            /* neither teamcity.jetbrains nor buildserer contain more then one assignment build type */
+            /* neither teamcity.jetbrains nor buildserver contain more then one assignment build type */
             if (scope.buildTypes?.buildType != null && scope.buildTypes.buildType.size > 1) {
                 throw IllegalStateException("more then one buildType")
             }
@@ -832,8 +832,8 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
             this.rebuildAllDependencies = rebuildAllDependencies
             this.queueAtTop = queueAtTop
         }
-        parameters?.let {
-            val parametersBean = ParametersBean(it.map { ParameterBean(it.key, it.value) })
+        parameters?.let { parametersMap ->
+            val parametersBean = ParametersBean(parametersMap.map { ParameterBean(it.key, it.value) })
             request.properties = parametersBean
         }
 
@@ -1539,11 +1539,11 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
-@Deprecated(message = "Deprecated due to unclear naming. use TestRunImpl class", replaceWith = ReplaceWith("TestRunImpl"))
+@Suppress("DEPRECATION")
 private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!
 
-    override val status = when {
+    final override val status = when {
         bean.ignored == true -> TestStatus.IGNORED
         bean.status == "FAILURE" -> TestStatus.FAILED
         bean.status == "SUCCESS" -> TestStatus.SUCCESSFUL
