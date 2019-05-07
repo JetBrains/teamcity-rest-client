@@ -1152,6 +1152,9 @@ private class BuildImpl(bean: BuildBean,
         return "Build{id=$id, buildConfigurationId=$buildConfigurationId, buildNumber=$buildNumber, status=$status, branch=$branch}"
     }
 
+    override val composite: Boolean?
+        get() = fullBean.composite
+
     override val canceledInfo: BuildCanceledInfo?
         get() = fullBean.canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
     override val statusText: String?
