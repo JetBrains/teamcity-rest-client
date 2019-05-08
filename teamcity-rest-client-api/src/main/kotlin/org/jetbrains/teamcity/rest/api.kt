@@ -551,6 +551,8 @@ interface BuildArtifact {
     val size: Long?
     val modificationDateTime: ZonedDateTime
 
+    val build: Build
+
     fun download(output: File)
 
     @Deprecated(message = "use modificationDateTime",

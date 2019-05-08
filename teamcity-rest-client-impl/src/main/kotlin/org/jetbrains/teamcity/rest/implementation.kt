@@ -1502,7 +1502,7 @@ private class NameValueProperty(private val bean: NameValuePropertyBean) {
 }
 
 private class BuildArtifactImpl(
-        private val build: Build,
+        override val build: Build,
         override val name: String,
         override val fullName: String,
         override val size: Long?,
