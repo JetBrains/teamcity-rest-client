@@ -23,7 +23,7 @@ internal interface TeamCityService {
     fun queuedBuilds(@Query("locator") locator: String?): BuildListBean
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds/id:{id}")
+    @GET("/app/rest/builds/{id}")
     fun build(@Path("id") id: String): BuildBean
 
     @Headers("Accept: application/json")
@@ -37,6 +37,10 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/testOccurrences/{id}")
+    fun testOccurrence(@Path("id") id: String): TestOccurrenceBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/testOccurrences/")
@@ -502,7 +506,7 @@ internal open class TestBean {
     var id: String? = null
 }
 
-internal open class TestOccurrenceBean {
+internal open class TestOccurrenceBean : IdBean() {
     var name: String? = null
     var status: String? = null
     var ignored: Boolean? = null
@@ -516,7 +520,7 @@ internal open class TestOccurrenceBean {
     var test: TestBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,ignoreDetails,details,build(id),test(id))"
+        val filter = "testOccurrence(id,name,status,ignored,muted,currentlyMuted,duration,build(id),test(id))"
     }
 }
 

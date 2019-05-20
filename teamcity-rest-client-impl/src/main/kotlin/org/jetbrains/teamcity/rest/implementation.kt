@@ -528,7 +528,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
         }) { testOccurrencesBean ->
             Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, false, instance) },
                     nextHref = testOccurrencesBean.nextHref
             )
         }
@@ -1502,7 +1502,7 @@ private class NameValueProperty(private val bean: NameValuePropertyBean) {
 }
 
 private class BuildArtifactImpl(
-        private val build: Build,
+        override val build: Build,
         override val name: String,
         override val fullName: String,
         override val size: Long?,
@@ -1543,10 +1543,18 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
 @Suppress("DEPRECATION")
-private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
-    override val name = bean.name!!
+private open class TestOccurrenceImpl(bean: TestOccurrenceBean,
+                                      isFullBean: Boolean,
+                                      instance: TeamCityInstanceImpl) :
+    BaseImpl<TestOccurrenceBean>(bean, isFullBean, instance), TestOccurrence
+{
+    override fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(id.stringId)
 
-    final override val status = when {
+    override val name = bean.name!!
+    override val id: TestOccurenceId
+        get() = TestOccurenceId(idString)
+
+    override val status = when {
         bean.ignored == true -> TestStatus.IGNORED
         bean.status == "FAILURE" -> TestStatus.FAILED
         bean.status == "SUCCESS" -> TestStatus.SUCCESSFUL
@@ -1555,12 +1563,19 @@ private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence 
 
     override val duration = Duration.ofMillis(bean.duration ?: 0L)!!
 
-    override val details = when (status) {
-        TestStatus.IGNORED -> bean.ignoreDetails
-        TestStatus.FAILED -> bean.details
-        else -> null
-    } ?: ""
-
+    override val details = when (this.status) {
+            TestStatus.IGNORED -> fullBean.ignoreDetails
+            TestStatus.FAILED -> fullBean.details
+            else -> null
+        } ?: ""
+/*
+    override val details : String
+        get() = when (this.status) {
+            TestStatus.IGNORED -> fullBean.ignoreDetails
+            TestStatus.FAILED -> fullBean.details
+            else -> null
+        } ?: ""
+*/
     override val ignored: Boolean = bean.ignored ?: false
 
     override val currentlyMuted: Boolean = bean.currentlyMuted ?: false
@@ -1574,7 +1589,10 @@ private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
 
-private class TestRunImpl(bean: TestOccurrenceBean) : TestRun, TestOccurrenceImpl(bean)
+private class TestRunImpl(bean: TestOccurrenceBean,
+                          isFullBean: Boolean,
+                          instance: TeamCityInstanceImpl) :
+    TestRun, TestOccurrenceImpl(bean, isFullBean, instance)
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()
