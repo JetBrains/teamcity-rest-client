@@ -5,7 +5,7 @@ import java.io.OutputStream
 import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.Date
 
 abstract class TeamCityInstance {
     abstract val serverUrl: String
@@ -143,6 +143,9 @@ interface BuildLocator {
     fun withAllBranches(): BuildLocator
 
     fun pinnedOnly(): BuildLocator
+
+    fun includePersonal() : BuildLocator
+    fun onlyPersonal(): BuildLocator
 
     fun limitResults(count: Int): BuildLocator
     fun pageSize(pageSize: Int): BuildLocator

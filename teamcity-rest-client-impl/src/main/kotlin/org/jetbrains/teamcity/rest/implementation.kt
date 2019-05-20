@@ -12,7 +12,11 @@ import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
 import retrofit.converter.GsonConverter
 import retrofit.mime.TypedString
-import java.io.*
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
+import java.io.StringWriter
 import java.net.HttpURLConnection
 import java.net.URLEncoder
 import java.time.Duration
@@ -20,7 +24,10 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.ArrayList
+import java.util.Date
+import java.util.HashSet
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
@@ -262,6 +269,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var personal: String? = null
     private var running: String? = null
     private var canceled: String? = null
 
@@ -349,6 +357,16 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun includePersonal(): BuildLocator {
+        this.personal = "any"
+        return this
+    }
+
+    override fun onlyPersonal(): BuildLocator {
+        this.personal = "true"
+        return this
+    }
+
     override fun limitResults(count: Int): BuildLocator {
         this.limitResults = count
         return this
@@ -387,6 +405,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     branch?.let { "branch:$it" }
                 else
                     "branch:default:any",
+
+                personal?.let { "personal:$it" },
 
                 // Always use default filter since sometimes TC automatically switches between
                 // defaultFilter:true and defaultFilter:false
