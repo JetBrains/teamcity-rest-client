@@ -437,6 +437,7 @@ interface Build {
     val buildProblems: Sequence<BuildProblemOccurrence>
 
     fun addTag(tag: String)
+    fun replaceTags(tags: List<String>)
     fun pin(comment: String = "pinned via REST API")
     fun unpin(comment: String = "unpinned via REST API")
     fun getArtifacts(parentPath: String = "", recursive: Boolean = false, hidden: Boolean = false): List<BuildArtifact>

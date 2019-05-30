@@ -1223,6 +1223,12 @@ private class BuildImpl(bean: BuildBean,
         instance.service.addTag(idString, TypedString(tag))
     }
 
+    override fun replaceTags(tags: List<String>) {
+        LOG.info("Replacing tags of build ${getHomeUrl()} with ${tags.joinToString(", ")}")
+        val tagBeans = tags.map { tag -> TagBean().apply { name = tag } }
+        instance.service.replaceTags(idString, TagsBean().apply { tag = tagBeans })
+    }
+
     override fun pin(comment: String) {
         LOG.info("Pinning build ${getHomeUrl()}")
         instance.service.pin(idString, TypedString(comment))
