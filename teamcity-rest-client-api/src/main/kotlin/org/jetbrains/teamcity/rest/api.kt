@@ -5,7 +5,7 @@ import java.io.OutputStream
 import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
-import java.util.Date
+import java.util.*
 
 abstract class TeamCityInstance {
     abstract val serverUrl: String

@@ -12,11 +12,7 @@ import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
 import retrofit.converter.GsonConverter
 import retrofit.mime.TypedString
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStream
-import java.io.StringWriter
+import java.io.*
 import java.net.HttpURLConnection
 import java.net.URLEncoder
 import java.time.Duration
@@ -24,10 +20,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.ArrayList
-import java.util.Date
-import java.util.HashSet
-import java.util.Locale
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
