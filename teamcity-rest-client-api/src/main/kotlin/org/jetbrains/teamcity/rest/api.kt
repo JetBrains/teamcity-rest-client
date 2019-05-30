@@ -144,6 +144,9 @@ interface BuildLocator {
 
     fun pinnedOnly(): BuildLocator
 
+    fun includePersonal() : BuildLocator
+    fun onlyPersonal(): BuildLocator
+
     fun limitResults(count: Int): BuildLocator
     fun pageSize(pageSize: Int): BuildLocator
 

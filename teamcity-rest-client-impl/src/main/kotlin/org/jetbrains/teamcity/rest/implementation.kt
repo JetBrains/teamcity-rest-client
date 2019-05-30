@@ -262,6 +262,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var branch: String? = null
     private var includeAllBranches = false
     private var pinnedOnly = false
+    private var personal: String? = null
     private var running: String? = null
     private var canceled: String? = null
 
@@ -349,6 +350,16 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun includePersonal(): BuildLocator {
+        this.personal = "any"
+        return this
+    }
+
+    override fun onlyPersonal(): BuildLocator {
+        this.personal = "true"
+        return this
+    }
+
     override fun limitResults(count: Int): BuildLocator {
         this.limitResults = count
         return this
@@ -387,6 +398,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                     branch?.let { "branch:$it" }
                 else
                     "branch:default:any",
+
+                personal?.let { "personal:$it" },
 
                 // Always use default filter since sometimes TC automatically switches between
                 // defaultFilter:true and defaultFilter:false
