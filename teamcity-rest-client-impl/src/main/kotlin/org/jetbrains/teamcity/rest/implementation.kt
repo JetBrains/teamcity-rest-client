@@ -1327,7 +1327,8 @@ private class BuildImpl(bean: BuildBean,
     override fun fetchChanges(): List<Change> = changes
     override fun fetchPinInfo(): PinInfo? = pinInfo
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
-    override val buildTypeId: BuildConfigurationId = buildConfigurationId
+    override val buildTypeId: BuildConfigurationId
+        get() = buildConfigurationId
     override val queuedDate: Date
         get() = Date.from(queuedDateTime.toInstant())
     override val startDate: Date?
