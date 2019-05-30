@@ -1219,17 +1219,17 @@ private class BuildImpl(bean: BuildBean,
                 .change!!.map { ChangeImpl(it, true, instance) }
 
     override fun addTag(tag: String) {
-        LOG.info("Adding tag $tag to build $buildNumber (id:$idString)")
+        LOG.info("Adding tag $tag to build ${getHomeUrl()}")
         instance.service.addTag(idString, TypedString(tag))
     }
 
     override fun pin(comment: String) {
-        LOG.info("Pinning build $buildNumber (id:$idString)")
+        LOG.info("Pinning build ${getHomeUrl()}")
         instance.service.pin(idString, TypedString(comment))
     }
 
     override fun unpin(comment: String) {
-        LOG.info("Unpinning build $buildNumber (id:$idString)")
+        LOG.info("Unpinning build ${getHomeUrl()}")
         instance.service.unpin(idString, TypedString(comment))
     }
 
@@ -1275,22 +1275,22 @@ private class BuildImpl(bean: BuildBean,
     }
 
     override fun downloadArtifact(artifactPath: String, output: File) {
-        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
+        LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()} to $output")
 
         output.parentFile.mkdirs()
         FileOutputStream(output).use {
             downloadArtifactImpl(artifactPath, it)
         }
 
-        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+        LOG.debug("Artifact '$artifactPath' from build ${getHomeUrl()} downloaded to $output")
     }
 
     override fun downloadArtifact(artifactPath: String, output: OutputStream) {
-        LOG.info("Downloading artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) to $output")
+        LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()} to $output")
 
         downloadArtifactImpl(artifactPath, output)
 
-        LOG.debug("Artifact '$artifactPath' from build $buildNumber (id:${id.stringId}) downloaded to $output")
+        LOG.debug("Artifact '$artifactPath' from build ${getHomeUrl()} downloaded to $output")
     }
 
     private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
@@ -1302,12 +1302,12 @@ private class BuildImpl(bean: BuildBean,
     }
 
     override fun downloadBuildLog(output: File) {
-        LOG.info("Downloading build log from build $buildNumber (id:${id.stringId}) to $output")
+        LOG.info("Downloading build log from build ${getHomeUrl()} to $output")
 
         val response = instance.service.buildLog(id.stringId)
         saveToFile(response, output)
 
-        LOG.debug("Build log from build $buildNumber (id:${id.stringId}) downloaded to $output")
+        LOG.debug("Build log from build ${getHomeUrl()} downloaded to $output")
     }
 
     override fun cancel(comment: String, reAddIntoQueue: Boolean) {
