@@ -24,6 +24,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
+import kotlin.collections.ArrayList
 import kotlin.math.min
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
@@ -133,6 +134,12 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
 
     override fun investigations(): InvestigationLocator = InvestigationLocatorImpl(this)
+
+    override fun createInvestigations(investigations: Collection<Investigation>) {
+        service.createInvestigations(InvestigationListBean().apply {
+            investigation = investigations.map(::InvestigationBean)
+        })
+    }
 
     override fun build(id: BuildId): Build = BuildImpl(
             BuildBean().also { it.id = id.stringId }, false, this)
@@ -407,9 +414,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 "defaultFilter:true"
         )
 
-        if (parameters.isEmpty()) {
-            throw IllegalArgumentException("At least one parameter should be specified")
-        }
+        require(parameters.isNotEmpty()) { "At least one parameter should be specified" }
 
         val sequence = lazyPaging(instance, {
             val buildLocator = parameters.joinToString(",")
@@ -552,13 +557,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
-        private var bean: TBean,
+        protected var bean: TBean,
         private var isFullBean: Boolean,
         protected val instance: TeamCityInstanceImpl) {
     init {
-        if (bean.id == null) {
-            throw IllegalStateException("bean.id should not be null")
-        }
+        checkNotNull(bean.id) { "bean.id should not be null" }
     }
 
     protected inline val idString
@@ -578,7 +581,7 @@ private abstract class BaseImpl<TBean : IdBean>(
         bean
     }
 
-    abstract fun fetchFullBean(): TBean
+    open fun fetchFullBean(): TBean = bean
     abstract override fun toString(): String
 
     override fun equals(other: Any?): Boolean {
@@ -591,73 +594,94 @@ private abstract class BaseImpl<TBean : IdBean>(
     override fun hashCode(): Int = idString.hashCode()
 }
 
-
-private class InvestigationImpl(
-        bean: InvestigationBean,
+private abstract class IssueImpl<T : IssueBean>(
+        bean: T,
         isFullProjectBean: Boolean,
         instance: TeamCityInstanceImpl) :
-        BaseImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
-    override fun fetchFullBean(): InvestigationBean = instance.service.investigation(id.stringId)
-
-    override fun toString(): String = "Investigation(id=$idString,state=$state)"
-
-    override val id: InvestigationId
-        get() = InvestigationId(idString)
-    override val state: InvestigationState
-        get() = notNull { it.state }
-    override val assignee: User
-        get() = UserImpl( notNull { it.assignee }, false, instance)
-    override val reporter: User?
-        get() {
-            val assignment = nullable { it.assignment } ?: return null
-            val userBean = assignment.user ?: return null
-            return UserImpl( userBean, false, instance)
-        }
-    override val comment: String
+        BaseImpl<T>(bean, isFullProjectBean, instance) {
+    val comment: String
         get() = notNull { it.assignment?.text ?: "" }
-    override val resolveMethod: InvestigationResolveMethod
+
+    val resolveMethod: InvestigationResolveMethod
         get() {
-            val asString = notNull { it.resolution?.type }
-            if (asString == "whenFixed") {
-                return InvestigationResolveMethod.WHEN_FIXED
-            } else if (asString == "manually") {
-                return InvestigationResolveMethod.MANUALLY
+            val value = notNull { it.resolution?.type }
+            return InvestigationResolveMethod.values().firstOrNull {
+                value == it.value
+            } ?: error("Unexpected value '$value' of ${InvestigationResolveMethod::class.java.simpleName}")
+        }
+
+    val targetType: InvestigationTargetType
+        get() {
+            val target = notNull { it.target }
+            return when {
+                target.tests != null -> InvestigationTargetType.TEST
+                target.problems != null -> InvestigationTargetType.BUILD_PROBLEM
+                target.anyProblem == true -> InvestigationTargetType.BUILD_CONFIGURATION
+                else -> error(target)
             }
-
-            throw IllegalStateException("Properties are invalid")
-        }
-    override val targetType: InvestigationTargetType
-        get() {
-            val target = notNull { it.target}
-            if (target.tests != null) return InvestigationTargetType.TEST
-            if (target.problems != null) return InvestigationTargetType.BUILD_PROBLEM
-            return InvestigationTargetType.BUILD_CONFIGURATION
         }
 
-    override val testIds: List<TestId>?
-        get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id })} }
+    val testIds: List<TestId>?
+        get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id }) } }
 
-    override val problemIds: List<BuildProblemId>?
-        get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id })} }
+    val problemIds: List<BuildProblemId>?
+        get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id }) } }
 
-    override val scope: InvestigationScope
+    val scope: InvestigationScope
         get() {
             val scope = notNull { it.scope }
             val project = scope.project?.let { bean -> ProjectImpl(bean, false, instance) }
             if (project != null) {
                 return InvestigationScope.InProject(project)
             }
-
-            /* neither teamcity.jetbrains nor buildserver contain more then one assignment build type */
-            if (scope.buildTypes?.buildType != null && scope.buildTypes.buildType.size > 1) {
-                throw IllegalStateException("more then one buildType")
+            if (!scope.buildTypes?.buildType.isNullOrEmpty()) {
+                val buildConfigurations = scope.buildTypes!!.buildType.map {
+                    BuildConfigurationImpl(it, false, instance)
+                }
+                return if (buildConfigurations.count() == 1) {
+                    InvestigationScope.InBuildConfiguration(buildConfigurations.single())
+                } else {
+                    InvestigationScope.InBuildConfigurations(buildConfigurations)
+                }
             }
-            val buildConfiguration = scope.buildTypes?.let { bean -> BuildConfigurationImpl(bean.buildType[0], false, instance) }
-            if (buildConfiguration != null) {
-                return InvestigationScope.InBuildConfiguration(buildConfiguration)
-            }
+            error("scope is missed in the bean")
+        }
 
-            throw IllegalStateException("scope is missed in the bean")
+    val time: String
+        get() = bean.resolution?.time ?: ""
+}
+
+private class MuteImpl(
+        bean: MuteBean,
+        isFullProjectBean: Boolean,
+        instance: TeamCityInstanceImpl) :
+        IssueImpl<MuteBean>(bean, isFullProjectBean, instance), Mute {
+    override fun toString(): String = "Mute(scope=$scope)"
+    override val mutedBy: User?
+        get() {
+            val user = nullable { it.assignment?.user } ?: return null
+            return UserImpl(notNull { user }, false, instance)
+        }
+}
+
+private class InvestigationImpl(
+        bean: InvestigationBean,
+        isFullProjectBean: Boolean,
+        instance: TeamCityInstanceImpl) :
+        IssueImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
+    override fun fetchFullBean(): InvestigationBean = instance.service.investigation(id.stringId)
+    override fun toString(): String = "Investigation(id=$idString,state=$state)"
+    override val id: InvestigationId
+        get() = InvestigationId(idString)
+    override val state: InvestigationState
+        get() = notNull { it.state }
+    override val assignee: User
+        get() = UserImpl(notNull { it.assignee }, false, instance)
+    override val reporter: User?
+        get() {
+            val assignment = nullable { it.assignment } ?: return null
+            val userBean = assignment.user ?: return null
+            return UserImpl(userBean, false, instance)
         }
 }
 
@@ -702,6 +726,22 @@ private class ProjectImpl(
 
     override val parameters: List<Parameter> by lazy {
         fullBean.parameters!!.property!!.map { ParameterImpl(it) }
+    }
+
+    override val mutes: List<Mute> by lazy {
+        instance.service
+                .mutes("project:(id:${this@ProjectImpl.id.stringId})")
+                .mute.map { MuteImpl(it, true, instance) }
+    }
+
+    override fun createMutes(mutes: List<Mute>) {
+        instance.service.createMutes(MutesBean().apply {
+            mute = mutes.map(::MuteBean)
+        })
+    }
+
+    override fun assignToAgentPool(agentPool: BuildAgentPool) {
+        instance.service.assignProjectToAgentPool(agentPool.id.stringId, ProjectBean(this))
     }
 
     override fun setParameter(name: String, value: String) {
@@ -928,8 +968,8 @@ private class UserImpl(bean: UserBean,
                        isFullBuildBean: Boolean,
                        instance: TeamCityInstanceImpl) :
         BaseImpl<UserBean>(bean, isFullBuildBean, instance), User {
-
-    override fun fetchFullBean(): UserBean = instance.service.users("id:${id.stringId}")
+    private val locator = "id:${id.stringId}"
+    override fun fetchFullBean(): UserBean = instance.service.users(locator)
 
     override val email: String?
         get() = nullable { it.email }
@@ -943,6 +983,13 @@ private class UserImpl(bean: UserBean,
     override val name: String?
         get() = nullable { it.name }
 
+    override val roles: List<Role>
+        get() = fullBean.roles?.role?.map(::RoleImpl) ?: emptyList()
+
+    override fun createRole(role: Role) {
+        instance.service.createRole(locator, RoleBean(role))
+    }
+
     override fun getHomeUrl(): String = getUserUrlPage(
             instance.serverUrl, "admin/editUser.html",
             userId = id
@@ -951,6 +998,11 @@ private class UserImpl(bean: UserBean,
     override fun toString(): String {
         return "User(id=${id.stringId}, username=$username)"
     }
+}
+
+private class RoleImpl(roleBean: RoleBean) : Role {
+    override val id = RoleId(roleBean.roleId ?: "")
+    override val scope = RoleScope(roleBean.scope ?: "")
 }
 
 private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityInstanceImpl) : PinInfo {
@@ -982,7 +1034,7 @@ private class ParameterImpl(private val bean: ParameterBean) : Parameter {
         get() = bean.name!!
 
     override val value: String
-        get() = bean.value!!
+        get() = bean.value ?: ""
 
     override val own: Boolean
         get() = bean.own!!
@@ -1492,6 +1544,29 @@ private class BuildAgentImpl(bean: BuildAgentBean,
             if (it.id == null) null else BuildImpl(it, false, instance)
         }
 
+    override var compatibleBuildConfigurations: CompatibleBuildConfigurations
+        get() = with(instance.service.agentCompatibilityPolicy("id:${id.stringId}")) {
+            CompatibleBuildConfigurationsImpl(
+                    buildTypes?.buildType?.map { BuildConfigurationImpl(it, false, instance) } ?: emptyList(),
+                    CompatibleBuildConfigurations.Policy.values().firstOrNull {
+                        it.name.equals(policy, ignoreCase = true)
+                    } ?: CompatibleBuildConfigurations.Policy.UNKNOWN)
+        }
+        set(value) {
+            instance.service.updateAgentCompatibilityPolicy("id:${id.stringId}", CompatibilityPolicyBean().apply {
+                policy = value.policy.toString()
+                buildTypes = BuildTypesBean().apply {
+                    buildType = value.buildTypes.map {
+                        BuildTypeBean().apply {
+                            id = it.id.stringId
+                            name = it.name
+                            projectId = it.projectId.stringId
+                        }
+                    }
+                }
+            })
+        }
+
     override fun getHomeUrl(): String = "${instance.serverUrl}/agentDetails.html?id=${id.stringId}"
 
     private class BuildAgentAuthorizedInfoImpl(
@@ -1503,6 +1578,11 @@ private class BuildAgentImpl(bean: BuildAgentBean,
             override val user: User?,
             override val timestamp: ZonedDateTime,
             override val text: String) : BuildAgentEnabledInfo
+
+    private class CompatibleBuildConfigurationsImpl(
+            override val buildTypes: List<BuildConfiguration>,
+            override val policy: CompatibleBuildConfigurations.Policy
+    ) : CompatibleBuildConfigurations
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {

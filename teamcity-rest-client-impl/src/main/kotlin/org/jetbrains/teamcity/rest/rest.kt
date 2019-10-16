@@ -5,7 +5,6 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
-import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
 
@@ -29,6 +28,10 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/investigations")
     fun investigations(@Query("locator") investigationLocator: String?): InvestigationListBean
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/investigations/multiple")
+    fun createInvestigations(@Body investigations: InvestigationListBean): Response
 
     @Headers("Accept: application/json")
     @GET("/app/rest/investigations/id:{id}")
@@ -125,6 +128,10 @@ internal interface TeamCityService {
     fun users(@Path("userLocator") userLocator: String): UserBean
 
     @Headers("Accept: application/json")
+    @POST("/app/rest/users/{userLocator}/roles")
+    fun createRole(@Path("userLocator") userLocator: String, @Body role: RoleBean): Response
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/agents")
     fun agents(): BuildAgentsBean
 
@@ -137,8 +144,20 @@ internal interface TeamCityService {
     fun agents(@Path("locator") agentLocator: String? = null): BuildAgentBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/agents/{locator}/compatibilityPolicy")
+    fun agentCompatibilityPolicy(@Path("locator") agentLocator: String): CompatibilityPolicyBean
+
+    @Headers("Accept: application/json")
+    @PUT("/app/rest/agents/{locator}/compatibilityPolicy")
+    fun updateAgentCompatibilityPolicy(@Path("locator") agentLocator: String, @Body policy: CompatibilityPolicyBean): Response
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/agentPools/{locator}")
     fun agentPools(@Path("locator") agentLocator: String? = null): BuildAgentPoolBean
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/agentPools/id:{id}/projects")
+    fun assignProjectToAgentPool(@Path("id") id: String, @Body project: ProjectBean): Response
 
     @Headers("Accept: application/json")
     @GET("/app/rest/problemOccurrences")
@@ -158,7 +177,7 @@ internal interface TeamCityService {
 
     @Streaming
     @GET("/downloadBuildLog.html")
-    fun buildLog(@Query ("buildId") id: String): Response
+    fun buildLog(@Query("buildId") id: String): Response
 
     @Headers("Accept: application/json")
     @GET("/app/rest/changes/buildType:{id},version:{version}")
@@ -171,6 +190,18 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("/app/rest/changes/{id}/firstBuilds")
     fun changeFirstBuilds(@Path("id") id: String): BuildListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/mutes")
+    fun mutes(@Query("locator") buildLocator: String): MutesBean
+
+    @Headers("Accept: application/json")
+    @POST("/app/rest/mutes/multiple")
+    fun createMutes(@Body mutes: MutesBean): Response
+}
+
+internal class MutesBean {
+    var mute: List<MuteBean> = ArrayList()
 }
 
 internal class ProjectsBean {
@@ -209,7 +240,7 @@ internal class VcsRootListBean {
     var `vcs-root`: List<VcsRootBean> = ArrayList()
 }
 
-internal open class VcsRootBean: IdBean() {
+internal open class VcsRootBean : IdBean() {
     var name: String? = null
 
     var properties: NameValuePropertiesBean? = null
@@ -229,7 +260,7 @@ internal class UserListBean {
     var user: List<UserBean> = ArrayList()
 }
 
-internal open class BuildBean: IdBean() {
+internal open class BuildBean : IdBean() {
     var buildTypeId: String? = null
     var canceledInfo: BuildCanceledBean? = null
     var number: String? = null
@@ -268,11 +299,18 @@ internal class BuildRunningInfoBean {
     val probablyHanging: Boolean = false
 }
 
-internal class BuildTypeBean: IdBean() {
+internal class BuildTypeBean() : IdBean() {
     var name: String? = null
     var projectId: String? = null
     var paused: Boolean? = null
     var settings: BuildTypeSettingsBean? = null
+
+    constructor(buildConfiguration: BuildConfiguration) : this() {
+        id = buildConfiguration.id.stringId
+        name = buildConfiguration.name
+        projectId = buildConfiguration.projectId.stringId
+        paused = buildConfiguration.paused
+    }
 }
 
 internal class BuildTypeSettingsBean {
@@ -344,7 +382,7 @@ internal class TriggersBean {
     var trigger: List<TriggerBean>? = ArrayList()
 }
 
-internal class ArtifactDependencyBean: IdBean() {
+internal class ArtifactDependencyBean : IdBean() {
     var type: String? = null
     var disabled: Boolean? = false
     var inherited: Boolean? = false
@@ -356,7 +394,7 @@ internal class ArtifactDependenciesBean {
     var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
 }
 
-internal class ProjectBean: IdBean() {
+internal class ProjectBean() : IdBean() {
     var name: String? = null
     var parentProjectId: String? = null
     var archived: Boolean? = null
@@ -364,9 +402,23 @@ internal class ProjectBean: IdBean() {
     var projects: ProjectsBean? = ProjectsBean()
     var parameters: ParametersBean? = ParametersBean()
     var buildTypes: BuildTypesBean? = BuildTypesBean()
+
+    constructor(project: Project) : this() {
+        id = project.id.stringId
+        name = project.name
+        parentProjectId = project.parentProjectId?.stringId
+        archived = project.archived
+        projects = ProjectsBean().apply {
+            this.project = project.childProjects.map(::ProjectBean)
+        }
+        parameters = ParametersBean(project.parameters.map { ParameterBean(it.name, it.value) })
+        buildTypes = BuildTypesBean().apply {
+            buildType = project.buildConfigurations.map(::BuildTypeBean)
+        }
+    }
 }
 
-internal class BuildAgentBean: IdBean() {
+internal class BuildAgentBean : IdBean() {
     var name: String? = null
     var connected: Boolean? = null
     var enabled: Boolean? = null
@@ -382,7 +434,12 @@ internal class BuildAgentBean: IdBean() {
     var build: BuildBean? = null
 }
 
-internal class BuildAgentPoolBean: IdBean() {
+internal class CompatibilityPolicyBean {
+    var buildTypes: BuildTypesBean? = BuildTypesBean()
+    var policy: String? = null
+}
+
+internal class BuildAgentPoolBean : IdBean() {
     var name: String? = null
 
     var projects: ProjectsBean? = ProjectsBean()
@@ -393,7 +450,7 @@ internal class ChangesBean {
     var change: List<ChangeBean>? = ArrayList()
 }
 
-internal class ChangeBean: IdBean() {
+internal class ChangeBean : IdBean() {
     var version: String? = null
     var user: UserBean? = null
     var date: String? = null
@@ -401,10 +458,35 @@ internal class ChangeBean: IdBean() {
     var username: String? = null
 }
 
-internal class UserBean: IdBean() {
+internal class UserBean() : IdBean() {
     var username: String? = null
     var name: String? = null
     var email: String? = null
+    var roles: RolesBean? = null
+
+    constructor(user: User) : this() {
+        id = user.id.stringId
+        username = user.username
+        name = user.name
+        email = user.email
+        roles = RolesBean().apply {
+            role = user.roles.map(::RoleBean)
+        }
+    }
+}
+
+internal class RolesBean {
+    var role: List<RoleBean>? = ArrayList()
+}
+
+internal class RoleBean() {
+    var roleId: String? = null
+    var scope: String? = null
+
+    constructor(role: Role) : this() {
+        roleId = role.id.stringId
+        scope = role.scope.descriptor
+    }
 }
 
 internal class ParametersBean() {
@@ -501,8 +583,12 @@ internal open class TestOccurrencesBean {
     var testOccurrence: List<TestOccurrenceBean> = ArrayList()
 }
 
-internal open class TestBean {
+internal open class TestBean() {
     var id: String? = null
+
+    constructor(testId: TestId) : this() {
+        id = testId.stringId
+    }
 }
 
 internal open class TestOccurrenceBean {
@@ -527,43 +613,116 @@ internal class InvestigationListBean {
     var investigation: List<InvestigationBean> = ArrayList()
 }
 
-internal class InvestigationBean: IdBean() {
-    val state: InvestigationState? = null
-    val assignee: UserBean? = null
-    val assignment: AssignmentBean? = null
-    val resolution: InvestigationResolutionBean? = null
-    val scope: InvestigationScopeBean? = null
-    val target: InvestigationTargetBean? = null
+internal class MuteBean : IssueBean {
+    @Suppress("unused")
+    constructor() : super()
+
+    constructor(mute: Mute) : super(mute) {
+        assignment?.user = mute.mutedBy?.let(::UserBean)
+    }
 }
 
-class InvestigationResolutionBean {
-    val type: String? = null
+internal sealed class IssueBean() : IdBean() {
+    var assignment: AssignmentBean? = null
+    var resolution: InvestigationResolutionBean? = null
+    var scope: InvestigationScopeBean? = null
+    var target: InvestigationTargetBean? = null
+
+    constructor(issue: Issue) : this() {
+        assignment = AssignmentBean().apply {
+            text = issue.comment
+        }
+        resolution = InvestigationResolutionBean(issue.resolveMethod, issue.time)
+        scope = InvestigationScopeBean(issue.scope)
+        target = InvestigationTargetBean().apply {
+            when (issue.targetType) {
+                InvestigationTargetType.TEST -> {
+                    tests = TestUnderInvestigationListBean().apply {
+                        test = issue.testIds?.map(::TestBean) ?: emptyList()
+                    }
+                }
+                InvestigationTargetType.BUILD_PROBLEM -> {
+                    problems = ProblemUnderInvestigationListBean().apply {
+                        problem = issue.problemIds?.map {
+                            BuildProblemBean().apply {
+                                id = it.stringId
+                            }
+                        } ?: emptyList()
+                    }
+                }
+                InvestigationTargetType.BUILD_CONFIGURATION -> anyProblem = true
+                else -> error(issue)
+            }
+        }
+    }
+}
+
+internal class InvestigationBean : IssueBean {
+    var assignee: UserBean? = null
+    var state: InvestigationState? = null
+
+    @Suppress("unused")
+    constructor() : super()
+
+    constructor(investigation: Investigation) : super(investigation) {
+        state = investigation.state
+        assignee = UserBean(investigation.assignee)
+        assignment?.user = investigation.reporter?.let(::UserBean)
+    }
+}
+
+class InvestigationResolutionBean() {
+    var type: String? = null
+    var time: String? = null
+
+    constructor(resolution: InvestigationResolveMethod, time: String?) : this() {
+        type = resolution.value
+        this.time = time
+    }
 }
 
 internal class AssignmentBean {
-    val user: UserBean? = null
-    val text: String? = null
-    val timestamp: String? = null
+    var user: UserBean? = null
+    var text: String? = null
+    var timestamp: String? = null
 }
 
 internal open class InvestigationTargetBean {
-    val tests : TestUnderInvestigationListBean? = null
-    val problems: ProblemUnderInvestigationListBean? = null
-    val anyProblem: Boolean? = null
+    var tests: TestUnderInvestigationListBean? = null
+    var problems: ProblemUnderInvestigationListBean? = null
+    var anyProblem: Boolean? = null
 }
 
 internal class TestUnderInvestigationListBean {
-    val count : Int? = null
-    var test : List<TestBean> = ArrayList()
+    val count: Int? = null
+    var test: List<TestBean> = ArrayList()
 
 }
 
 internal class ProblemUnderInvestigationListBean {
-    val count : Int? = null
-    var problem : List<BuildProblemBean> = ArrayList()
+    val count: Int? = null
+    var problem: List<BuildProblemBean> = ArrayList()
 }
 
-internal class InvestigationScopeBean {
-    val buildTypes : BuildTypesBean? = null
-    val project : ProjectBean? = null
+internal class InvestigationScopeBean() {
+    var buildTypes: BuildTypesBean? = null
+    var project: ProjectBean? = null
+
+    constructor(scope: InvestigationScope) : this() {
+        when (scope) {
+            is InvestigationScope.InProject -> {
+                project = ProjectBean(scope.project)
+            }
+            else -> {
+                buildTypes = BuildTypesBean().apply {
+                    buildType = when (scope) {
+                        is InvestigationScope.InBuildConfiguration -> listOf(scope.configuration)
+                        is InvestigationScope.InBuildConfigurations -> scope.configuration
+                        else -> error(scope::class.java)
+                    }.map(::BuildTypeBean)
+                }
+            }
+        }
+
+    }
 }
