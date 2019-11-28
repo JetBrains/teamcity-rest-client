@@ -16,6 +16,7 @@ abstract class TeamCityInstance {
 
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
+    abstract fun createInvestigations(investigations: Collection<Investigation>)
 
     abstract fun build(id: BuildId): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
@@ -256,6 +257,7 @@ interface Project {
     val childProjects: List<Project>
     val buildConfigurations: List<BuildConfiguration>
     val parameters: List<Parameter>
+    val mutes: List<Mute>
 
     fun setParameter(name: String, value: String)
 
@@ -267,12 +269,16 @@ interface Project {
 
     fun createProject(id: ProjectId, name: String): Project
 
+    fun assignToAgentPool(agentPool: BuildAgentPool)
+
     /**
      * XML in the same format as
      * https://teamcity/app/rest/buildTypes/YourBuildConfigurationId
      * returns
      */
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
+
+    fun createMutes(mutes: List<Mute>)
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch"))
@@ -485,17 +491,25 @@ interface Build {
     val finishDate: Date?
 }
 
-interface Investigation {
-    val id: InvestigationId
-    val state: InvestigationState
-    val assignee: User
-    val reporter: User?
+interface Issue {
     val comment: String
     val resolveMethod: InvestigationResolveMethod
+    val time: String
     val targetType: InvestigationTargetType
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
     val scope: InvestigationScope
+}
+
+interface Mute: Issue {
+    val mutedBy: User?
+}
+
+interface Investigation : Issue {
+    val id: InvestigationId
+    val state: InvestigationState
+    val assignee: User
+    val reporter: User?
 }
 
 interface BuildRunningInfo {
@@ -542,12 +556,29 @@ interface User {
     val username: String
     val name: String?
     val email: String?
+    val roles: List<Role>
+
+    fun createRole(role: Role)
 
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
     fun getHomeUrl(): String
 }
+
+interface Role {
+    val id: RoleId
+    val scope: RoleScope
+}
+
+data class RoleScope(val descriptor: String) {
+    override fun toString(): String = descriptor
+}
+
+data class RoleId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
 
 interface BuildArtifact {
     /** Artifact name without path. e.g. my.jar */
@@ -592,7 +623,21 @@ interface BuildAgent {
 
     val currentBuild: Build?
 
+    /**
+     * Experimental API, see https://youtrack.jetbrains.com/issue/TW-28513
+     */
+    var compatibleBuildConfigurations: CompatibleBuildConfigurations
+
     fun getHomeUrl(): String
+}
+
+interface CompatibleBuildConfigurations {
+    val buildTypes: List<BuildConfiguration>
+    val policy: Policy
+
+    enum class Policy {
+        ANY, SELECTED, UNKNOWN
+    }
 }
 
 interface BuildAgentPool {
@@ -629,9 +674,10 @@ enum class InvestigationState {
     GIVEN_UP
 }
 
-enum class InvestigationResolveMethod {
-    MANUALLY,
-    WHEN_FIXED;
+enum class InvestigationResolveMethod(val value: String) {
+    MANUALLY("manually"),
+    WHEN_FIXED("whenFixed"),
+    AT_TIME("atTime")
 }
 
 enum class InvestigationTargetType(val value: String) {
@@ -740,5 +786,7 @@ interface BuildQueue {
 
 sealed class InvestigationScope {
     class InProject(val project: Project): InvestigationScope()
+    @Deprecated(message = "Not general case", replaceWith = ReplaceWith("InBuildConfigurations"))
     class InBuildConfiguration(val configuration: BuildConfiguration): InvestigationScope()
+    class InBuildConfigurations(val configuration: List<BuildConfiguration>): InvestigationScope()
 }
