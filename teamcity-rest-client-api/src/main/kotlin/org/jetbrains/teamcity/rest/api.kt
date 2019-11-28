@@ -6,11 +6,13 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 abstract class TeamCityInstance {
     abstract val serverUrl: String
 
     abstract fun withLogResponses(): TeamCityInstance
+    abstract fun withTimeout(timeout: Long, unit: TimeUnit): TeamCityInstance
 
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
