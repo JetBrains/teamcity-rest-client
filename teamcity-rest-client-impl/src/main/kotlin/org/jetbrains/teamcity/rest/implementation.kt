@@ -95,15 +95,19 @@ private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int
 internal class TeamCityInstanceImpl(override val serverUrl: String,
                                     val authMethod: String,
                                     private val basicAuthHeader: String?,
-                                    logResponses: Boolean) : TeamCityInstance() {
+                                    logResponses: Boolean,
+                                    timeout: Long = 2,
+                                    unit: TimeUnit = TimeUnit.MINUTES
+) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
+    override fun withTimeout(timeout: Long, unit: TimeUnit) = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true, timeout, unit)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
     private var client = OkHttpClient.Builder()
-            .readTimeout(2, TimeUnit.MINUTES)
-            .writeTimeout(2, TimeUnit.MINUTES)
-            .connectTimeout(2, TimeUnit.MINUTES)
+            .readTimeout(timeout, unit)
+            .writeTimeout(timeout, unit)
+            .connectTimeout(timeout, unit)
             .addInterceptor(RetryInterceptor())
             .build()
 
