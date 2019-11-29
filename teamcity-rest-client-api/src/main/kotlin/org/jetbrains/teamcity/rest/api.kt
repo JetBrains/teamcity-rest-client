@@ -310,12 +310,12 @@ interface BuildConfiguration {
     var buildNumberFormat: String
 
     fun runBuild(parameters: Map<String, String>? = null,
-                 queueAtTop: Boolean = false,
-                 cleanSources: Boolean = false,
-                 rebuildAllDependencies: Boolean = false,
+                 queueAtTop: Boolean? = null,
+                 cleanSources: Boolean? = null,
+                 rebuildAllDependencies: Boolean? = null,
                  comment: String? = null,
                  logicalBranchName: String? = null,
-                 personal: Boolean = false): Build
+                 personal: Boolean? = null): Build
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch)"))

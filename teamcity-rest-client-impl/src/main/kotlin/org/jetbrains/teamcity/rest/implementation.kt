@@ -832,12 +832,12 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
             nullable { it.settings }?.property?.firstOrNull { it.name == settingName }?.value
 
     override fun runBuild(parameters: Map<String, String>?,
-                          queueAtTop: Boolean,
-                          cleanSources: Boolean,
-                          rebuildAllDependencies: Boolean,
+                          queueAtTop: Boolean?,
+                          cleanSources: Boolean?,
+                          rebuildAllDependencies: Boolean?,
                           comment: String?,
                           logicalBranchName: String?,
-                          personal: Boolean): Build {
+                          personal: Boolean?): Build {
         val request = TriggerBuildRequestBean()
 
         request.buildType = BuildTypeBean().apply { id = this@BuildConfigurationImpl.idString }
