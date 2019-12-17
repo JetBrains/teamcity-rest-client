@@ -311,7 +311,7 @@ interface BuildConfiguration {
 
     fun runBuild(parameters: Map<String, String>? = null,
                  queueAtTop: Boolean = false,
-                 cleanSources: Boolean = false,
+                 cleanSources: Boolean? = null,
                  rebuildAllDependencies: Boolean = false,
                  comment: String? = null,
                  logicalBranchName: String? = null,

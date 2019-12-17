@@ -833,7 +833,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
 
     override fun runBuild(parameters: Map<String, String>?,
                           queueAtTop: Boolean,
-                          cleanSources: Boolean,
+                          cleanSources: Boolean?,
                           rebuildAllDependencies: Boolean,
                           comment: String?,
                           logicalBranchName: String?,
