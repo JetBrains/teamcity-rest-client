@@ -76,6 +76,10 @@ internal interface TeamCityService {
                          @Query("fields") fields: String): ArtifactFileListBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/builds/id:{id}/resulting-properties")
+    fun resultingProperties(@Path("id") buildId: String): ParametersBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/projects/id:{id}")
     fun project(@Path("id") id: String): ProjectBean
 

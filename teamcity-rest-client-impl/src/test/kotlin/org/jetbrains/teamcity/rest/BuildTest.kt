@@ -1,14 +1,14 @@
 package org.jetbrains.teamcity.rest
 
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import java.util.*
-import kotlin.test.*
-
-import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.catchThrowable
-import kotlin.reflect.KFunction
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class BuildTest {
     @Before
@@ -145,5 +145,25 @@ class BuildTest {
             assertTrue(iterator.hasNext())
             assertNotNull(iterator.next())
         }
+    }
+
+    @Test
+    fun test_parameters() {
+        val build = publicInstance().build(BuildId("699994"))
+        val parameters = build.parameters
+
+        assertTrue(parameters.isNotEmpty())
+        assertEquals(53, parameters.count())
+        assertEquals("1.0.0", parameters.first { it.name == "kotlin.build.number" }.value)
+    }
+
+    @Test
+    fun test_resulting_parameters() {
+        val build = customInstanceByConnectionFile().build(BuildId("699994"))
+        val resultingParameters = build.getResultingParameters()
+
+        assertTrue(resultingParameters.isNotEmpty())
+        assertEquals(1033, resultingParameters.count())
+        assertEquals("29", resultingParameters.first { it.name == "build.counter" }.value)
     }
 }

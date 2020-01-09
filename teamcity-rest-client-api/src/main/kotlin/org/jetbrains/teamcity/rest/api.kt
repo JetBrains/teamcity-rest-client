@@ -452,8 +452,8 @@ interface Build {
     fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
     fun downloadBuildLog(output: File)
-
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
+    fun getResultingParameters(): List<Parameter>
 
     @Deprecated(message = "use getHomeUrl()", replaceWith = ReplaceWith("getHomeUrl()"))
     fun getWebUrl(): String
