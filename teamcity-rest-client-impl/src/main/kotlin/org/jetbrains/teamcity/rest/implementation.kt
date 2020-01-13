@@ -1340,6 +1340,10 @@ private class BuildImpl(bean: BuildBean,
         instance.service.cancelBuild(id.stringId, request)
     }
 
+    override fun getResultingParameters(): List<Parameter> {
+        return instance.service.resultingProperties(id.stringId).property!!.map { ParameterImpl(it) }
+    }
+
     override fun getWebUrl(): String = getHomeUrl()
     override fun fetchStatusText(): String? = statusText
     override fun fetchQueuedDate(): Date = Date.from(queuedDateTime.toInstant())
