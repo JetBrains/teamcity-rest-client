@@ -149,7 +149,7 @@ class BuildTest {
 
     @Test
     fun test_parameters() {
-        val build = publicInstance().build(BuildId("699994"))
+        val build = customInstanceByConnectionFile().build(BuildId("699994"))
         val parameters = build.parameters
 
         assertTrue(parameters.isNotEmpty())
