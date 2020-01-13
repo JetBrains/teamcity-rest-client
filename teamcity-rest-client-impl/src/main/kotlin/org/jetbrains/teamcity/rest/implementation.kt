@@ -1341,7 +1341,7 @@ private class BuildImpl(bean: BuildBean,
     }
 
     override fun getResultingParameters(): List<Parameter> {
-        return instance.service.resultingProperties(id.stringId).property?.map { ParameterImpl(it) } ?: parameters
+        return instance.service.resultingProperties(id.stringId).property!!.map { ParameterImpl(it) }
     }
 
     override fun getWebUrl(): String = getHomeUrl()
