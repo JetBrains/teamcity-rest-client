@@ -29,4 +29,17 @@ object TeamCityInstanceFactory {
   @JvmStatic
   fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
           = createHttpAuthInstance(serverUrl, username, password)
+
+  /**
+   * Creates token based connection.
+   * TeamCity access token generated on My Settings & Tools | Access Tokens
+   *
+   * @param serverUrl HTTP or HTTPS URL to TeamCity server
+   * @param token token
+   *
+   * see https://www.jetbrains.com/help/teamcity/rest-api.html#RESTAPI-RESTAuthentication
+   */
+  @JvmStatic
+  fun tokenAuth(serverUrl: String, token: String): TeamCityInstance
+          = createTokenAuthInstance(serverUrl, token)
 }
