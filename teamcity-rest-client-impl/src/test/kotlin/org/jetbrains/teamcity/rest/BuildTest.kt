@@ -18,7 +18,7 @@ class BuildTest {
 
     @Test
     fun test_to_string() {
-        val builds = publicInstance().builds()
+        val builds = customInstanceByConnectionFile().builds()
                 .fromConfiguration(compileExamplesConfiguration)
                 .limitResults(3)
                 .all()
@@ -72,17 +72,19 @@ class BuildTest {
 
     @Test
     fun test_get_artifacts() {
-        val build = publicInstance().builds()
+        val build = customInstanceByConnectionFile().builds()
                 .fromConfiguration(kotlinDevCompilerAllPlugins)
                 .limitResults(15)
                 .all()
                 .first { it.getArtifacts().isNotEmpty() }
 
-        val artifacts = build.getArtifacts("maven")
-        Assert.assertTrue(artifacts.any { it.fullName == "maven/org" && it.name == "org" && it.size == null })
+        val artifacts = build.getArtifacts("internal")
+        Assert.assertTrue(artifacts.any {
+            it.fullName == "internal/kotlin-ide-common.jar" && it.name == "kotlin-ide-common.jar" && it.size != null
+        })
 
-        val artifactsRecursive = build.getArtifacts("maven", recursive = true)
-        Assert.assertTrue(artifactsRecursive.size > artifacts.size)
+        val artifactsRecursive = build.getArtifacts("internal", recursive = true)
+        Assert.assertTrue(artifactsRecursive.size == artifacts.size)
     }
 
     @Test
