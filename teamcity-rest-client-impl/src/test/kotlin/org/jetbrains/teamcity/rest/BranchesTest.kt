@@ -2,6 +2,7 @@ package org.jetbrains.teamcity.rest
 
 import org.junit.Assert
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 class BranchesTest {
@@ -33,6 +34,7 @@ class BranchesTest {
     }
   }
 
+  @Ignore("There are no recent changes, because active development has been moved to buildserver")
   @Test
   fun test_kotlin_branches() {
     val branches = mutableSetOf<String>()

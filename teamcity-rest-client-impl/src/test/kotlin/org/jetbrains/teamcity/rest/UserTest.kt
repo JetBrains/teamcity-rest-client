@@ -27,7 +27,7 @@ class UserTest {
         assertEquals("1", user.id.stringId)
         assertEquals("kir", user.username)
         assertEquals("Kirill Maximov", user.name)
-        assertEquals("kir@jetbrains.com", user.email)
+        assertEquals("kirill.maximov@jetbrains.com", user.email)
         assertEquals("${instance.serverUrl}/admin/editUser.html?userId=1", user.getHomeUrl())
     }
 
@@ -48,6 +48,6 @@ class UserTest {
         val users = instance.users().all().toList()
         assertTrue { users.size > 1000 }
         assertEquals("kir", users.single { it.id.stringId == "1" }.username)
-        assertEquals("kir@jetbrains.com", users.single { it.id.stringId == "1" }.email)
+        assertEquals("kirill.maximov@jetbrains.com", users.single { it.id.stringId == "1" }.email)
     }
 }
