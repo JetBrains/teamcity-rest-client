@@ -31,12 +31,12 @@ private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "guestAuth", null, false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/guestAuth", null, false)
 }
 
 internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
     val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "httpAuth", "Basic $authorization", false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/httpAuth", "Basic $authorization", false)
 }
 
 internal fun createTokenAuthInstance(serverUrl: String, token: String): TeamCityInstanceImpl {
@@ -117,7 +117,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     internal val service = RestAdapter.Builder()
             .setClient(Ok3Client(client))
-            .setEndpoint("$serverUrl/$serverUrlBase")
+            .setEndpoint("$serverUrl$serverUrlBase")
             .setLog { restLog.debug(if (authHeader != null) it.replace(authHeader, "[REDACTED]") else it) }
             .setLogLevel(if (logResponses) RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor { request ->
@@ -1114,7 +1114,7 @@ private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
             prev === initialValue -> convertToPage(getFirstBean())
             prev.nextHref == null || prev.nextHref.isBlank() -> return@generateSequence null
             else -> {
-                val path = prev.nextHref.removePrefix("/${instance.serverUrlBase}/")
+                val path = prev.nextHref.removePrefix("${instance.serverUrlBase}/")
                 val response = instance.service.root(path)
                 val body = response.body ?: return@generateSequence null
                 val bean = CONVERTER.fromBody(body, Bean::class.java) as Bean
