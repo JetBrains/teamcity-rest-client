@@ -31,12 +31,16 @@ private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "guestAuth", null, false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/guestAuth", null, false)
 }
 
 internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
     val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "httpAuth", authorization, false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/httpAuth", "Basic $authorization", false)
+}
+
+internal fun createTokenAuthInstance(serverUrl: String, token: String): TeamCityInstanceImpl {
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "", "Bearer $token", false)
 }
 
 private class RetryInterceptor : Interceptor {
@@ -93,14 +97,14 @@ private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int
 }
 
 internal class TeamCityInstanceImpl(override val serverUrl: String,
-                                    val authMethod: String,
-                                    private val basicAuthHeader: String?,
+                                    val serverUrlBase: String,
+                                    private val authHeader: String?,
                                     logResponses: Boolean,
                                     timeout: Long = 2,
                                     unit: TimeUnit = TimeUnit.MINUTES
 ) : TeamCityInstance() {
-    override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true)
-    override fun withTimeout(timeout: Long, unit: TimeUnit) = TeamCityInstanceImpl(serverUrl, authMethod, basicAuthHeader, true, timeout, unit)
+    override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, serverUrlBase, authHeader, true)
+    override fun withTimeout(timeout: Long, unit: TimeUnit) = TeamCityInstanceImpl(serverUrl, serverUrlBase, authHeader, true, timeout, unit)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -113,12 +117,12 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     internal val service = RestAdapter.Builder()
             .setClient(Ok3Client(client))
-            .setEndpoint("$serverUrl/$authMethod")
-            .setLog { restLog.debug(if (basicAuthHeader != null) it.replace(basicAuthHeader, "[REDACTED]") else it) }
+            .setEndpoint("$serverUrl$serverUrlBase")
+            .setLog { restLog.debug(if (authHeader != null) it.replace(authHeader, "[REDACTED]") else it) }
             .setLogLevel(if (logResponses) RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.HEADERS_AND_ARGS)
             .setRequestInterceptor { request ->
-                if (basicAuthHeader != null) {
-                    request.addHeader("Authorization", "Basic $basicAuthHeader")
+                if (authHeader != null) {
+                    request.addHeader("Authorization", authHeader)
                 }
             }
             .setErrorHandler { retrofitError ->
@@ -1110,7 +1114,7 @@ private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
             prev === initialValue -> convertToPage(getFirstBean())
             prev.nextHref == null || prev.nextHref.isBlank() -> return@generateSequence null
             else -> {
-                val path = prev.nextHref.removePrefix("/${instance.authMethod}/")
+                val path = prev.nextHref.removePrefix("${instance.serverUrlBase}/")
                 val response = instance.service.root(path)
                 val body = response.body ?: return@generateSequence null
                 val bean = CONVERTER.fromBody(body, Bean::class.java) as Bean
