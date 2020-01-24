@@ -19,7 +19,7 @@ fun setupLog4jDebug() {
     Logger.getLogger("org.apache.http").level = Level.ERROR
 }
 
-val publicInstanceUrl = "https://teamcity.jetbrains.com"
+val publicInstanceUrl = "http://localhost:8111"
 
 fun publicInstance() = TeamCityInstanceFactory.guestAuth(publicInstanceUrl).withLogResponses()
 
@@ -41,14 +41,14 @@ fun customInstanceByConnectionFile(): TeamCityInstance {
     }
 }
 
-val kotlinProject = ProjectId("Kotlin")
-val compilerAndPluginConfiguration = BuildConfigurationId("bt345")
-val compileExamplesConfiguration = BuildConfigurationId("bt446")
-val fSharpVSPowerToolsPausedConfiguration = BuildConfigurationId("bt1208")
-
-val kotlinDevCompilerAllPlugins = BuildConfigurationId("Kotlin_dev_CompilerAllPlugins")
-val KotlinDevBuildNumber = BuildConfigurationId("Kotlin_dev_BuildNumber")
-val TeamCityRestApiClientsKotlinClientBuild = BuildConfigurationId("TeamCityRestApiClients_KotlinClient_Build")
+val reportProject = ProjectId("ProjectForReports")
+val testProject = ProjectId("TestProject")
+val changesBuildConfiguration = BuildConfigurationId("ProjectForSidebarCounters_MultibranchChange")
+val testsBuildConfiguration = BuildConfigurationId("ProjectForSidebarCounters_MultibranchTestResult")
+val runTestsBuildConfiguration = BuildConfigurationId("TestProject_RunTests")
+val dependantBuildConfiguration = BuildConfigurationId("TeamcityTestMetadataDemo_TestMetadataDemo")
+val pausedBuildConfiguration = BuildConfigurationId("ProjectForReports_TestPaused")
+val manyTestsBuildConfiguration = BuildConfigurationId("TeamcityTestData_Test")
 
 internal class ConnectionPropertiesFileLoader(filePath: String) {
 

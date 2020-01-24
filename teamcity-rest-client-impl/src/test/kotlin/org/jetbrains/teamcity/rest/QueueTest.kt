@@ -19,7 +19,7 @@ class QueueTest {
 
     @Test
     fun test_kotlin_dev() {
-        publicInstance().buildQueue().queuedBuilds(ProjectId("Kotlin_dev")).forEach {
+        publicInstance().buildQueue().queuedBuilds(ProjectId("Test Project")).forEach {
             it.toString() // toString prints all properties thus evaluating them
             println(it)
         }
