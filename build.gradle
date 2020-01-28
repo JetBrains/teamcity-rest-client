@@ -116,6 +116,6 @@ if (hasProperty("bintrayUser")) {
 }
 
 wrapper {
-  gradleVersion = '5.2'
+  gradleVersion = '6.1.1'
   distributionUrl = "https://cache-redirector.jetbrains.com/services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }
