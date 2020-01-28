@@ -4,9 +4,11 @@ package org.jetbrains.teamcity.rest
 
 import com.google.gson.Gson
 import com.jakewharton.retrofit.Ok3Client
+import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import okhttp3.internal.threadFactory
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
@@ -21,6 +23,8 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
@@ -45,11 +49,11 @@ internal fun createTokenAuthInstance(serverUrl: String, token: String): TeamCity
 
 private class RetryInterceptor : Interceptor {
     private fun Response.retryRequired(): Boolean {
-        val code = code()
+        val code = code
         if (code < 400) return false
 
         // Do not retry non-GET methods, their result may be not idempotent
-        if (request().method() != "GET") return false
+        if (request.method != "GET") return false
 
         return  code == HttpURLConnection.HTTP_CLIENT_TIMEOUT ||
                 code == HttpURLConnection.HTTP_INTERNAL_ERROR ||
@@ -65,7 +69,7 @@ private class RetryInterceptor : Interceptor {
         var tryCount = 0
         while (response.retryRequired() && tryCount < 3) {
             tryCount++
-            LOG.warn("Request ${request.url()} is not successful, $tryCount sec waiting [$tryCount retry]")
+            LOG.warn("Request ${request.url} is not successful, $tryCount sec waiting [$tryCount retry]")
             Thread.sleep((tryCount * 1000).toLong())
             response = chain.proceed(request)
         }
@@ -113,6 +117,12 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             .writeTimeout(timeout, unit)
             .connectTimeout(timeout, unit)
             .addInterceptor(RetryInterceptor())
+            .dispatcher(Dispatcher(
+                    //by default non-daemon threads are used, and it blocks JVM from exit
+                    ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
+                            SynchronousQueue(),
+                            threadFactory("TeamCity-Rest-Client - OkHttp Dispatcher", true)
+            )))
             .build()
 
     internal val service = RestAdapter.Builder()
@@ -137,6 +147,11 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             }
             .build()
             .create(TeamCityService::class.java)
+
+    override fun close() {
+        client.connectionPool.evictAll()
+        client.dispatcher.cancelAll()
+    }
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
 

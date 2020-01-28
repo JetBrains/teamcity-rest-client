@@ -9,7 +9,7 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-abstract class TeamCityInstance {
+abstract class TeamCityInstance : AutoCloseable {
     abstract val serverUrl: String
 
     abstract fun withLogResponses(): TeamCityInstance
