@@ -1,7 +1,6 @@
 package org.jetbrains.teamcity.rest
 
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -12,7 +11,6 @@ class ChangeTest {
         setupLog4jDebug()
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
     fun webUrl() {
         val configuration = publicInstance().buildConfiguration(changesBuildConfiguration)
@@ -38,7 +36,6 @@ class ChangeTest {
         )
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
     fun changeByVcsRevision() {
         val build = publicInstance().builds()
@@ -55,7 +52,6 @@ class ChangeTest {
         assertTrue(change.firstBuilds().map { it.toString() }.contains(build.toString()))
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
     fun buildByVcsRevision() {
         val build = publicInstance().builds()

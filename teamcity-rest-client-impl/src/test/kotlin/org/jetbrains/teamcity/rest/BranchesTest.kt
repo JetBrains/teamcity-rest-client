@@ -2,7 +2,6 @@ package org.jetbrains.teamcity.rest
 
 import org.junit.Assert
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 class BranchesTest {
@@ -12,8 +11,8 @@ class BranchesTest {
     }
 
     @Test
-    fun test_list_works_no_branches() {
-        kotlinBuildsNoBranches()
+    fun test_list_works_all_branches() {
+        getBuildsNoBranches()
                 .withAllBranches()
                 .withStatus(BuildStatus.SUCCESS)
                 .limitResults(20)
@@ -24,7 +23,7 @@ class BranchesTest {
 
     @Test
     fun test_list_works() {
-        kotlinBuilds()
+        getBuildsBranches()
                 .withAllBranches()
                 .withStatus(BuildStatus.SUCCESS)
                 .limitResults(20)
@@ -36,13 +35,12 @@ class BranchesTest {
                 }
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
-    fun test_kotlin_branches() {
+    fun test_multi_branches() {
         val branches = mutableSetOf<String>()
-        kotlinBuilds()
+        getBuildsBranches()
                 .withAllBranches()
-                .withStatus(BuildStatus.SUCCESS)
+                .withStatus(BuildStatus.FAILURE)
                 .limitResults(50)
                 .all().forEach {
                     branches += it.branch.name!!
@@ -53,9 +51,9 @@ class BranchesTest {
     }
 
     @Test
-    fun test_kotlin_default() {
+    fun test_single_branch() {
         val branches = mutableSetOf<String>()
-        kotlinBuilds()
+        getBuildsBranches()
                 .withStatus(BuildStatus.SUCCESS)
                 .limitResults(50)
                 .all().forEach {
@@ -66,14 +64,15 @@ class BranchesTest {
         Assert.assertTrue("Actual branches: $branches", branches.size == 1)
     }
 
-    private fun kotlinBuilds(): BuildLocator {
+    private fun getBuildsBranches(): BuildLocator {
         return publicInstance()
                 .builds()
                 .fromConfiguration(changesBuildConfiguration)
     }
 
-    private fun kotlinBuildsNoBranches(): BuildLocator {
-        return publicInstance().builds()
+    private fun getBuildsNoBranches(): BuildLocator {
+        return publicInstance()
+                .builds()
                 .fromConfiguration(runTestsBuildConfiguration)
     }
 

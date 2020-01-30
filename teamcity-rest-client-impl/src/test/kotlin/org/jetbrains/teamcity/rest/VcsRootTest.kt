@@ -3,7 +3,6 @@ package org.jetbrains.teamcity.rest
 import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 class VcsRootTest {
@@ -22,8 +21,6 @@ class VcsRootTest {
         vcsRootLocator.all().toList()
     }
 
-    @Ignore("teamcity_connection.properties should be updated;" +
-            "Vcs roots should be accessed")
     @Test
     fun vcs_roots_are_loaded() {
         val vcsRootLocator = vcsRootsFromCustomInstance()
@@ -31,11 +28,9 @@ class VcsRootTest {
         assertTrue("Some vcs roots should be loaded", vcsRoots.isNotEmpty())
     }
 
-    @Ignore("teamcity_connection.properties should be updated;" +
-            "Vcs root id should be defined for custom teamcity server")
     @Test
     fun vcs_root_is_loaded_by_id() {
-        val vcsRootId = VcsRootId("ProjectForTests_Absolutely_Unique_Id")
+        val vcsRootId = VcsRootId("TestProject_GitProjectForWebTests")
         val vcsRoot = customInstanceByConnectionFile().vcsRoot(vcsRootId)
         assertNotNull("Vcs root should be loaded", vcsRoot)
     }
