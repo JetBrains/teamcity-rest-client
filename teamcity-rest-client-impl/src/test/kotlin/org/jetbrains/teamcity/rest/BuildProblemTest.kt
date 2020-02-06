@@ -13,13 +13,14 @@ class BuildProblemTest {
 
         setupLog4jDebug()
 
-        // requires admin credentials to teamcity.jetbrains.com
+        // requires admin credentials to teamcity instance
         instance = customInstanceByConnectionFile()
     }
 
     @Test
     fun fetch_problems() {
-        val buildProblems = instance.build(BuildId("1261003")).buildProblems
+        val buildProblems = instance.build(BuildId("9")).buildProblems
         println(buildProblems.joinToString("\n"))
     }
 }
+

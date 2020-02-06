@@ -52,7 +52,7 @@ class InvestigationTest {
 
     @Test
     fun test_forProject() {
-        val filteredInvestigations = publicInstance().investigations().forProject(ProjectId("Kotlin")).all()
+        val filteredInvestigations = publicInstance().investigations().forProject(ProjectId("ProjectForSidebarCounters")).all()
         val allInvestigations = publicInstance().investigations().all()
         Assert.assertTrue(filteredInvestigations.count() > 0)
         Assert.assertTrue(filteredInvestigations.count() < allInvestigations.count())

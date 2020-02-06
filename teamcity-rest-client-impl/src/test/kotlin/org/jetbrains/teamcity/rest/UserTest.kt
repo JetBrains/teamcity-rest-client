@@ -25,9 +25,9 @@ class UserTest {
     fun `user by id`() {
         val user = instance.user(UserId("1"))
         assertEquals("1", user.id.stringId)
-        assertEquals("kir", user.username)
-        assertEquals("Kirill Maximov", user.name)
-        assertEquals("kirill.maximov@jetbrains.com", user.email)
+        assertEquals("admin", user.username)
+        assertEquals("Project admin", user.name)
+        assertEquals("admin@test.test", user.email)
         assertEquals("${instance.serverUrl}/admin/editUser.html?userId=1", user.getHomeUrl())
     }
 
@@ -39,15 +39,15 @@ class UserTest {
 
     @Test
     fun `user by username`() {
-        val user = instance.user("kir")
-        assertEquals("1", user.id.stringId)
+        val user = instance.user("developer")
+        assertEquals("2", user.id.stringId)
     }
 
     @Test
     fun `user list`() {
         val users = instance.users().all().toList()
-        assertTrue { users.size > 1000 }
-        assertEquals("kir", users.single { it.id.stringId == "1" }.username)
-        assertEquals("kirill.maximov@jetbrains.com", users.single { it.id.stringId == "1" }.email)
+        assertTrue { users.size > 2 }
+        assertEquals("admin", users.single { it.id.stringId == "1" }.username)
+        assertEquals("admin@test.test", users.single { it.id.stringId == "1" }.email)
     }
 }

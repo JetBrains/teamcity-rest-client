@@ -1,7 +1,6 @@
 package org.jetbrains.teamcity.rest
 
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -12,10 +11,9 @@ class ChangeTest {
         setupLog4jDebug()
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
     fun webUrl() {
-        val configuration = publicInstance().buildConfiguration(compilerAndPluginConfiguration)
+        val configuration = publicInstance().buildConfiguration(changesBuildConfiguration)
         val change = publicInstance().builds()
                 .fromConfiguration(configuration.id)
                 .limitResults(10)
@@ -38,11 +36,10 @@ class ChangeTest {
         )
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
     fun changeByVcsRevision() {
         val build = publicInstance().builds()
-                .fromConfiguration(compilerAndPluginConfiguration)
+                .fromConfiguration(changesBuildConfiguration)
                 .limitResults(10)
                 .all()
                 .first { it.changes.isNotEmpty() }
@@ -50,23 +47,22 @@ class ChangeTest {
 
         assertEquals(
                 change.toString(),
-                publicInstance().change(compilerAndPluginConfiguration, change.version).toString()
+                publicInstance().change(changesBuildConfiguration, change.version).toString()
         )
         assertTrue(change.firstBuilds().map { it.toString() }.contains(build.toString()))
     }
 
-    @Ignore("There are no recent changes, because active development has been moved to buildserver")
     @Test
     fun buildByVcsRevision() {
         val build = publicInstance().builds()
-                .fromConfiguration(compilerAndPluginConfiguration)
+                .fromConfiguration(changesBuildConfiguration)
                 .limitResults(10)
                 .all()
                 .first { it.changes.isNotEmpty() }
         val change = build.changes.first()
 
         val builds = publicInstance().builds()
-                .fromConfiguration(compilerAndPluginConfiguration)
+                .fromConfiguration(changesBuildConfiguration)
                 .withVcsRevision(change.version)
                 .all()
         assertTrue(builds.map { it.toString() }.contains(build.toString()))
