@@ -5,6 +5,7 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
+import java.util.*
 import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
@@ -523,7 +524,25 @@ internal open class TestOccurrenceBean {
     var test: TestBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,ignoreDetails,details,build(id),test(id))"
+        val filter = toFilterString(EnumSet.allOf(TestRunFields::class.java))
+
+        fun toFilterString(fields: EnumSet<TestRunFields>): String {
+            val sb = StringBuilder("testOccurrence(")
+            when {
+                fields.contains(TestRunFields.Build) -> sb.append("build(id)")
+                fields.contains(TestRunFields.CurrentlyMuted) -> sb.append("currentlyMuted")
+                fields.contains(TestRunFields.Details) -> sb.append("details")
+                fields.contains(TestRunFields.Duration) -> sb.append("duration")
+                fields.contains(TestRunFields.IgnoreDetails) -> sb.append("ignoreDetails")
+                fields.contains(TestRunFields.Ignored) -> sb.append("ignored")
+                fields.contains(TestRunFields.Muted) -> sb.append("muted")
+                fields.contains(TestRunFields.Name) -> sb.append("name")
+                fields.contains(TestRunFields.Status) -> sb.append("status")
+                fields.contains(TestRunFields.Test) -> sb.append("test(id)")
+            }
+            sb.append(")")
+            return sb.toString()
+        }
     }
 }
 

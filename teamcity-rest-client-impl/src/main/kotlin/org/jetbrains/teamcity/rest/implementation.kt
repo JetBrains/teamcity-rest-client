@@ -526,7 +526,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         return this
     }
 
-    override fun all(): Sequence<TestRun> {
+    override fun all(): Sequence<TestRun> = allImpl(TestOccurrenceBean.filter)
+
+    override fun all(fields: EnumSet<TestRunFields>): Sequence<TestRun> = allImpl(TestOccurrenceBean.toFilterString(fields))
+
+    private fun allImpl(testOccurrenceFieldsFilter: String) : Sequence<TestRun> {
         val statusLocator = when (testStatus) {
             null -> null
             TestStatus.FAILED -> "status:FAILURE"
