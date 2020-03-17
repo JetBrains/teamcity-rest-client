@@ -273,6 +273,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var personal: String? = null
     private var running: String? = null
     private var canceled: String? = null
+    private var defaultFilter = true
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -353,6 +354,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
+    override fun withDefaultFilter(enabled: Boolean): BuildLocator {
+        this.defaultFilter = enabled
+        return this
+    }
+
     override fun pinnedOnly(): BuildLocator {
         this.pinnedOnly = true
         return this
@@ -409,10 +415,10 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
                 personal?.let { "personal:$it" },
 
-                // Always use default filter since sometimes TC automatically switches between
+                // Always set default filter explicitly since sometimes TC automatically switches between
                 // defaultFilter:true and defaultFilter:false
                 // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
-                "defaultFilter:true"
+                defaultFilter.let { "defaultFilter:$it" }
         )
 
         if (parameters.isEmpty()) {
@@ -546,7 +552,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             val testOccurrencesLocator = parameters.joinToString(",")
             LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
 
-            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
+            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = testOccurrenceFieldsFilter)
         }) { testOccurrencesBean ->
             Page(
                     data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it) },

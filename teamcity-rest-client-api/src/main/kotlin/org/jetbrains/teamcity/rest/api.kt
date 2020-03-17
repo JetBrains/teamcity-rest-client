@@ -144,6 +144,8 @@ interface BuildLocator {
      */
     fun withAllBranches(): BuildLocator
 
+    fun withDefaultFilter(enabled: Boolean): BuildLocator
+
     fun pinnedOnly(): BuildLocator
 
     fun includePersonal() : BuildLocator
