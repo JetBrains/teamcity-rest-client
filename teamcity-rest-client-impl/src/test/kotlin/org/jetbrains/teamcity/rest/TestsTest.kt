@@ -11,6 +11,7 @@ class TestsTest {
 
     @Test
     fun test_deprecated_list_tests() {
+        @Suppress("DEPRECATION")
         val tests = publicInstance().builds()
                 .fromConfiguration(runTestsBuildConfiguration)
                 .limitResults(3)
