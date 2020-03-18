@@ -39,3 +39,5 @@ dependencies {
 # Contributing
 
 Your contributions are welcome, please read the [CONTRIBUTING.md](CONTRIBUTING.md) for details. 
+
+This is not a real PR, it is only needed to test how PRs are built on our internal TeamCity installation. Please ignore
