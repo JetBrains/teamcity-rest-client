@@ -273,7 +273,6 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var personal: String? = null
     private var running: String? = null
     private var canceled: String? = null
-    private var defaultFilter = true
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -354,11 +353,6 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return this
     }
 
-    override fun withDefaultFilter(enabled: Boolean): BuildLocator {
-        this.defaultFilter = enabled
-        return this
-    }
-
     override fun pinnedOnly(): BuildLocator {
         this.pinnedOnly = true
         return this
@@ -418,7 +412,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 // Always set default filter explicitly since sometimes TC automatically switches between
                 // defaultFilter:true and defaultFilter:false
                 // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
-                defaultFilter.let { "defaultFilter:$it" }
+                "defaultFilter:false"
         )
 
         if (parameters.isEmpty()) {
