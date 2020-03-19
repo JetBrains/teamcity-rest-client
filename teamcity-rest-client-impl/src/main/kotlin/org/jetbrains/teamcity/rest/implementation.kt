@@ -267,12 +267,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var tags = ArrayList<String>()
     private var limitResults: Int? = null
     private var pageSize: Int? = null
-    private var branch: String? = null
+    private var branch = "default:true"
     private var includeAllBranches = false
     private var pinnedOnly = false
-    private var personal: String? = null
+    private var personal = "false"
     private var running: String? = null
-    private var canceled: String? = null
+    private var canceled = "false"
+    private var failedToStart = "false"
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -345,7 +346,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun withAllBranches(): BuildLocator {
-        if (branch != null) {
+        if (branch != "default:true") {
             LOG.warn("Branch is ignored because of #withAllBranches")
         }
 
@@ -365,6 +366,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun onlyPersonal(): BuildLocator {
         this.personal = "true"
+        return this
+    }
+
+    override fun includeFailedToStart(): BuildLocator {
+        this.failedToStart = "any"
         return this
     }
 
@@ -390,7 +396,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
                 running?.let { "running:$it" },
-                canceled?.let { "canceled:$it" },
+                canceled.let { "canceled:$it" },
                 vcsRevision?.let { "revision:$it" },
                 status?.name?.let { "status:$it" },
                 if (tags.isNotEmpty())
@@ -403,11 +409,12 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
 
                 if (!includeAllBranches)
-                    branch?.let { "branch:$it" }
+                    "branch:$branch"
                 else
                     "branch:default:any",
 
-                personal?.let { "personal:$it" },
+                personal.let { "personal:$it" },
+                failedToStart.let { "failedToStart:$it" },
 
                 // Always set default filter explicitly since sometimes TC automatically switches between
                 // defaultFilter:true and defaultFilter:false

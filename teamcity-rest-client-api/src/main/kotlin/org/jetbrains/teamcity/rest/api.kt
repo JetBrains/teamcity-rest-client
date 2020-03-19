@@ -149,6 +149,8 @@ interface BuildLocator {
     fun includePersonal() : BuildLocator
     fun onlyPersonal(): BuildLocator
 
+    fun includeFailedToStart(): BuildLocator
+
     fun limitResults(count: Int): BuildLocator
     fun pageSize(pageSize: Int): BuildLocator
 
