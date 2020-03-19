@@ -188,21 +188,8 @@ interface TestRunsLocator {
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
     fun withStatus(testStatus: TestStatus): TestRunsLocator
+    fun withoutDetails(): TestRunsLocator
     fun all(): Sequence<TestRun>
-    fun all(fields: EnumSet<TestRunFields>): Sequence<TestRun>
-}
-
-enum class TestRunFields {
-    Name,
-    Status,
-    Ignored,
-    Duration,
-    IgnoreDetails,
-    Details,
-    CurrentlyMuted,
-    Muted,
-    Build,
-    Test
 }
 
 data class ProjectId(val stringId: String) {

@@ -524,24 +524,8 @@ internal open class TestOccurrenceBean {
     var test: TestBean? = null
 
     companion object {
-        val filter = toFilterString(EnumSet.allOf(TestRunFields::class.java))
-
-        fun toFilterString(fields: EnumSet<TestRunFields>): String =
-            fields.joinToString(",", "testOccurrence(", ")") {
-                when (it) {
-                    TestRunFields.Build -> "build(id)"
-                    TestRunFields.CurrentlyMuted -> "currentlyMuted"
-                    TestRunFields.Details -> "details"
-                    TestRunFields.Duration -> "duration"
-                    TestRunFields.IgnoreDetails -> "ignoreDetails"
-                    TestRunFields.Ignored -> "ignored"
-                    TestRunFields.Muted -> "muted"
-                    TestRunFields.Name -> "name"
-                    TestRunFields.Status -> "status"
-                    TestRunFields.Test -> "test(id)"
-                    else -> error("Don't know the string representation of that field in the filter string")
-                }
-        }
+        val withoutDetailsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id))"
+        val allFieldsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id),ignoreDetails,details,)"
     }
 }
 

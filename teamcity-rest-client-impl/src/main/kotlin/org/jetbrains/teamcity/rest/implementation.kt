@@ -495,6 +495,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     private var testId: TestId? = null
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
+    private var withoutDetails: Boolean = false
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -526,11 +527,12 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         return this
     }
 
-    override fun all(): Sequence<TestRun> = allImpl(TestOccurrenceBean.filter)
+    override fun withoutDetails(): TestRunsLocator {
+        this.withoutDetails = true
+        return this
+    }
 
-    override fun all(fields: EnumSet<TestRunFields>): Sequence<TestRun> = allImpl(TestOccurrenceBean.toFilterString(fields))
-
-    private fun allImpl(testOccurrenceFieldsFilter: String) : Sequence<TestRun> {
+    override fun all(): Sequence<TestRun> {
         val statusLocator = when (testStatus) {
             null -> null
             TestStatus.FAILED -> "status:FAILURE"
@@ -556,7 +558,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             val testOccurrencesLocator = parameters.joinToString(",")
             LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
 
-            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = testOccurrenceFieldsFilter)
+            val filter = if (withoutDetails) TestOccurrenceBean.withoutDetailsFilter else (TestOccurrenceBean.allFieldsFilter)
+            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = filter)
         }) { testOccurrencesBean ->
             Page(
                     data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it) },
