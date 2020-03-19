@@ -523,8 +523,8 @@ internal open class TestOccurrenceBean {
     var test: TestBean? = null
 
     companion object {
-        val withoutDetailsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id))"
-        val allFieldsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id),ignoreDetails,details,)"
+        const val withoutDetailsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id))"
+        const val allFieldsFilter      = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id),ignoreDetails,details)"
     }
 }
 
