@@ -5,7 +5,6 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
-import java.util.*
 import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
