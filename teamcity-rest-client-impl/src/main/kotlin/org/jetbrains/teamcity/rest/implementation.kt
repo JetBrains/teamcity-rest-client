@@ -1303,21 +1303,26 @@ private class BuildImpl(bean: BuildBean,
 
     override fun downloadArtifact(artifactPath: String, output: File) {
         LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()} to $output")
-
-        output.parentFile.mkdirs()
-        FileOutputStream(output).use {
-            downloadArtifactImpl(artifactPath, it)
+        try {
+            output.parentFile.mkdirs()
+            FileOutputStream(output).use {
+                downloadArtifactImpl(artifactPath, it)
+            }
+        } catch (t: Throwable) {
+            output.delete()
+            throw t
+        } finally {
+            LOG.debug("Artifact '$artifactPath' from build ${getHomeUrl()} downloaded to $output")
         }
-
-        LOG.debug("Artifact '$artifactPath' from build ${getHomeUrl()} downloaded to $output")
     }
 
     override fun downloadArtifact(artifactPath: String, output: OutputStream) {
-        LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()} to $output")
-
-        downloadArtifactImpl(artifactPath, output)
-
-        LOG.debug("Artifact '$artifactPath' from build ${getHomeUrl()} downloaded to $output")
+        LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()}")
+        try {
+            downloadArtifactImpl(artifactPath, output)
+        } finally {
+            LOG.debug("Artifact '$artifactPath' from build ${getHomeUrl()} downloaded")
+        }
     }
 
     private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
