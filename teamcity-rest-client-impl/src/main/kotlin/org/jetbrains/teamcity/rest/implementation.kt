@@ -149,8 +149,10 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             .create(TeamCityService::class.java)
 
     override fun close() {
-        client.connectionPool.evictAll()
         client.dispatcher.cancelAll()
+        client.dispatcher.executorService.shutdown()
+        client.connectionPool.evictAll()
+        client.cache?.close()
     }
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
