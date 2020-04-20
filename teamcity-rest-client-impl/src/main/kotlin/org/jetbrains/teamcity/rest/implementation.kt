@@ -1604,6 +1604,8 @@ private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence 
 
     override val muted: Boolean = bean.muted ?: false
 
+    override val newFailure: Boolean = bean.newFailure ?: false
+
     override val buildId: BuildId = BuildId(bean.build!!.id!!)
 
     override val testId: TestId = TestId(bean.test!!.id!!)

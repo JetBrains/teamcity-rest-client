@@ -685,6 +685,11 @@ interface TestOccurrence {
      */
     val muted: Boolean
 
+    /**
+     * Newly failed test or not
+     */
+    val newFailure: Boolean
+
     val buildId: BuildId
     val testId: TestId
 }
