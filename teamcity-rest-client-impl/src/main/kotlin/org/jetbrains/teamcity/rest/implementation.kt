@@ -1244,6 +1244,11 @@ private class BuildImpl(bean: BuildBean,
         instance.service.addTag(idString, TypedString(tag))
     }
 
+    override fun addComment(comment: String) {
+        LOG.info("Adding comment $comment to build ${getHomeUrl()}")
+        instance.service.addComment(idString, TypedString(comment))
+    }
+
     override fun replaceTags(tags: List<String>) {
         LOG.info("Replacing tags of build ${getHomeUrl()} with ${tags.joinToString(", ")}")
         val tagBeans = tags.map { tag -> TagBean().apply { name = tag } }
