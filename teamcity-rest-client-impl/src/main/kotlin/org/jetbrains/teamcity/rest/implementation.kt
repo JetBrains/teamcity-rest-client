@@ -1606,7 +1606,7 @@ private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence 
 
     override val buildId: BuildId = BuildId(bean.build!!.id!!)
 
-    override val nextFixed: BuildId = BuildId(bean.nextFixed!!.id!!)
+    override val nextFixed: BuildId = BuildId(bean.nextFixed?.id ?: "")
 
     override val testId: TestId = TestId(bean.test!!.id!!)
 
