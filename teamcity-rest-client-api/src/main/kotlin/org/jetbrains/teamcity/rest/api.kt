@@ -686,6 +686,7 @@ interface TestOccurrence {
     val muted: Boolean
 
     val buildId: BuildId
+    val nextFixed: BuildId
     val testId: TestId
 }
 
