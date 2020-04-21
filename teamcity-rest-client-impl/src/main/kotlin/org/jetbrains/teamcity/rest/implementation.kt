@@ -1608,6 +1608,8 @@ private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence 
 
     override val nextFixed: BuildId = BuildId(bean.nextFixed?.id ?: "")
 
+    override val firstFailed : BuildId = BuildId(bean.firstFailed?.id ?: "")
+
     override val testId: TestId = TestId(bean.test!!.id!!)
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
