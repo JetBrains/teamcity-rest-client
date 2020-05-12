@@ -186,6 +186,7 @@ interface TestRunsLocator {
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
     fun withStatus(testStatus: TestStatus): TestRunsLocator
+    fun withExpandInvocations(expandInvocations: Boolean) : TestRunsLocator
     fun all(): Sequence<TestRun>
 }
 

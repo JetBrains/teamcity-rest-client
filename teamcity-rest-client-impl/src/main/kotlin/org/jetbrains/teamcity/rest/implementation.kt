@@ -489,6 +489,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     private var testId: TestId? = null
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
+    private var expandInvocations: Boolean? = null
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -520,6 +521,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         return this
     }
 
+    override fun withExpandInvocations(expandInvocations: Boolean): TestRunsLocator {
+        this.expandInvocations = expandInvocations
+        return this
+    }
+
     override fun all(): Sequence<TestRun> {
         val statusLocator = when (testStatus) {
             null -> null
@@ -535,6 +541,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
                 affectedProjectId?.let { "affectedProject:$it" },
                 buildId?.let { "build:$it" },
                 testId?.let { "test:$it" },
+                expandInvocations?.let { "expandInvocations:$it" },
                 statusLocator
         )
 
