@@ -1155,6 +1155,9 @@ private class BuildImpl(bean: BuildBean,
             BuildState.UNKNOWN
         }
 
+    override val personal: Boolean?
+        get() = nullable { it.personal }
+
     override val branch: Branch
         get() {
             val branchName = nullable { it.branchName }
