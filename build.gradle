@@ -20,9 +20,8 @@ configure(project(':teamcity-rest-client-api')) {
 
 configure(project(':teamcity-rest-client-impl')) {
     dependencies {
-        compile "commons-codec:commons-codec:1.10"
         compile 'com.squareup.retrofit:retrofit:1.9.0'
-        compile "com.squareup.okhttp3:okhttp:4.3.1"
+        compile "com.squareup.okhttp3:okhttp:4.7.2"
         compile 'com.jakewharton.retrofit:retrofit1-okhttp3-client:1.1.0'
         compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
