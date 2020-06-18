@@ -563,7 +563,7 @@ interface BuildArtifact {
 
     fun download(output: File)
     fun download(output: OutputStream)
-    fun openArtifactInputStream(artifactPath: String): InputStream
+    fun openArtifactInputStream(): InputStream
 
     @Deprecated(message = "use modificationDateTime",
             replaceWith = ReplaceWith("Date.from(modificationDateTime.toInstant())"))

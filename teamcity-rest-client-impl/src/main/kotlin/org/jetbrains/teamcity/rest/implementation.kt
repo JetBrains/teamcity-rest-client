@@ -1566,7 +1566,7 @@ private class BuildArtifactImpl(
         build.downloadArtifact(fullName, output)
     }
 
-    override fun openArtifactInputStream(artifactPath: String): InputStream {
+    override fun openArtifactInputStream(): InputStream {
         return build.openArtifactInputStream(fullName)
     }
 }
