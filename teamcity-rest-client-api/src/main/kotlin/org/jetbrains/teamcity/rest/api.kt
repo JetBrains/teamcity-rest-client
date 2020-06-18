@@ -442,7 +442,7 @@ interface Build {
     val buildProblems: Sequence<BuildProblemOccurrence>
 
     fun addTag(tag: String)
-    fun addComment(comment: String)
+    fun setComment(comment: String)
     fun replaceTags(tags: List<String>)
     fun pin(comment: String = "pinned via REST API")
     fun unpin(comment: String = "unpinned via REST API")

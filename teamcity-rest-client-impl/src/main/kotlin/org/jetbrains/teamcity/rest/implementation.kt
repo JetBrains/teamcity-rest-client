@@ -1244,9 +1244,9 @@ private class BuildImpl(bean: BuildBean,
         instance.service.addTag(idString, TypedString(tag))
     }
 
-    override fun addComment(comment: String) {
+    override fun setComment(comment: String) {
         LOG.info("Adding comment $comment to build ${getHomeUrl()}")
-        instance.service.addComment(idString, TypedString(comment))
+        instance.service.setComment(idString, TypedString(comment))
     }
 
     override fun replaceTags(tags: List<String>) {
