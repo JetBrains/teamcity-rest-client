@@ -8,7 +8,6 @@ import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
-import okhttp3.internal.threadFactory
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
@@ -24,10 +23,13 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadFactory
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
+import kotlin.concurrent.thread
 import kotlin.math.min
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
@@ -121,7 +123,15 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
                     //by default non-daemon threads are used, and it blocks JVM from exit
                     ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
                             SynchronousQueue(),
-                            threadFactory("TeamCity-Rest-Client - OkHttp Dispatcher", true)
+                            object: ThreadFactory {
+                                private val count = AtomicInteger(0)
+                                override fun newThread(r: Runnable) = thread(
+                                        block = { r.run() },
+                                        isDaemon = true,
+                                        start = false,
+                                        name = "TeamCity-Rest-Client - OkHttp Dispatcher - ${count.incrementAndGet()}"
+                                )
+                            }
             )))
             .build()
 
