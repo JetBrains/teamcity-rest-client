@@ -1580,7 +1580,7 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
 @Suppress("DEPRECATION")
-private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence {
+private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!
 
     final override val status = when {
@@ -1608,7 +1608,13 @@ private open class TestOccurrenceImpl(bean: TestOccurrenceBean): TestOccurrence 
 
     override val buildId: BuildId = BuildId(bean.build!!.id!!)
 
-    override val nextFixed: BuildId = BuildId(bean.nextFixed?.id ?: "")
+    override val nextFixed: BuildId?
+        get() {
+            if (bean.nextFixed?.id == null)
+                return null
+
+            return BuildId(bean.nextFixed!!.id!!)
+        }
 
     override val firstFailed : BuildId = BuildId(bean.firstFailed?.id ?: "")
 
