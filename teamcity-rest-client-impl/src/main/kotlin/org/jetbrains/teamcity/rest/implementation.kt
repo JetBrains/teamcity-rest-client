@@ -8,7 +8,6 @@ import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
-import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import retrofit.RestAdapter
 import retrofit.converter.GsonConverter
@@ -41,7 +40,7 @@ internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
 }
 
 internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
-    val authorization = Base64.encodeBase64String("$username:$password".toByteArray())
+    val authorization = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
     return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/httpAuth", "Basic $authorization", false)
 }
 
