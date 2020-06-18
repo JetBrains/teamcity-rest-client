@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
+import java.io.InputStream
 import java.io.OutputStream
 import java.time.Duration
 import java.time.Instant
@@ -451,6 +452,7 @@ interface Build {
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
+    fun openArtifactInputStream(artifactPath: String): InputStream
     fun downloadBuildLog(output: File)
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     fun getResultingParameters(): List<Parameter>
@@ -560,6 +562,8 @@ interface BuildArtifact {
     val build: Build
 
     fun download(output: File)
+    fun download(output: OutputStream)
+    fun openArtifactInputStream(artifactPath: String): InputStream
 
     @Deprecated(message = "use modificationDateTime",
             replaceWith = ReplaceWith("Date.from(modificationDateTime.toInstant())"))

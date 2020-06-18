@@ -1301,6 +1301,11 @@ private class BuildImpl(bean: BuildBean,
         }
     }
 
+    override fun openArtifactInputStream(artifactPath: String): InputStream {
+        LOG.info("Opening artifact '$artifactPath' stream from build ${getHomeUrl()}")
+        return openArtifactInputStreamImpl(artifactPath)
+    }
+
     override fun downloadArtifact(artifactPath: String, output: File) {
         LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()} to $output")
         try {
@@ -1325,11 +1330,16 @@ private class BuildImpl(bean: BuildBean,
         }
     }
 
-    private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
+    private fun openArtifactInputStreamImpl(artifactPath: String) : InputStream {
         val response = instance.service.artifactContent(id.stringId, artifactPath)
-        val input = response.body.`in`()
-        BufferedOutputStream(output).use {
-            input.copyTo(it)
+        return response.body.`in`()
+    }
+
+    private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
+        openArtifactInputStreamImpl(artifactPath).use { input ->
+            output.use {
+                input.copyTo(output, bufferSize = 512 * 1024)
+            }
         }
     }
 
@@ -1550,6 +1560,14 @@ private class BuildArtifactImpl(
 
     override fun download(output: File) {
         build.downloadArtifact(fullName, output)
+    }
+
+    override fun download(output: OutputStream) {
+        build.downloadArtifact(fullName, output)
+    }
+
+    override fun openArtifactInputStream(artifactPath: String): InputStream {
+        return build.openArtifactInputStream(fullName)
     }
 }
 
