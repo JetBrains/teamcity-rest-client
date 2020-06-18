@@ -186,6 +186,10 @@ interface TestRunsLocator {
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
     fun withStatus(testStatus: TestStatus): TestRunsLocator
+
+    /**
+     * By default only one test run is returned. Set to true to return all invocations of test in run.
+     */
     fun withExpandInvocations(expandInvocations: Boolean) : TestRunsLocator
     fun all(): Sequence<TestRun>
 }
