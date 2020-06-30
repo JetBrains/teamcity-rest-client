@@ -53,6 +53,9 @@ internal interface TeamCityService {
     @POST("/app/rest/builds/id:{id}/tags/")
     fun addTag(@Path("id") buildId: String, @Body tag: TypedString): Response
 
+    @PUT("/app/rest/builds/id:{id}/comment/")
+    fun setComment(@Path("id") buildId: String, @Body comment: TypedString): Response
+
     @PUT("/app/rest/builds/id:{id}/tags/")
     fun replaceTags(@Path("id") buildId: String, @Body tags: TagsBean): Response
 
