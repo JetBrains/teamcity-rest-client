@@ -1616,7 +1616,13 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): Tes
             return BuildId(bean.nextFixed!!.id!!)
         }
 
-    override val firstFailed : BuildId = BuildId(bean.firstFailed?.id ?: "")
+    override val firstFailed : BuildId?
+        get() {
+            if (bean.firstFailed?.id == null)
+                return null
+
+            return BuildId(bean.firstFailed!!.id!!)
+        }
 
     override val testId: TestId = TestId(bean.test!!.id!!)
 
