@@ -525,9 +525,11 @@ internal open class TestOccurrenceBean {
 
     var build: BuildBean? = null
     var test: TestBean? = null
+    var nextFixed: BuildBean? = null
+    var firstFailed: BuildBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,build(id),test(id))"
+        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
     }
 }
 

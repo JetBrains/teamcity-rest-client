@@ -696,6 +696,8 @@ interface TestOccurrence {
     val newFailure: Boolean
 
     val buildId: BuildId
+    val fixedIn: BuildId?
+    val firstFailedIn: BuildId?
     val testId: TestId
 }
 
