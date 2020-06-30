@@ -1608,7 +1608,7 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): Tes
 
     override val buildId: BuildId = BuildId(bean.build!!.id!!)
 
-    override val nextFixed: BuildId?
+    override val fixedIn: BuildId?
         get() {
             if (bean.nextFixed?.id == null)
                 return null
@@ -1616,7 +1616,7 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): Tes
             return BuildId(bean.nextFixed!!.id!!)
         }
 
-    override val firstFailed : BuildId?
+    override val firstFailedIn : BuildId?
         get() {
             if (bean.firstFailed?.id == null)
                 return null
