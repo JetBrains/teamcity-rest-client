@@ -27,3 +27,8 @@ The library use [semantic versioning](https://semver.org), its version is in `<m
 * if you're removing existing (deprecated) API or adding a big set of new APIs increase the major component of the version in [gradle.properties](gradle.properties) file.
 
 After updating `projectVersion` in [gradle.properties](gradle.properties) also reset the build counter on TeamCity before starting the build to reset the patch component. 
+
+### Change log
+
+When changing something in the library please describe the change in [the change log](CHANGELOG.md) in `[Unreleased]` section at the top of the file.
+Before publishing a new version, change header of that section to the actual version.
