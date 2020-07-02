@@ -406,6 +406,7 @@ internal class ChangeBean: IdBean() {
     var date: String? = null
     var comment: String? = null
     var username: String? = null
+    var vcsRootInstance: VcsRootInstanceBean? = null
 }
 
 internal class UserBean: IdBean() {

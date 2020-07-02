@@ -3,6 +3,7 @@ package org.jetbrains.teamcity.rest
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ChangeTest {
@@ -66,5 +67,16 @@ class ChangeTest {
                 .withVcsRevision(change.version)
                 .all()
         assertTrue(builds.map { it.toString() }.contains(build.toString()))
+    }
+
+    @Test
+    fun associatedVcsRootReported() {
+        val build = publicInstance().builds()
+                .fromConfiguration(changesBuildConfiguration)
+                .limitResults(10)
+                .all()
+                .firstOrNull { it.changes.isNotEmpty() && it.changes.any { change -> change.vcsRootInstance != null }}
+
+        assertNotNull(build, "no vcsRootInstance found")
     }
 }
