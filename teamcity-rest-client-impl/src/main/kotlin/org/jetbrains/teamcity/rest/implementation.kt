@@ -1579,6 +1579,12 @@ private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRo
 
     override val name: String
         get() = bean.name!!
+
+    override fun toString(): String {
+        return "VcsRootInstanceImpl(id=$vcsRootId, name=$name)"
+    }
+
+
 }
 
 private class NameValueProperty(private val bean: NameValuePropertyBean) {
