@@ -190,7 +190,7 @@ interface TestRunsLocator {
     /**
      * By default only one test run is returned. Set to true to return all invocations of test in run.
      */
-    fun withExpandInvocations(expandInvocations: Boolean) : TestRunsLocator
+    fun expandInvocations() : TestRunsLocator
     fun all(): Sequence<TestRun>
 }
 
