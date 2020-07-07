@@ -2,9 +2,7 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
-## [1.11.0] - 2020-08-02
-
-### Added
+## [Unreleased]
 
 - Changes fetched from build have vcsRootInstance
 
