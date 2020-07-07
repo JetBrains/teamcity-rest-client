@@ -516,6 +516,7 @@ interface Change {
     val user: User?
     val dateTime: ZonedDateTime
     val comment: String
+    val vcsRootInstance: VcsRootInstance?
 
     /**
      * Web UI URL for user, especially useful for error and log messages

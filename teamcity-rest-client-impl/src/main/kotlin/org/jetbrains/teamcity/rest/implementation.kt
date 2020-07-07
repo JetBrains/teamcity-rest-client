@@ -952,8 +952,12 @@ private class ChangeImpl(bean: ChangeBean,
     override val comment: String
         get() = notNull { it.comment }
 
+    override val vcsRootInstance: VcsRootInstance?
+        get() = nullable { it.vcsRootInstance }?.let { VcsRootInstanceImpl(it) }
+
     override fun toString() =
-            "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment)"
+            "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment, " +
+                    "vcsRootInstance=$vcsRootInstance)"
 
     override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
             getHomeUrl(
@@ -1268,7 +1272,7 @@ private class BuildImpl(bean: BuildBean,
     override val changes: List<Change>
         get() = instance.service.changes(
                 "build:$idString",
-                "change(id,version,username,user,date,comment)")
+                "change(id,version,username,user,date,comment,vcsRootInstance)")
                 .change!!.map { ChangeImpl(it, true, instance) }
 
     override fun addTag(tag: String) {
@@ -1575,6 +1579,12 @@ private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRo
 
     override val name: String
         get() = bean.name!!
+
+    override fun toString(): String {
+        return "VcsRootInstanceImpl(id=$vcsRootId, name=$name)"
+    }
+
+
 }
 
 private class NameValueProperty(private val bean: NameValuePropertyBean) {
