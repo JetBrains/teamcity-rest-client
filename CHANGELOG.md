@@ -4,7 +4,10 @@ All notable changes to teamcity-rest-client library will be documented in this f
 
 ## [Unreleased]
 
-- Changes fetched from build have vcsRootInstance
+### Added
+
+- Changes fetched from build have vcsRootInstance (`Change::vcsRootInstance`)
+- `Build::personal` property
 
 ## [1.10.0] - 2020-07-01
 
