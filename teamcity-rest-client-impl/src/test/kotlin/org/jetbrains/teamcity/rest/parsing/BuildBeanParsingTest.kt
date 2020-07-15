@@ -21,4 +21,21 @@ class BuildBeanParsingTest {
         """.trimIndent(), BuildBean::class.java)!!
         assertTrue(build.defaultBranch!!)
     }
+
+    @Test
+    fun `personal build`() {
+        val build = Gson().fromJson("""
+                {
+                  "id" : 12345678,
+                  "buildTypeId" : "ijplatform_master_Idea_Installers",
+                  "number" : "193.666",
+                  "status" : "SUCCESS",
+                  "state" : "finished",
+                  "personal" : true,
+                  "branchName" : "master",
+                  "defaultBranch" : true
+                }
+        """.trimIndent(), BuildBean::class.java)!!
+        assertTrue(build.personal!!)
+    }
 }

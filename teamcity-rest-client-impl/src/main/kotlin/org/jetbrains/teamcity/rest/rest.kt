@@ -242,6 +242,7 @@ internal open class BuildBean: IdBean() {
     var number: String? = null
     var status: BuildStatus? = null
     var state: String? = null
+    var personal: Boolean? = null
     var branchName: String? = null
     var defaultBranch: Boolean? = null
     var composite: Boolean? = null

@@ -389,6 +389,7 @@ interface Build {
     val status: BuildStatus?
     val branch: Branch
     val state: BuildState
+    val personal: Boolean
     val name: String
     val canceledInfo: BuildCanceledInfo?
     val comment: BuildCommentInfo?
