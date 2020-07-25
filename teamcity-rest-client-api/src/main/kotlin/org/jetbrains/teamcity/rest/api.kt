@@ -188,9 +188,12 @@ interface TestRunsLocator {
     fun withStatus(testStatus: TestStatus): TestRunsLocator
 
     /**
-     * By default only one test run is returned. Set to true to return all invocations of test in run.
+     * If expandMultipleInvocations is enabled, individual runs of tests, which were executed several
+     * times in same build, are returned as separate entries.
+     * By default such runs are aggregated into a single value, duration property will be the sum of durations
+     * of individual runs, and status will be SUCCESSFUL if and only if all runs are successful.
      */
-    fun expandInvocations() : TestRunsLocator
+    fun expandMultipleInvocations() : TestRunsLocator
     fun all(): Sequence<TestRun>
 }
 
