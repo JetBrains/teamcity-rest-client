@@ -2,6 +2,12 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [Unreleased]
+
+### Added 
+
+- Option to expand multiple invocations of a test (`TestRunsLocator::expandMultipleInvocations`)
+
 ## [1.11.0] - 2020-07-15
 
 ### Added
