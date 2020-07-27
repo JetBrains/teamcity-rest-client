@@ -187,6 +187,14 @@ interface TestRunsLocator {
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
     fun withStatus(testStatus: TestStatus): TestRunsLocator
+
+    /**
+     * If expandMultipleInvocations is enabled, individual runs of tests, which were executed several
+     * times in same build, are returned as separate entries.
+     * By default such runs are aggregated into a single value, duration property will be the sum of durations
+     * of individual runs, and status will be SUCCESSFUL if and only if all runs are successful.
+     */
+    fun expandMultipleInvocations() : TestRunsLocator
     fun all(): Sequence<TestRun>
 }
 
