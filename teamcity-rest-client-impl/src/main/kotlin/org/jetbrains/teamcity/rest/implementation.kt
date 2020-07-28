@@ -71,6 +71,7 @@ private class RetryInterceptor : Interceptor {
         while (response.retryRequired() && tryCount < 3) {
             tryCount++
             LOG.warn("Request ${request.url} is not successful, $tryCount sec waiting [$tryCount retry]")
+            runCatching { response.close() }
             Thread.sleep((tryCount * 1000).toLong())
             response = chain.proceed(request)
         }
