@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to teamcity-rest-client library will be documented in this file.
+                   
+## [1.12.1] - 2020-07-28
+
+## Changed
+
+- Fixed exception in `Build::openArtifactInputStream`: [#92](https://github.com/JetBrains/teamcity-rest-client/issues/92)
 
 ## [1.12.0] - 2020-07-27
 
