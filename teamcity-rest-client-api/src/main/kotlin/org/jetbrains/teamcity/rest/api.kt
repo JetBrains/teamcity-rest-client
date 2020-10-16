@@ -385,6 +385,7 @@ interface BuildAgentAuthorizedInfo {
 interface BuildCanceledInfo {
     val user: User?
     val cancelDateTime: ZonedDateTime
+    val text: String
 
     @Deprecated(message = "use cancelDateTime", replaceWith = ReplaceWith("Date.from(cancelDateTime.toInstant())"))
     val cancelDate: Date
