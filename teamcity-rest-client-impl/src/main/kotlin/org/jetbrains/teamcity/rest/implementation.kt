@@ -1027,6 +1027,8 @@ private class BuildCanceledInfoImpl(private val bean: BuildCanceledBean,
         get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val cancelDate: Date
         get() = Date.from(cancelDateTime.toInstant())
+    override val text: String
+        get() = bean.text ?: ""
 }
 
 private class ParameterImpl(private val bean: ParameterBean) : Parameter {

@@ -474,6 +474,7 @@ internal class AuthorizedInfoBean {
 internal class BuildCanceledBean {
     var user: UserBean? = null
     val timestamp: String? = null
+    val text: String? = null
 }
 
 internal class TriggeredBuildBean {

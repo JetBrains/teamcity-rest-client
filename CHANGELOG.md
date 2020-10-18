@@ -1,6 +1,13 @@
 # Changelog
 
 All notable changes to teamcity-rest-client library will be documented in this file.
+
+## [1.12.2] - 2020-10-16
+
+### Added
+
+- `BuildCanceledInfo::text` property
+
                    
 ## [1.12.1] - 2020-07-28
 
