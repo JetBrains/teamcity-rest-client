@@ -88,6 +88,7 @@ interface VcsRootLocator {
 
 interface BuildAgentLocator {
     fun all(): Sequence<BuildAgent>
+    fun withCompatible(buildConfigurationId: BuildConfigurationId): BuildAgentLocator
 }
 
 interface BuildAgentPoolLocator {
