@@ -394,7 +394,7 @@ internal class BuildAgentBean: IdBean() {
     var build: BuildBean? = null
 
     companion object {
-        const val fields = "agent(name,connected,enabled,authorized,uptodate,ip)"
+        const val fields = "agent(name,connected,enabled,authorized,uptodate,ip,id)"
     }
 }
 
