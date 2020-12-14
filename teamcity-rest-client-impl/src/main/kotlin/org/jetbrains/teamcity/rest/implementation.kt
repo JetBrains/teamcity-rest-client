@@ -243,7 +243,7 @@ private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
 private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentLocator {
     private var compatibleConfigurationId: BuildConfigurationId? = null
 
-    override fun withCompatible(buildConfigurationId: BuildConfigurationId): BuildAgentLocator {
+    override fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator {
         compatibleConfigurationId = buildConfigurationId
         return this
     }

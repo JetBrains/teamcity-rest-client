@@ -20,7 +20,7 @@ class BuildAgentTest {
     @Test
     fun compatible_with_configuration() {
         val compatibleAgents = publicInstance().buildAgents()
-            .withCompatible(manyTestsBuildConfiguration)
+            .compatibleWith(manyTestsBuildConfiguration)
             .all()
 
         assertTrue { compatibleAgents.any() }
