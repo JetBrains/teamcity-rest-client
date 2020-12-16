@@ -241,8 +241,35 @@ private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
 }
 
 private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentLocator {
-    override fun all(): Sequence<BuildAgent> =
-        instance.service.agents().agent.map { BuildAgentImpl(it, false, instance) }.toSequence()
+    private var compatibleConfigurationId: BuildConfigurationId? = null
+
+    override fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator {
+        compatibleConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun all(): Sequence<BuildAgent> {
+        val compatibleConfigurationIdCopy = compatibleConfigurationId
+
+        val parameters = listOfNotNull(
+            compatibleConfigurationIdCopy?.let { "compatible:(buildType:(id:${compatibleConfigurationIdCopy.stringId}))" }
+        )
+        val locator = parameters.joinToString(",")
+
+        return if (locator.isNotEmpty()) {
+            lazyPaging(instance, {
+                LOG.debug("Retrieving agents from ${instance.serverUrl} using query '$locator'")
+                return@lazyPaging instance.service.agents(locator, BuildAgentBean.fields)
+            }) { agentsBean ->
+                Page(
+                    data = agentsBean.agent.map { BuildAgentImpl(it, false, instance) },
+                    nextHref = agentsBean.nextHref
+                )
+            }
+        } else {
+            instance.service.agents().agent.map { BuildAgentImpl(it, false, instance) }.toSequence()
+        }
+    }
 }
 
 private class BuildAgentPoolLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentPoolLocator {
@@ -1517,7 +1544,7 @@ private class BuildAgentImpl(bean: BuildAgentBean,
                                  instance: TeamCityInstanceImpl) :
         BaseImpl<BuildAgentBean>(bean, isFullBean, instance), BuildAgent {
 
-    override fun fetchFullBean(): BuildAgentBean = instance.service.agents("id:$idString")
+    override fun fetchFullBean(): BuildAgentBean = instance.service.agent("id:$idString")
 
     override fun toString(): String = "BuildAgent(id=$id, name=$name)"
 

@@ -141,7 +141,11 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/agents/{locator}")
-    fun agents(@Path("locator") agentLocator: String? = null): BuildAgentBean
+    fun agent(@Path("locator") agentLocator: String? = null): BuildAgentBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agents")
+    fun agents(@Query("locator") locator: String, @Query("fields") fields: String): BuildAgentsListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/agentPools/{locator}")
@@ -388,6 +392,15 @@ internal class BuildAgentBean: IdBean() {
     var properties: ParametersBean? = null
     var pool: BuildAgentPoolBean? = null
     var build: BuildBean? = null
+
+    companion object {
+        const val fields = "agent(name,connected,enabled,authorized,uptodate,ip,id)"
+    }
+}
+
+internal class BuildAgentsListBean {
+    var nextHref: String? = null
+    var agent: List<BuildAgentBean> = ArrayList()
 }
 
 internal class BuildAgentPoolBean: IdBean() {
