@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import java.io.File
+import java.io.InputStream
 import java.io.OutputStream
 import java.time.Duration
 import java.time.Instant
@@ -8,7 +9,7 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-abstract class TeamCityInstance {
+abstract class TeamCityInstance : AutoCloseable {
     abstract val serverUrl: String
 
     abstract fun withLogResponses(): TeamCityInstance
@@ -87,6 +88,7 @@ interface VcsRootLocator {
 
 interface BuildAgentLocator {
     fun all(): Sequence<BuildAgent>
+    fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator
 }
 
 interface BuildAgentPoolLocator {
@@ -188,6 +190,14 @@ interface TestRunsLocator {
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
     fun withStatus(testStatus: TestStatus): TestRunsLocator
+
+    /**
+     * If expandMultipleInvocations is enabled, individual runs of tests, which were executed several
+     * times in same build, are returned as separate entries.
+     * By default such runs are aggregated into a single value, duration property will be the sum of durations
+     * of individual runs, and status will be SUCCESSFUL if and only if all runs are successful.
+     */
+    fun expandMultipleInvocations() : TestRunsLocator
     fun withoutDetails(): TestRunsLocator
     fun all(): Sequence<TestRun>
 }
@@ -379,6 +389,7 @@ interface BuildAgentAuthorizedInfo {
 interface BuildCanceledInfo {
     val user: User?
     val cancelDateTime: ZonedDateTime
+    val text: String
 
     @Deprecated(message = "use cancelDateTime", replaceWith = ReplaceWith("Date.from(cancelDateTime.toInstant())"))
     val cancelDate: Date
@@ -391,6 +402,7 @@ interface Build {
     val status: BuildStatus?
     val branch: Branch
     val state: BuildState
+    val personal: Boolean
     val name: String
     val canceledInfo: BuildCanceledInfo?
     val comment: BuildCommentInfo?
@@ -445,6 +457,7 @@ interface Build {
     val buildProblems: Sequence<BuildProblemOccurrence>
 
     fun addTag(tag: String)
+    fun setComment(comment: String)
     fun replaceTags(tags: List<String>)
     fun pin(comment: String = "pinned via REST API")
     fun unpin(comment: String = "unpinned via REST API")
@@ -454,6 +467,7 @@ interface Build {
     fun downloadArtifacts(pattern: String, outputDir: File)
     fun downloadArtifact(artifactPath: String, output: OutputStream)
     fun downloadArtifact(artifactPath: String, output: File)
+    fun openArtifactInputStream(artifactPath: String): InputStream
     fun downloadBuildLog(output: File)
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     fun getResultingParameters(): List<Parameter>
@@ -516,6 +530,7 @@ interface Change {
     val user: User?
     val dateTime: ZonedDateTime
     val comment: String
+    val vcsRootInstance: VcsRootInstance?
 
     /**
      * Web UI URL for user, especially useful for error and log messages
@@ -563,6 +578,8 @@ interface BuildArtifact {
     val build: Build
 
     fun download(output: File)
+    fun download(output: OutputStream)
+    fun openArtifactInputStream(): InputStream
 
     @Deprecated(message = "use modificationDateTime",
             replaceWith = ReplaceWith("Date.from(modificationDateTime.toInstant())"))
@@ -688,7 +705,14 @@ interface TestOccurrence {
      */
     val muted: Boolean
 
+    /**
+     * Newly failed test or not
+     */
+    val newFailure: Boolean
+
     val buildId: BuildId
+    val fixedIn: BuildId?
+    val firstFailedIn: BuildId?
     val testId: TestId
 }
 

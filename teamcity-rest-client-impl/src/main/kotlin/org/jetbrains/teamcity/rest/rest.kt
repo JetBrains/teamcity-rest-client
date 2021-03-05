@@ -53,6 +53,9 @@ internal interface TeamCityService {
     @POST("/app/rest/builds/id:{id}/tags/")
     fun addTag(@Path("id") buildId: String, @Body tag: TypedString): Response
 
+    @PUT("/app/rest/builds/id:{id}/comment/")
+    fun setComment(@Path("id") buildId: String, @Body comment: TypedString): Response
+
     @PUT("/app/rest/builds/id:{id}/tags/")
     fun replaceTags(@Path("id") buildId: String, @Body tags: TagsBean): Response
 
@@ -138,7 +141,11 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("/app/rest/agents/{locator}")
-    fun agents(@Path("locator") agentLocator: String? = null): BuildAgentBean
+    fun agent(@Path("locator") agentLocator: String? = null): BuildAgentBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/agents")
+    fun agents(@Query("locator") locator: String, @Query("fields") fields: String): BuildAgentsListBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/agentPools/{locator}")
@@ -239,6 +246,7 @@ internal open class BuildBean: IdBean() {
     var number: String? = null
     var status: BuildStatus? = null
     var state: String? = null
+    var personal: Boolean? = null
     var branchName: String? = null
     var defaultBranch: Boolean? = null
     var composite: Boolean? = null
@@ -384,6 +392,15 @@ internal class BuildAgentBean: IdBean() {
     var properties: ParametersBean? = null
     var pool: BuildAgentPoolBean? = null
     var build: BuildBean? = null
+
+    companion object {
+        const val fields = "agent(name,connected,enabled,authorized,uptodate,ip,id)"
+    }
+}
+
+internal class BuildAgentsListBean {
+    var nextHref: String? = null
+    var agent: List<BuildAgentBean> = ArrayList()
 }
 
 internal class BuildAgentPoolBean: IdBean() {
@@ -403,6 +420,7 @@ internal class ChangeBean: IdBean() {
     var date: String? = null
     var comment: String? = null
     var username: String? = null
+    var vcsRootInstance: VcsRootInstanceBean? = null
 }
 
 internal class UserBean: IdBean() {
@@ -469,6 +487,7 @@ internal class AuthorizedInfoBean {
 internal class BuildCanceledBean {
     var user: UserBean? = null
     val timestamp: String? = null
+    val text: String? = null
 }
 
 internal class TriggeredBuildBean {
@@ -518,11 +537,15 @@ internal open class TestOccurrenceBean {
     var details: String? = null
     val currentlyMuted: Boolean? = null
     val muted: Boolean? = null
+    val newFailure: Boolean? = null
 
     var build: BuildBean? = null
     var test: TestBean? = null
+    var nextFixed: BuildBean? = null
+    var firstFailed: BuildBean? = null
 
     companion object {
+        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
         const val withoutDetailsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id))"
         const val allFieldsFilter      = "testOccurrence(name,status,ignored,muted,currentlyMuted,duration,build(id),test(id),ignoreDetails,details)"
     }
