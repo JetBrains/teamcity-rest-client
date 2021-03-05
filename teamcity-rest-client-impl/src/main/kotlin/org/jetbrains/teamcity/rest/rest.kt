@@ -545,7 +545,8 @@ internal open class TestOccurrenceBean {
     var firstFailed: BuildBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
+        const val withoutDetailsFilter = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,firstFailed(id),nextFixed(id),build(id),test(id))"
+        const val allFieldsFilter      = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
     }
 }
 

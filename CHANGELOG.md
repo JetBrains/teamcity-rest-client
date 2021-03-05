@@ -2,6 +2,14 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.14.0] - 2021-03-05
+
+### Added
+
+- Set `defaultFilter` of BuildLocator to false by default in `BuildLocator::all`, set default values for BuildLocator params to imitate `defaultFilter:true` behaviour.
+- `BuildLocator::includeFailedToStart` method for including failed to start builds (excluded for `defaultFilter:true` by default).
+- `TestRunsLocator::withoutDetails` method for excluding `details` and `ignoreDetails` fields from response.
+
 ## [1.13.0] - 2020-12-09
 
 ### Added

@@ -151,6 +151,8 @@ interface BuildLocator {
     fun includePersonal() : BuildLocator
     fun onlyPersonal(): BuildLocator
 
+    fun includeFailedToStart(): BuildLocator
+
     fun limitResults(count: Int): BuildLocator
     fun pageSize(pageSize: Int): BuildLocator
 
@@ -196,6 +198,7 @@ interface TestRunsLocator {
      * of individual runs, and status will be SUCCESSFUL if and only if all runs are successful.
      */
     fun expandMultipleInvocations() : TestRunsLocator
+    fun withoutDetails(): TestRunsLocator
     fun all(): Sequence<TestRun>
 }
 

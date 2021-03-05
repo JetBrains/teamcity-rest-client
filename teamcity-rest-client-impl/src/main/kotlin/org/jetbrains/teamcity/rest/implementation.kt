@@ -327,12 +327,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var tags = ArrayList<String>()
     private var limitResults: Int? = null
     private var pageSize: Int? = null
-    private var branch: String? = null
+    private var branch = "default:true"
     private var includeAllBranches = false
     private var pinnedOnly = false
-    private var personal: String? = null
+    private var personal = "false"
     private var running: String? = null
-    private var canceled: String? = null
+    private var canceled = "false"
+    private var failedToStart = "false"
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -405,7 +406,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     }
 
     override fun withAllBranches(): BuildLocator {
-        if (branch != null) {
+        if (branch != "default:true") {
             LOG.warn("Branch is ignored because of #withAllBranches")
         }
 
@@ -425,6 +426,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
 
     override fun onlyPersonal(): BuildLocator {
         this.personal = "true"
+        return this
+    }
+
+    override fun includeFailedToStart(): BuildLocator {
+        this.failedToStart = "any"
         return this
     }
 
@@ -450,7 +456,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
                 running?.let { "running:$it" },
-                canceled?.let { "canceled:$it" },
+                canceled.let { "canceled:$it" },
                 vcsRevision?.let { "revision:$it" },
                 status?.name?.let { "status:$it" },
                 if (tags.isNotEmpty())
@@ -463,16 +469,17 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
 
                 if (!includeAllBranches)
-                    branch?.let { "branch:$it" }
+                    "branch:$branch"
                 else
                     "branch:default:any",
 
-                personal?.let { "personal:$it" },
+                personal.let { "personal:$it" },
+                failedToStart.let { "failedToStart:$it" },
 
-                // Always use default filter since sometimes TC automatically switches between
+                // Always set default filter explicitly since sometimes TC automatically switches between
                 // defaultFilter:true and defaultFilter:false
                 // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
-                "defaultFilter:true"
+                "defaultFilter:false"
         )
 
         if (parameters.isEmpty()) {
@@ -550,6 +557,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
     private var expandMultipleInvocations = false
+    private var withoutDetails: Boolean = false
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -586,6 +594,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         return this
     }
 
+    override fun withoutDetails(): TestRunsLocator {
+        this.withoutDetails = true
+        return this
+    }
+
     override fun all(): Sequence<TestRun> {
         val statusLocator = when (testStatus) {
             null -> null
@@ -613,7 +626,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             val testOccurrencesLocator = parameters.joinToString(",")
             LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
 
-            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
+            val filter = if (withoutDetails) TestOccurrenceBean.withoutDetailsFilter else (TestOccurrenceBean.allFieldsFilter)
+            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = filter)
         }) { testOccurrencesBean ->
             Page(
                     data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it) },
