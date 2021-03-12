@@ -1669,14 +1669,24 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     override fun queuedBuilds(projectId: ProjectId?): Sequence<Build> {
         val parameters = if (projectId == null) emptyList() else listOf("project:${projectId.stringId}")
 
+        return queuedBuilds(parameters)
+    }
+
+    override fun queuedBuilds(buildConfigurationId: BuildConfigurationId?): Sequence<Build> {
+        val parameters = if (buildConfigurationId == null) emptyList() else listOf("buildType:${buildConfigurationId.stringId}")
+
+        return queuedBuilds(parameters)
+    }
+
+    private fun queuedBuilds(parameters: List<String>): Sequence<BuildImpl> {
         return lazyPaging(instance, {
             val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
             LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
             return@lazyPaging instance.service.queuedBuilds(locator = buildLocator)
         }) { buildsBean ->
             Page(
-                    data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                    nextHref = buildsBean.nextHref
+                data = buildsBean.build.map { BuildImpl(it, false, instance) },
+                nextHref = buildsBean.nextHref
             )
         }
     }

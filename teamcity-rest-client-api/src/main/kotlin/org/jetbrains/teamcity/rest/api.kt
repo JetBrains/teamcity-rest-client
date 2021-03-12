@@ -760,6 +760,7 @@ open class TeamCityConversationException(message: String?, cause: Throwable? = n
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
     fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
+    fun queuedBuilds(buildConfigurationId: BuildConfigurationId? = null): Sequence<Build>
 }
 
 sealed class InvestigationScope {

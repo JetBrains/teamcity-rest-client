@@ -2,6 +2,12 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.14.0] - 2021-03-12
+
+### Added
+
+- `BuildQueueImpl::queuedBuilds(BuildConfigurationId)` method for finding queued builds by `BuildConfigurationId`.
+
 ## [1.13.0] - 2020-12-09
 
 ### Added
