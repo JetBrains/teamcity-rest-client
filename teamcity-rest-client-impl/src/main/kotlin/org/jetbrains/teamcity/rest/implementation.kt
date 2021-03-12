@@ -1672,9 +1672,8 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
         return queuedBuilds(parameters)
     }
 
-    override fun queuedBuilds(buildConfigurationId: BuildConfigurationId?): Sequence<Build> {
-        val parameters = if (buildConfigurationId == null) emptyList() else listOf("buildType:${buildConfigurationId.stringId}")
-
+    override fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Sequence<Build> {
+        val parameters = listOf("buildType:${buildConfigurationId.stringId}")
         return queuedBuilds(parameters)
     }
 
