@@ -249,6 +249,10 @@ private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl):
     }
 
     override fun all(): Sequence<BuildAgent> {
+        return all(false);
+    }
+
+    override fun all(includeUnauthorized: Boolean): Sequence<BuildAgent> {
         val compatibleConfigurationIdCopy = compatibleConfigurationId
 
         val parameters = listOfNotNull(
@@ -267,7 +271,7 @@ private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl):
                 )
             }
         } else {
-            instance.service.agents().agent.map { BuildAgentImpl(it, false, instance) }.toSequence()
+            instance.service.agents(includeUnauthorized).agent.map { BuildAgentImpl(it, false, instance) }.toSequence()
         }
     }
 }
@@ -1568,6 +1572,10 @@ private class BuildAgentImpl(bean: BuildAgentBean,
         get() = !notNull { it.uptodate }
     override val ipAddress: String
         get() = notNull { it.ip }
+
+    override fun setAuthorized(authorized: Boolean) {
+        instance.service.authorizeAgent(name, authorized)
+    }
 
     override val parameters: List<Parameter>
         get() = fullBean.properties!!.property!!.map { ParameterImpl(it) }
