@@ -2,6 +2,14 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [Unreleased]
+
+## Added
+
+- `BuildAgentLocator::all(includeUnauthorized: boolean)` method for querying for unauthorized agents
+- `BuildAgent::setAuthorized(boolean)` method for modifying an agent's authorized state
+
+
 ## [1.14.0] - 2021-03-12
 
 ### Added
