@@ -88,6 +88,7 @@ interface VcsRootLocator {
 
 interface BuildAgentLocator {
     fun all(): Sequence<BuildAgent>
+    fun all(includeUnauthorized: Boolean): Sequence<BuildAgent>
     fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator
 }
 
@@ -610,6 +611,8 @@ interface BuildAgent {
     val currentBuild: Build?
 
     fun getHomeUrl(): String
+
+    fun setAuthorized(authorized: Boolean)
 }
 
 interface BuildAgentPool {

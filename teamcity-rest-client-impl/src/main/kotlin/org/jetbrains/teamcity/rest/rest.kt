@@ -115,6 +115,10 @@ internal interface TeamCityService {
     @POST("/app/rest/buildQueue")
     fun triggerBuild(@Body value: TriggerBuildRequestBean): TriggeredBuildBean
 
+    @Headers("Content-Type: text/plain")
+    @PUT("/app/rest/agents/{agentName}/authorized")
+    fun authorizeAgent(@Path("agentName") agentName: String, @Body value: Boolean): Response
+
     @Headers("Accept: application/json")
     @POST("/app/rest/builds/id:{id}")
     fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
@@ -132,8 +136,8 @@ internal interface TeamCityService {
     fun users(@Path("userLocator") userLocator: String): UserBean
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/agents")
-    fun agents(): BuildAgentsBean
+    @GET("/app/rest/agents?includeUnauthorized={includeUnauthorized}")
+    fun agents(@Path("includeUnauthorized") includeUnauthorized: Boolean): BuildAgentsBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/agentPools")
