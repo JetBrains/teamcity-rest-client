@@ -561,6 +561,7 @@ interface Change {
     val dateTime: ZonedDateTime
     val comment: String
     val vcsRootInstance: VcsRootInstance?
+    val files: ChangeFiles
 
     /**
      * Web UI URL for user, especially useful for error and log messages
@@ -579,6 +580,19 @@ interface Change {
     @Deprecated(message = "use datetime",
             replaceWith = ReplaceWith("Date.from(datetime.toInstant())"))
     val date: Date
+}
+
+interface ChangeFiles {
+    val count: Int
+    val files: List<ChangeFile>
+}
+
+interface ChangeFile {
+    val beforeRevision: String?
+    val afterRevision: String?
+    val changeType: String
+    val file: String?
+    val relativeFile: String?
 }
 
 data class UserId(val stringId: String) {

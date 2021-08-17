@@ -1041,6 +1041,9 @@ private class ChangeImpl(bean: ChangeBean,
     override val vcsRootInstance: VcsRootInstance?
         get() = nullable { it.vcsRootInstance }?.let { VcsRootInstanceImpl(it) }
 
+    override val files: ChangeFiles
+        get() = nullable { it.files }?.let { ChangeFilesImpl(it) } ?: EmptyChangeFiles
+
     override fun toString() =
             "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment, " +
                     "vcsRootInstance=$vcsRootInstance)"
@@ -1052,6 +1055,35 @@ private class ChangeImpl(bean: ChangeBean,
             )
     override val date: Date
         get() = Date.from(dateTime.toInstant())
+}
+
+private class ChangeFilesImpl(private val bean: ChangeFilesBean) : ChangeFiles {
+    override val count: Int
+        get() = bean.count ?: 0
+    override val files: List<ChangeFile>
+        get() = bean.file?.map { ChangeFileImpl(it) } ?: emptyList()
+}
+
+private object EmptyChangeFiles : ChangeFiles {
+    override val count: Int get() = 0
+    override val files: List<ChangeFile> get() = emptyList()
+}
+
+private class ChangeFileImpl(private val bean: ChangeFileBean) : ChangeFile {
+    override val beforeRevision: String?
+        get() = bean.`before-revision`
+    override val afterRevision: String?
+        get() = bean.`after-revision`
+    override val changeType: String
+        get() = bean.changeType ?: "unmodified"
+    override val file: String?
+        get() = bean.file
+    override val relativeFile: String?
+        get() = bean.`relative-file`
+
+    override fun toString(): String {
+        return "ChangeFile(beforeRevision=$beforeRevision, afterRevision=$afterRevision, changeType='$changeType', file=$file, relativeFile=$relativeFile)"
+    }
 }
 
 private class UserImpl(bean: UserBean,
@@ -1366,7 +1398,7 @@ private class BuildImpl(bean: BuildBean,
     override val changes: List<Change>
         get() = instance.service.changes(
                 "build:$idString",
-                "change(id,version,username,user,date,comment,vcsRootInstance)")
+                "change(id,version,username,user,date,comment,vcsRootInstance,files)")
                 .change!!.map { ChangeImpl(it, true, instance) }
 
     override fun addTag(tag: String) {
