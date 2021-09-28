@@ -588,11 +588,20 @@ interface ChangeFiles {
 }
 
 interface ChangeFile {
-    val beforeRevision: String?
-    val afterRevision: String?
-    val changeType: String
-    val file: String?
-    val relativeFile: String?
+    val fileRevisionBeforeChange: String?
+    val fileRevisionAfterChange: String?
+    val changeType: ChangeType
+    val filePath: String?
+    val relativeFilePath: String?
+}
+
+enum class ChangeType {
+    EDITED,
+    ADDED,
+    REMOVED,
+    COPIED,
+    UNCHANGED,
+    UNKNOWN
 }
 
 data class UserId(val stringId: String) {

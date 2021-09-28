@@ -1070,19 +1070,23 @@ private object EmptyChangeFiles : ChangeFiles {
 }
 
 private class ChangeFileImpl(private val bean: ChangeFileBean) : ChangeFile {
-    override val beforeRevision: String?
+    override val fileRevisionBeforeChange: String?
         get() = bean.`before-revision`
-    override val afterRevision: String?
+    override val fileRevisionAfterChange: String?
         get() = bean.`after-revision`
-    override val changeType: String
-        get() = bean.changeType ?: "unmodified"
-    override val file: String?
+    override val changeType: ChangeType
+        get() = try {
+            bean.changeType?.let { ChangeType.valueOf(it.toUpperCase()) } ?: ChangeType.UNKNOWN
+        } catch (e: IllegalArgumentException) {
+            ChangeType.UNKNOWN
+        }
+    override val filePath: String?
         get() = bean.file
-    override val relativeFile: String?
+    override val relativeFilePath: String?
         get() = bean.`relative-file`
 
     override fun toString(): String {
-        return "ChangeFile(beforeRevision=$beforeRevision, afterRevision=$afterRevision, changeType='$changeType', file=$file, relativeFile=$relativeFile)"
+        return "ChangeFile(fileRevisionBeforeChange=$fileRevisionBeforeChange, fileRevisionAfterChange=$fileRevisionAfterChange, changeType=$changeType, filePath=$filePath, relativeFilePath=$relativeFilePath)"
     }
 }
 
