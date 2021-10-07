@@ -908,6 +908,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
                           rebuildAllDependencies: Boolean,
                           comment: String?,
                           logicalBranchName: String?,
+                          agentId: String?,
                           personal: Boolean): Build {
         val request = TriggerBuildRequestBean()
 
@@ -924,6 +925,8 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
             val parametersBean = ParametersBean(parametersMap.map { ParameterBean(it.key, it.value) })
             request.properties = parametersBean
         }
+        if (!agentId.isNullOrEmpty())
+            request.agent = BuildAgentBean().apply { id = agentId }
 
         val triggeredBuildBean = instance.service.triggerBuild(request)
         return instance.build(BuildId(triggeredBuildBean.id!!.toString()))

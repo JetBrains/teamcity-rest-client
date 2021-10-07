@@ -325,6 +325,7 @@ interface BuildConfiguration {
                  rebuildAllDependencies: Boolean = false,
                  comment: String? = null,
                  logicalBranchName: String? = null,
+                 agentId: String? = null,
                  personal: Boolean = false): Build
 
     @Deprecated(message = "use getHomeUrl(branch)",

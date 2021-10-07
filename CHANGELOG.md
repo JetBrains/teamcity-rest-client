@@ -2,6 +2,12 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.15.0] - 2021-10-07
+
+### Added
+
+- Addition `agentId` argument for `BuildConfiguration::runBuild`.
+
 ## [1.14.0] - 2021-03-12
 
 ### Added

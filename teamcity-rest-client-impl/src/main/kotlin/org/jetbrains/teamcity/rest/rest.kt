@@ -325,6 +325,7 @@ internal open class TriggerBuildRequestBean {
     var branchName: String? = null
     var personal: Boolean? = null
     var triggeringOptions: TriggeringOptionsBean? = null
+    var agent: BuildAgentBean? = null
 
     var properties: ParametersBean? = null
     var buildType: BuildTypeBean? = null
