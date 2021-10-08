@@ -902,6 +902,19 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
     private fun getSetting(settingName: String) =
             nullable { it.settings }?.property?.firstOrNull { it.name == settingName }?.value
 
+    override fun runBuild(
+        parameters: Map<String, String>?,
+        queueAtTop: Boolean,
+        cleanSources: Boolean?,
+        rebuildAllDependencies: Boolean,
+        comment: String?,
+        logicalBranchName: String?,
+        personal: Boolean
+    ): Build {
+        return runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies,
+            comment, logicalBranchName, null, personal)
+    }
+
     override fun runBuild(parameters: Map<String, String>?,
                           queueAtTop: Boolean,
                           cleanSources: Boolean?,
