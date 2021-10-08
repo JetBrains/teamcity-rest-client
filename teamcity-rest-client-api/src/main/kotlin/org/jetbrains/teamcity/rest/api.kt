@@ -319,6 +319,16 @@ interface BuildConfiguration {
     var buildCounter: Int
     var buildNumberFormat: String
 
+    @Deprecated(message = "Deprecated due to new parameters, use new overload of this method)",
+        replaceWith = ReplaceWith("runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies, comment, logicalBranchName, null, personal)"))
+    fun runBuild(parameters: Map<String, String>? = null,
+                 queueAtTop: Boolean = false,
+                 cleanSources: Boolean? = null,
+                 rebuildAllDependencies: Boolean = false,
+                 comment: String? = null,
+                 logicalBranchName: String? = null,
+                 personal: Boolean = false): Build
+
     fun runBuild(parameters: Map<String, String>? = null,
                  queueAtTop: Boolean = false,
                  cleanSources: Boolean? = null,
