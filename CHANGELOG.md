@@ -2,7 +2,7 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
-## [1.15.0] - 2021-10-07
+## [1.15.0] - 2021-10-11
 
 ### Added
 
