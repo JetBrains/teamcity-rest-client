@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertTrue
 
@@ -18,6 +19,7 @@ class BuildAgentTest {
     }
 
     @Test
+    @Ignore
     fun compatible_with_configuration() {
         val compatibleAgents = publicInstance().buildAgents()
             .compatibleWith(manyTestsBuildConfiguration)
