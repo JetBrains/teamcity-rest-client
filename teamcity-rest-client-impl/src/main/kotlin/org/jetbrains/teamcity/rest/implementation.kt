@@ -317,6 +317,7 @@ private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserL
 }
 
 private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildLocator {
+    private var affectedProjectId: ProjectId? = null
     private var buildConfigurationId: BuildConfigurationId? = null
     private var snapshotDependencyTo: BuildId? = null
     private var number: String? = null
@@ -333,6 +334,11 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
     private var personal: String? = null
     private var running: String? = null
     private var canceled: String? = null
+
+    override fun forProject(projectId: ProjectId): BuildLocator {
+        this.affectedProjectId = projectId
+        return this
+    }
 
     override fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocatorImpl {
         this.buildConfigurationId = buildConfigurationId
@@ -446,6 +452,7 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
 
         val parameters = listOfNotNull(
+                affectedProjectId?.stringId?.let { "affectedProject:(id:$it)" },
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
                 snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
                 number?.let { "number:$it" },
