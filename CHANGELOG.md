@@ -2,6 +2,12 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.16.0] - 2021-11-12
+
+### Added
+
+- `TestOccurrence::testOccurrenceId` property.
+
 ## [1.15.0] - 2021-10-11
 
 ### Added

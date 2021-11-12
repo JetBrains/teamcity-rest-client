@@ -211,6 +211,10 @@ data class TestId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
+data class TestOccurrenceId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
 data class ChangeId(val stringId: String) {
     override fun toString(): String = stringId
 }
@@ -693,6 +697,7 @@ enum class TestStatus {
 @Deprecated(message = "Deprecated due to unclear naming. use TestRun class", replaceWith = ReplaceWith("TestRun"))
 interface TestOccurrence {
     val name : String
+    val testOccurrenceId: TestOccurrenceId
     val status: TestStatus
 
     /**
