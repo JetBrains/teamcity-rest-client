@@ -531,6 +531,7 @@ internal open class TestBean {
 
 internal open class TestOccurrenceBean {
     var name: String? = null
+    var id: String? = null
     var status: String? = null
     var ignored: Boolean? = null
     var duration: Long? = null
@@ -546,7 +547,7 @@ internal open class TestOccurrenceBean {
     var firstFailed: BuildBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
+        val filter = "testOccurrence(name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
     }
 }
 

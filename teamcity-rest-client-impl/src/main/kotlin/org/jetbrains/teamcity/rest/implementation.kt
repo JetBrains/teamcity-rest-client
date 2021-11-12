@@ -1713,6 +1713,8 @@ private fun getNameValueProperty(properties: List<NameValueProperty>, name: Stri
 private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): TestOccurrence {
     override val name = bean.name!!
 
+    override val testOccurrenceId: TestOccurrenceId = TestOccurrenceId(bean.id!!)
+
     final override val status = when {
         bean.ignored == true -> TestStatus.IGNORED
         bean.status == "FAILURE" -> TestStatus.FAILED
