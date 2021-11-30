@@ -326,10 +326,12 @@ internal open class TriggerBuildRequestBean {
     var personal: Boolean? = null
     var triggeringOptions: TriggeringOptionsBean? = null
     var agent: BuildAgentBean? = null
+    var revisions: RevisionsBean? = null
 
     var properties: ParametersBean? = null
     var buildType: BuildTypeBean? = null
     var comment: CommentBean? = null
+    var `snapshot-dependencies`: BuildListBean? = null
 
 //  TODO: lastChanges
 //    <lastChanges>

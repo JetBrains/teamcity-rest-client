@@ -912,7 +912,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         personal: Boolean
     ): Build {
         return runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies,
-            comment, logicalBranchName, null, personal)
+            comment, logicalBranchName, null, personal, null, null)
     }
 
     override fun runBuild(parameters: Map<String, String>?,
@@ -923,6 +923,22 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
                           logicalBranchName: String?,
                           agentId: String?,
                           personal: Boolean): Build {
+        return runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies,
+            comment, logicalBranchName, null, personal, null, null)
+    }
+
+    override fun runBuild(
+        parameters: Map<String, String>?,
+        queueAtTop: Boolean,
+        cleanSources: Boolean?,
+        rebuildAllDependencies: Boolean,
+        comment: String?,
+        logicalBranchName: String?,
+        agentId: String?,
+        personal: Boolean,
+        revisions: List<SpecifiedRevision>?,
+        dependencies: List<BuildId>?
+    ): Build {
         val request = TriggerBuildRequestBean()
 
         request.buildType = BuildTypeBean().apply { id = this@BuildConfigurationImpl.idString }
@@ -940,7 +956,26 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         }
         if (!agentId.isNullOrEmpty())
             request.agent = BuildAgentBean().apply { id = agentId }
-
+        request.`snapshot-dependencies` = dependencies?.let { deps ->
+            BuildListBean().apply {
+                build = deps.map {
+                    BuildBean().apply { id = it.stringId }
+                }
+            }
+        }
+        request.revisions = revisions?.let { r ->
+            RevisionsBean().apply {
+                revision = r.map {
+                    RevisionBean().apply {
+                        version = it.version
+                        vcsBranchName = it.vcsBranchName
+                        `vcs-root-instance` = VcsRootInstanceBean().apply {
+                            `vcs-root-id` = it.vcsRootId.stringId
+                        }
+                    }
+                }
+            }
+        }
         val triggeredBuildBean = instance.service.triggerBuild(request)
         return instance.build(BuildId(triggeredBuildBean.id!!.toString()))
     }
