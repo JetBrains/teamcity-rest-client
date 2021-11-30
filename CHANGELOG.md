@@ -2,6 +2,16 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.17.0] - 2021-12-02
+
+### Added
+
+- Addition 'Dependencies' and 'Revisions' arguments for `BuildConfiguration::runBuild`.
+
+### Changed
+
+- Retrieving Changes with paging
+
 ## [1.16.0] - 2021-11-12
 
 ### Added

@@ -78,6 +78,8 @@ data class VcsRootType(val stringType: String) {
     }
 }
 
+data class SpecifiedRevision(val version: String, val vcsBranchName: String, val vcsRootId: VcsRootId)
+
 interface VcsRootLocator {
     fun all(): Sequence<VcsRoot>
 
@@ -324,13 +326,24 @@ interface BuildConfiguration {
     var buildNumberFormat: String
 
     @Deprecated(message = "Deprecated due to new parameters, use new overload of this method)",
-        replaceWith = ReplaceWith("runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies, comment, logicalBranchName, null, personal)"))
+        replaceWith = ReplaceWith("runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies, comment, logicalBranchName, null, personal, null, null)"))
     fun runBuild(parameters: Map<String, String>? = null,
                  queueAtTop: Boolean = false,
                  cleanSources: Boolean? = null,
                  rebuildAllDependencies: Boolean = false,
                  comment: String? = null,
                  logicalBranchName: String? = null,
+                 personal: Boolean = false): Build
+
+    @Deprecated(message = "Deprecated due to new parameters, use new overload of this method)",
+        replaceWith = ReplaceWith("runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies, comment, logicalBranchName, agentId, personal, null, null)"))
+    fun runBuild(parameters: Map<String, String>? = null,
+                 queueAtTop: Boolean = false,
+                 cleanSources: Boolean? = null,
+                 rebuildAllDependencies: Boolean = false,
+                 comment: String? = null,
+                 logicalBranchName: String? = null,
+                 agentId: String? = null,
                  personal: Boolean = false): Build
 
     fun runBuild(parameters: Map<String, String>? = null,
@@ -340,7 +353,9 @@ interface BuildConfiguration {
                  comment: String? = null,
                  logicalBranchName: String? = null,
                  agentId: String? = null,
-                 personal: Boolean = false): Build
+                 personal: Boolean = false,
+                 revisions: List<SpecifiedRevision>? = null,
+                 dependencies: List<BuildId>? = null): Build
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch)"))
