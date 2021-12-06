@@ -924,7 +924,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
                           agentId: String?,
                           personal: Boolean): Build {
         return runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies,
-            comment, logicalBranchName, null, personal, null, null)
+            comment, logicalBranchName, agentId, personal, null, null)
     }
 
     override fun runBuild(

@@ -2,6 +2,12 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.17.1] - 2021-12-06
+
+### Changed
+
+- Fix not passing agentId param in deprecated `BuildConfiguration::runBuild` method overload.
+
 ## [1.17.0] - 2021-12-02
 
 ### Added
