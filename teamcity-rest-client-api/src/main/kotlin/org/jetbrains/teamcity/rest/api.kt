@@ -475,6 +475,8 @@ interface Build {
 
     val agent: BuildAgent?
 
+    val detachedFromAgent: Boolean
+
     @Suppress("DEPRECATION")
     @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
@@ -498,6 +500,7 @@ interface Build {
     fun downloadBuildLog(output: File)
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     fun getResultingParameters(): List<Parameter>
+    fun finish()
 
     @Deprecated(message = "use getHomeUrl()", replaceWith = ReplaceWith("getHomeUrl()"))
     fun getWebUrl(): String

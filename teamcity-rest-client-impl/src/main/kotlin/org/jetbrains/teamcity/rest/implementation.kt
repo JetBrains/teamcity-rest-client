@@ -1328,6 +1328,9 @@ private class BuildImpl(bean: BuildBean,
             return BuildAgentImpl(agentBean, false, instance)
         }
 
+    override val detachedFromAgent: Boolean
+        get() = nullable { it.detachedFromAgent } ?: false
+
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
     override val snapshotDependencies: List<Build> get() =
@@ -1493,6 +1496,10 @@ private class BuildImpl(bean: BuildBean,
 
     override fun getResultingParameters(): List<Parameter> {
         return instance.service.resultingProperties(id.stringId).property!!.map { ParameterImpl(it) }
+    }
+
+    override fun finish() {
+        instance.service.finishBuild(id.stringId)
     }
 
     override fun getWebUrl(): String = getHomeUrl()
