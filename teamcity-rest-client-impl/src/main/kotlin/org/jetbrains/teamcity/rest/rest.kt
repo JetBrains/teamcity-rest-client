@@ -119,6 +119,9 @@ internal interface TeamCityService {
     @POST("/app/rest/builds/id:{id}")
     fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
 
+    @PUT("/app/rest/builds/id:{id}/finish")
+    fun finishBuild(@Path("id") buildId: String): Response
+
     @Headers("Accept: application/json")
     @POST("/app/rest/buildQueue/id:{id}")
     fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
@@ -270,6 +273,7 @@ internal open class BuildBean: IdBean() {
     var buildType: BuildTypeBean? = BuildTypeBean()
 
     var `snapshot-dependencies`: BuildListBean? = null
+    var detachedFromAgent: Boolean? = null
 }
 
 internal class BuildRunningInfoBean {
