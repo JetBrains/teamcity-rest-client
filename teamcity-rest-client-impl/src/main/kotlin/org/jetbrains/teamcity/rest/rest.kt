@@ -183,6 +183,10 @@ internal interface TeamCityService {
     fun change(@Path("id") changeId: String): ChangeBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/changes/id:{id}?fields=files")
+    fun changeFiles(@Path("id") changeId: String): ChangeFilesBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/changes/{id}/firstBuilds")
     fun changeFirstBuilds(@Path("id") id: String): BuildListBean
 }
@@ -428,10 +432,13 @@ internal class ChangeBean: IdBean() {
     var comment: String? = null
     var username: String? = null
     var vcsRootInstance: VcsRootInstanceBean? = null
-    var files: ChangeFilesBean? = null
 }
 
 internal class ChangeFilesBean {
+    var files: ChangeFilesChangeBean? = null
+}
+
+internal class ChangeFilesChangeBean {
     var count: Int? = null
     var file: List<ChangeFileBean>? = ArrayList()
 }
