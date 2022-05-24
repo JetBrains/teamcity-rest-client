@@ -542,6 +542,7 @@ internal open class TestOccurrenceBean {
     val currentlyMuted: Boolean? = null
     val muted: Boolean? = null
     val newFailure: Boolean? = null
+    var metadata: MetadataBean? = null
 
     var build: BuildBean? = null
     var test: TestBean? = null
@@ -549,7 +550,7 @@ internal open class TestOccurrenceBean {
     var firstFailed: BuildBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id))"
+        val filter = "testOccurrence(name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id),metadata)"
     }
 }
 
@@ -596,4 +597,15 @@ internal class ProblemUnderInvestigationListBean {
 internal class InvestigationScopeBean {
     val buildTypes : BuildTypesBean? = null
     val project : ProjectBean? = null
+}
+
+internal class MetadataBean {
+    val count: Int? = null
+    val typedValues: List<TypedValuesBean>? = null
+}
+
+internal class TypedValuesBean {
+    val name: String? = null
+    val type: String? = null
+    val value: String? = null
 }
