@@ -1791,6 +1791,11 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): Tes
             return BuildId(bean.firstFailed!!.id!!)
         }
 
+    override val metadataValues: List<String>?
+        get() {
+            return bean.metadata?.typedValues?.map { it.value.toString()  }
+        }
+
     override val testId: TestId = TestId(bean.test!!.id!!)
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
