@@ -561,6 +561,7 @@ interface Change {
     val dateTime: ZonedDateTime
     val comment: String
     val vcsRootInstance: VcsRootInstance?
+    val files: List<ChangeFile>
 
     /**
      * Web UI URL for user, especially useful for error and log messages
@@ -579,6 +580,34 @@ interface Change {
     @Deprecated(message = "use datetime",
             replaceWith = ReplaceWith("Date.from(datetime.toInstant())"))
     val date: Date
+}
+
+interface ChangeFile {
+    val fileRevisionBeforeChange: String?
+    val fileRevisionAfterChange: String?
+    val changeType: ChangeType
+
+    /**
+     * Full file path, may include VCS URL
+     */
+    val filePath: String?
+
+    /**
+     * File path relative to VCS root directory.
+     */
+    val relativeFilePath: String?
+}
+
+enum class ChangeType {
+    EDITED,
+    ADDED,
+    REMOVED,
+    /**
+     * This type is used when directory or subdirectory is copied and/or modified, and individual files there
+     * are not included separately in the [Change].
+     */
+    COPIED,
+    UNKNOWN
 }
 
 data class UserId(val stringId: String) {

@@ -1041,6 +1041,10 @@ private class ChangeImpl(bean: ChangeBean,
     override val vcsRootInstance: VcsRootInstance?
         get() = nullable { it.vcsRootInstance }?.let { VcsRootInstanceImpl(it) }
 
+    override val files: List<ChangeFile> by lazy {
+        instance.service.changeFiles(id.stringId).files?.file?.map { ChangeFileImpl(it) } ?: emptyList()
+    }
+
     override fun toString() =
             "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment, " +
                     "vcsRootInstance=$vcsRootInstance)"
@@ -1052,6 +1056,27 @@ private class ChangeImpl(bean: ChangeBean,
             )
     override val date: Date
         get() = Date.from(dateTime.toInstant())
+}
+
+private class ChangeFileImpl(private val bean: ChangeFileBean) : ChangeFile {
+    override val fileRevisionBeforeChange: String?
+        get() = bean.`before-revision`
+    override val fileRevisionAfterChange: String?
+        get() = bean.`after-revision`
+    override val changeType: ChangeType
+        get() = try {
+            bean.changeType?.let { ChangeType.valueOf(it.toUpperCase()) } ?: ChangeType.UNKNOWN
+        } catch (e: IllegalArgumentException) {
+            ChangeType.UNKNOWN
+        }
+    override val filePath: String?
+        get() = bean.file
+    override val relativeFilePath: String?
+        get() = bean.`relative-file`
+
+    override fun toString(): String {
+        return "ChangeFile(fileRevisionBeforeChange=$fileRevisionBeforeChange, fileRevisionAfterChange=$fileRevisionAfterChange, changeType=$changeType, filePath=$filePath, relativeFilePath=$relativeFilePath)"
+    }
 }
 
 private class UserImpl(bean: UserBean,
