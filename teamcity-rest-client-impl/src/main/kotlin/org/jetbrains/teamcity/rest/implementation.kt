@@ -1469,7 +1469,7 @@ private class BuildImpl(bean: BuildBean,
     override fun downloadArtifact(artifactPath: String, output: File) {
         LOG.info("Downloading artifact '$artifactPath' from build ${getHomeUrl()} to $output")
         try {
-            output.parentFile.mkdirs()
+            output.parentFile?.mkdirs()
             FileOutputStream(output).use {
                 downloadArtifactImpl(artifactPath, it)
             }
@@ -1869,9 +1869,10 @@ private fun getUserUrlPage(serverUrl: String,
 }
 
 private fun saveToFile(response: retrofit.client.Response, file: File) {
-    file.parentFile.mkdirs()
-    val input = response.body.`in`()
-    BufferedOutputStream(FileOutputStream(file)).use {
-        input.copyTo(it)
+    file.parentFile?.mkdirs()
+    response.body.`in`().use { input ->
+        file.outputStream().use { output ->
+            input.copyTo(output, bufferSize = 512 * 1024)
+        }
     }
 }
