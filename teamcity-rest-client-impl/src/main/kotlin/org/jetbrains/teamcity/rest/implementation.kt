@@ -709,8 +709,7 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
     BaseImpl<TBean>(bean, isFullProjectBean, instance), InvestigationMuteBase {
     override val id: InvestigationId
         get() = InvestigationId(idString)
-    override val assignee: User
-        get() = UserImpl( notNull { it.assignee }, false, instance)
+
     override val reporter: User?
         get() {
             val assignment = nullable { it.assignment } ?: return null
@@ -774,6 +773,9 @@ private class InvestigationImpl(
 
     override fun toString(): String = "Investigation(id=$idString,state=$state)"
 
+    override val assignee: User
+        get() = UserImpl( notNull { it.assignee }, false, instance)
+
     override val state: InvestigationState
         get() = notNull { it.state }
 
@@ -784,6 +786,12 @@ private class MuteImpl(
     isFullProjectBean: Boolean,
     instance: TeamCityInstanceImpl) :
     InvestigationMuteBaseImpl<MuteBean>(bean, isFullProjectBean, instance), Mute {
+
+    override val tests: List<Test>?
+        get() = nullable { it.target?.tests?.test?.map { testBean -> Test(notNull { testBean.id }, notNull { testBean.name } )} }
+
+    override val assignee: User
+        get() = UserImpl( notNull { it.assignment?.user }, false, instance)
 
     override fun fetchFullBean(): MuteBean = instance.service.mute(id.stringId)
 

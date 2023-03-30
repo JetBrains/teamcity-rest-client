@@ -539,6 +539,10 @@ interface Build {
     val finishDate: Date?
 }
 
+/**
+ * Interface for the common part of mutes and investigations, which are action points for the problem.
+ * Use Investigation or Mute interfaces accordingly
+ */
 interface InvestigationMuteBase {
     val id: InvestigationId
     val assignee: User
@@ -555,7 +559,16 @@ interface Investigation : InvestigationMuteBase {
     val state: InvestigationState
 }
 
-interface Mute : InvestigationMuteBase
+interface Mute : InvestigationMuteBase {
+    val tests: List<Test>?
+}
+
+/**
+ * Data class to store Test data, to be replaced with API to handle requests to the tests
+ */
+data class Test(val id: String, val name: String) {
+    override fun toString(): String = id
+}
 
 interface BuildRunningInfo {
     val percentageComplete: Int

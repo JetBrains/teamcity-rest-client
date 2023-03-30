@@ -562,6 +562,7 @@ internal open class TestOccurrencesBean {
 
 internal open class TestBean {
     var id: String? = null
+    var name: String? = null
 }
 
 internal open class TestOccurrenceBean {
@@ -592,7 +593,6 @@ internal class MuteListBean {
 }
 
 internal open class InvestigationMuteBaseBean: IdBean() {
-    val assignee: UserBean? = null
     val assignment: AssignmentBean? = null
     val resolution: InvestigationResolutionBean? = null
     val scope: InvestigationScopeBean? = null
@@ -605,6 +605,7 @@ internal class InvestigationListBean {
 }
 
 internal class InvestigationBean : InvestigationMuteBaseBean() {
+    val assignee: UserBean? = null
     val state: InvestigationState? = null
 }
 
