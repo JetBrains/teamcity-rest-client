@@ -18,6 +18,7 @@ abstract class TeamCityInstance : AutoCloseable {
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
 
+    abstract fun mutes(): MuteLocator
     abstract fun build(id: BuildId): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
@@ -181,6 +182,12 @@ interface InvestigationLocator {
     fun forProject(projectId: ProjectId): InvestigationLocator
     fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator
     fun all(): Sequence<Investigation>
+}
+
+interface MuteLocator {
+    fun limitResults(count: Int): MuteLocator
+    fun forProject(projectId: ProjectId): MuteLocator
+    fun all(): Sequence<Mute>
 }
 
 interface TestRunsLocator {
@@ -532,9 +539,8 @@ interface Build {
     val finishDate: Date?
 }
 
-interface Investigation {
+interface InvestigationMuteBase {
     val id: InvestigationId
-    val state: InvestigationState
     val assignee: User
     val reporter: User?
     val comment: String
@@ -544,6 +550,12 @@ interface Investigation {
     val problemIds: List<BuildProblemId>?
     val scope: InvestigationScope
 }
+
+interface Investigation : InvestigationMuteBase {
+    val state: InvestigationState
+}
+
+interface Mute : InvestigationMuteBase
 
 interface BuildRunningInfo {
     val percentageComplete: Int

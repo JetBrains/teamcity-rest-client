@@ -35,6 +35,14 @@ internal interface TeamCityService {
     fun investigation(@Path("id") id: String): InvestigationBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/mutes")
+    fun mutes(@Query("locator") muteLocator: String?): MuteListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/mutes")
+    fun mute(@Path("id") id: String): MuteBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/changes")
     fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
 
@@ -579,17 +587,25 @@ internal open class TestOccurrenceBean {
     }
 }
 
-internal class InvestigationListBean {
-    var investigation: List<InvestigationBean> = ArrayList()
+internal class MuteListBean {
+    var mute: List<MuteBean> = ArrayList()
 }
 
-internal class InvestigationBean: IdBean() {
-    val state: InvestigationState? = null
+internal open class InvestigationMuteBaseBean: IdBean() {
     val assignee: UserBean? = null
     val assignment: AssignmentBean? = null
     val resolution: InvestigationResolutionBean? = null
     val scope: InvestigationScopeBean? = null
     val target: InvestigationTargetBean? = null
+}
+internal class MuteBean : InvestigationMuteBaseBean()
+
+internal class InvestigationListBean {
+    var investigation: List<InvestigationBean> = ArrayList()
+}
+
+internal class InvestigationBean : InvestigationMuteBaseBean() {
+    val state: InvestigationState? = null
 }
 
 class InvestigationResolutionBean {

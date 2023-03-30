@@ -175,6 +175,8 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun investigations(): InvestigationLocator = InvestigationLocatorImpl(this)
 
+    override fun mutes(): MuteLocator = MuteLocatorImpl(this)
+
     override fun build(id: BuildId): Build = BuildImpl(
             BuildBean().also { it.id = id.stringId }, false, this)
 
@@ -542,6 +544,40 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
 }
 
+private class MuteLocatorImpl(private val instance: TeamCityInstanceImpl) : MuteLocator {
+    private var limitResults: Int? = null
+    private var affectedProjectId: ProjectId? = null
+
+    override fun limitResults(count: Int): MuteLocator {
+        this.limitResults = count
+        return this
+    }
+    override fun forProject(projectId: ProjectId): MuteLocator {
+        this.affectedProjectId = projectId
+        return this
+    }
+
+    override fun all(): Sequence<Mute> {
+        var muteLocator : String? = null
+
+        val parameters = listOfNotNull(
+            limitResults?.let { "count:$it" },
+            affectedProjectId?.let { "affectedProject:$it" }
+        )
+
+        if (parameters.isNotEmpty()) {
+            muteLocator = parameters.joinToString(",")
+            LOG.debug("Retrieving mutes from ${instance.serverUrl} using query '$muteLocator'")
+        }
+
+        return instance.service
+            .mutes(muteLocator = muteLocator)
+            .mute.map { MuteImpl(it, true, instance) }
+            .toSequence()
+    }
+
+}
+
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
     private var limitResults: Int? = null
     private var pageSize: Int? = null
@@ -666,20 +702,13 @@ private abstract class BaseImpl<TBean : IdBean>(
     override fun hashCode(): Int = idString.hashCode()
 }
 
-
-private class InvestigationImpl(
-        bean: InvestigationBean,
-        isFullProjectBean: Boolean,
-        instance: TeamCityInstanceImpl) :
-        BaseImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
-    override fun fetchFullBean(): InvestigationBean = instance.service.investigation(id.stringId)
-
-    override fun toString(): String = "Investigation(id=$idString,state=$state)"
-
+private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBean>(
+    bean: TBean,
+    isFullProjectBean: Boolean,
+    instance: TeamCityInstanceImpl) :
+    BaseImpl<TBean>(bean, isFullProjectBean, instance), InvestigationMuteBase {
     override val id: InvestigationId
         get() = InvestigationId(idString)
-    override val state: InvestigationState
-        get() = notNull { it.state }
     override val assignee: User
         get() = UserImpl( notNull { it.assignee }, false, instance)
     override val reporter: User?
@@ -734,6 +763,31 @@ private class InvestigationImpl(
 
             throw IllegalStateException("scope is missed in the bean")
         }
+}
+
+private class InvestigationImpl(
+        bean: InvestigationBean,
+        isFullProjectBean: Boolean,
+        instance: TeamCityInstanceImpl) :
+        InvestigationMuteBaseImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
+    override fun fetchFullBean(): InvestigationBean = instance.service.investigation(id.stringId)
+
+    override fun toString(): String = "Investigation(id=$idString,state=$state)"
+
+    override val state: InvestigationState
+        get() = notNull { it.state }
+
+}
+
+private class MuteImpl(
+    bean: MuteBean,
+    isFullProjectBean: Boolean,
+    instance: TeamCityInstanceImpl) :
+    InvestigationMuteBaseImpl<MuteBean>(bean, isFullProjectBean, instance), Mute {
+
+    override fun fetchFullBean(): MuteBean = instance.service.mute(id.stringId)
+
+    override fun toString(): String = "Investigation(id=$idString)"
 }
 
 private class ProjectImpl(
