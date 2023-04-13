@@ -24,6 +24,10 @@ project {
             text("username", "admin")
             password("password", "admin")
         }
+        vcs {
+            cleanCheckout = true
+            root(DslContext.settingsRoot)
+        }
 
         steps {
             script {
@@ -63,6 +67,7 @@ project {
             gradle {
                 name = "Build"
                 tasks = "build"
+                useGradleWrapper = true
             }
 
             script {
