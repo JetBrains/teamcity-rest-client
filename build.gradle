@@ -13,26 +13,26 @@ allprojects {
 
 configure(project(':teamcity-rest-client-api')) {
     dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+        implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     }
 }
 
-configure(project(':teamcity-rest-client-impl')) {
+configure(project(":teamcity-rest-client-impl")) {
     dependencies {
-        compile 'com.squareup.retrofit:retrofit:1.9.0'
-        compile "com.squareup.okhttp3:okhttp:4.7.2"
-        compile 'com.jakewharton.retrofit:retrofit1-okhttp3-client:1.1.0'
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+        implementation "com.squareup.retrofit:retrofit:1.9.0"
+        implementation "com.squareup.okhttp3:okhttp:4.7.2"
+        implementation "com.jakewharton.retrofit:retrofit1-okhttp3-client:1.1.0"
+        implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
-        compile 'org.slf4j:slf4j-api:1.7.12'
+        implementation 'org.slf4j:slf4j-api:1.7.12'
 
-        testCompile 'junit:junit:4.12'
-        testCompile 'org.assertj:assertj-core:3.12.2'
-        testCompile 'org.slf4j:slf4j-log4j12:1.7.12'
-        testCompile "org.jetbrains.kotlin:kotlin-test"
-        testCompile "org.jetbrains.kotlin:kotlin-reflect"
+        testImplementation "junit:junit:4.12"
+        testImplementation "org.assertj:assertj-core:3.12.2"
+        testImplementation "org.slf4j:slf4j-log4j12:1.7.12"
+        testImplementation "org.jetbrains.kotlin:kotlin-test"
+        testImplementation "org.jetbrains.kotlin:kotlin-reflect"
 
-        compile project(':teamcity-rest-client-api')
+        implementation project(':teamcity-rest-client-api')
     }
 }
 
@@ -45,14 +45,14 @@ group = 'org.jetbrains.teamcity'
 if (hasProperty("forcedBuildNumber")) {
     version forcedBuildNumber
     println "##teamcity[buildNumber '$version']"
-} else if (teamcity["teamcity.build.counter"]) {
-    version projectVersion + "." + teamcity["teamcity.build.counter"]
-    println "##teamcity[buildNumber '$version']"
+//} else if (hasP["teamcity.build.counter"]) {
+//    version projectVersion + "." + teamcity["teamcity.build.counter"]
+//    println "##teamcity[buildNumber '$version']"
 } else {
-    version projectVersion + '.9999-SNAPSHOT'
+    version projectVersion + ".9999-SNAPSHOT"
 }
 
-apply plugin: 'maven-publish'
+apply plugin: "maven-publish"
 
 task sourceJar(type: Jar) {
     subprojects {
@@ -86,9 +86,9 @@ publishing {
                   project.configurations.compile.allDependencies.each {
                       if (!it.name.startsWith("teamcity-rest-client")) {
                         def dependencyNode = dependenciesNode.appendNode('dependency')
-                        dependencyNode.appendNode('groupId', it.group)
-                        dependencyNode.appendNode('artifactId', it.name)
-                        dependencyNode.appendNode('version', it.version)
+                        dependencyNode.appendNode("groupId", it.group)
+                        dependencyNode.appendNode("artifactId", it.name)
+                        dependencyNode.appendNode("version", it.version)
                       }
                   }
                 }
@@ -97,8 +97,8 @@ publishing {
                 maven {
                     url "https://packages.jetbrains.team/maven/p/teamcity-rest-client/teamcity-rest-client"
                     credentials {
-                        username = System.getenv('SPACE_USER')
-                        password = System.getenv('SPACE_KEY')
+                        username = System.getenv("SPACE_USER")
+                        password = System.getenv("SPACE_KEY")
                     }
                 }
             }
@@ -118,6 +118,6 @@ subprojects {
 }
 
 wrapper {
-  gradleVersion = '6.1.1'
+  gradleVersion = '7.6.1'
   distributionUrl = "https://cache-redirector.jetbrains.com/services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }
