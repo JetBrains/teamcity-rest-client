@@ -81,4 +81,17 @@ project {
             }
         }
     }
+
+    buildType {
+        id("TC_TeamCityTools_TeamCityRestClient_Publish")
+        name = "Publish to Space"
+
+        steps {
+            gradle {
+                name = "Publish"
+                tasks = "publish"
+                useGradleWrapper = true
+            }
+        }
+    }
 }

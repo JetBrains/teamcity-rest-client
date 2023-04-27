@@ -42,11 +42,11 @@ dependencies {
 }
 
 group = 'org.jetbrains.teamcity'
-if (hasProperty("buildNumber")) {
-    version buildNumber
+if (hasProperty("forcedBuildNumber")) {
+    version forcedBuildNumber
     println "##teamcity[buildNumber '$version']"
-} else if (hasProperty("buildCounter")) {
-    version projectVersion + "." + buildCounter
+} else if (teamcity["teamcity.build.counter"]) {
+    version projectVersion + "." + teamcity["teamcity.build.counter"]
     println "##teamcity[buildNumber '$version']"
 } else {
     version projectVersion + '.9999-SNAPSHOT'
