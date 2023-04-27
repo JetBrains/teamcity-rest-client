@@ -86,6 +86,16 @@ project {
         id("TC_TeamCityTools_TeamCityRestClient_Publish")
         name = "Publish to Space"
 
+        requirements {
+            exists("docker.version")
+            equals("teamcity.agent.jvm.os.name", "Linux")
+        }
+
+        vcs {
+            cleanCheckout = true
+            root(DslContext.settingsRoot)
+        }
+
         steps {
             gradle {
                 name = "Publish"
