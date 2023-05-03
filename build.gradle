@@ -42,15 +42,14 @@ dependencies {
 }
 
 group = 'org.jetbrains.teamcity'
-if (hasProperty("forcedBuildNumber")) {
-    version forcedBuildNumber
-    println "##teamcity[buildNumber '$version']"
-//} else if (hasP["teamcity.build.counter"]) {
-//    version projectVersion + "." + teamcity["teamcity.build.counter"]
-//    println "##teamcity[buildNumber '$version']"
-} else {
+version = System.getenv("BUILD_COUNTER")
+if (hasProperty("forcedVersion")) {
+    version forcedVersion
+} else if (version == null) {
     version projectVersion + ".9999-SNAPSHOT"
 }
+
+println "##teamcity[buildNumber '$version']"
 
 apply plugin: "maven-publish"
 
