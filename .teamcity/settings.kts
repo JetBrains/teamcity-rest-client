@@ -23,7 +23,6 @@ project {
         params {
             text("username", "admin")
             password("password", "admin")
-            text("env.BUILD_COUNTER", "%build.counter%")
         }
         vcs {
             cleanCheckout = true
@@ -90,6 +89,10 @@ project {
         requirements {
             exists("docker.version")
             equals("teamcity.agent.jvm.os.name", "Linux")
+        }
+
+        params {
+            text("env.BUILD_COUNTER", "%build.counter%")
         }
 
         vcs {
