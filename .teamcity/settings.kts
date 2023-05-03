@@ -23,6 +23,7 @@ project {
         params {
             text("username", "admin")
             password("password", "admin")
+            text("env.BUILD_COUNTER", "%build.counter%")
         }
         vcs {
             cleanCheckout = true
