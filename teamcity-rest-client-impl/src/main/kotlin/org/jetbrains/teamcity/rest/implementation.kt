@@ -550,6 +550,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
     private var expandMultipleInvocations = false
+    private var includeDetailsField = true
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -581,6 +582,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
         return this
     }
 
+    override fun withoutDetailsField(): TestRunsLocator {
+        this.includeDetailsField = false
+        return this
+    }
+
     override fun expandMultipleInvocations(): TestRunsLocator {
         this.expandMultipleInvocations = true
         return this
@@ -609,14 +615,16 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
+        val fields = TestOccurrenceBean.getFieldsFilter(includeDetailsField)
+        val isFullBean = fields == TestOccurrenceBean.fullFieldsFilter
         val sequence = lazyPaging(instance, {
             val testOccurrencesLocator = parameters.joinToString(",")
             LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
 
-            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = TestOccurrenceBean.filter)
+            return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = fields)
         }) { testOccurrencesBean ->
             Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, isFullBean, instance) },
                     nextHref = testOccurrencesBean.nextHref
             )
         }
@@ -1777,63 +1785,79 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
 
 @Suppress("DEPRECATION")
-private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean): TestOccurrence {
-    override val name = bean.name!!
+private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean,
+                                      isFullBean: Boolean,
+                                      instance: TeamCityInstanceImpl): TestOccurrence, BaseImpl<TestOccurrenceBean>(bean, isFullBean, instance) {
+    override val name: String
+        get() = notNull { it.name }
 
-    override val testOccurrenceId: TestOccurrenceId = TestOccurrenceId(bean.id!!)
+    override val testOccurrenceId: TestOccurrenceId
+        get() = TestOccurrenceId(notNull { it.id })
 
-    final override val status = when {
-        bean.ignored == true -> TestStatus.IGNORED
-        bean.status == "FAILURE" -> TestStatus.FAILED
-        bean.status == "SUCCESS" -> TestStatus.SUCCESSFUL
-        else -> TestStatus.UNKNOWN
-    }
+    final override val status
+        get() = when {
+            nullable { it.ignored } == true -> TestStatus.IGNORED
+            nullable { it.status } == "FAILURE" -> TestStatus.FAILED
+            nullable { it.status } == "SUCCESS" -> TestStatus.SUCCESSFUL
+            else -> TestStatus.UNKNOWN
+        }
 
-    override val duration = Duration.ofMillis(bean.duration ?: 0L)!!
+    override val duration
+        get() = Duration.ofMillis(nullable { it.duration } ?: 0L)!!
 
-    override val details = when (status) {
-        TestStatus.IGNORED -> bean.ignoreDetails
-        TestStatus.FAILED -> bean.details
-        else -> null
-    } ?: ""
+    override val details: String
+        get() = when (status) {
+            TestStatus.IGNORED -> nullable { it.ignoreDetails }
+            TestStatus.FAILED -> nullable { it.details }
+            else -> null
+        } ?: ""
 
-    override val ignored: Boolean = bean.ignored ?: false
+    override val ignored: Boolean
+        get() = nullable { it.ignored } ?: false
 
-    override val currentlyMuted: Boolean = bean.currentlyMuted ?: false
+    override val currentlyMuted: Boolean
+        get() = nullable { it.currentlyMuted } ?: false
 
-    override val muted: Boolean = bean.muted ?: false
+    override val muted: Boolean
+        get() = nullable { it.muted } ?: false
 
-    override val newFailure: Boolean = bean.newFailure ?: false
+    override val newFailure: Boolean
+        get() = nullable { it.newFailure } ?: false
 
-    override val buildId: BuildId = BuildId(bean.build!!.id!!)
+    override val buildId: BuildId
+        get() = BuildId(notNull { it.build }.id!!)
 
     override val fixedIn: BuildId?
         get() {
-            if (bean.nextFixed?.id == null)
+            if (nullable { it.nextFixed }?.id == null)
                 return null
 
-            return BuildId(bean.nextFixed!!.id!!)
+            return BuildId(notNull { it.nextFixed }.id!!)
         }
 
     override val firstFailedIn : BuildId?
         get() {
-            if (bean.firstFailed?.id == null)
+            if (nullable { it.firstFailed }?.id == null)
                 return null
 
-            return BuildId(bean.firstFailed!!.id!!)
+            return BuildId(notNull { it.firstFailed }.id!!)
         }
 
     override val metadataValues: List<String>?
         get() {
-            return bean.metadata?.typedValues?.map { it.value.toString()  }
+            return nullable { it.metadata }?.typedValues?.map { it.value.toString()  }
         }
 
-    override val testId: TestId = TestId(bean.test!!.id!!)
+    override val testId: TestId
+        get() = TestId(notNull { it.test }.id!!)
+
+    override fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notNull { it.id }, TestOccurrenceBean.fullFieldsFilter)
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
 
-private class TestRunImpl(bean: TestOccurrenceBean) : TestRun, TestOccurrenceImpl(bean)
+private class TestRunImpl(bean: TestOccurrenceBean, isFullBean: Boolean, instance: TeamCityInstanceImpl) : TestRun,
+    TestOccurrenceImpl(bean, isFullBean, instance)
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()
