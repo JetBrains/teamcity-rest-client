@@ -43,6 +43,10 @@ internal interface TeamCityService {
     fun testOccurrences(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/testOccurrences/{id}")
+    fun testOccurrence(@Path("id") id: String, @Query("fields") fields: String?): TestOccurrenceBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/vcs-roots")
     fun vcsRoots(@Query("locator") locator: String? = null): VcsRootListBean
 
@@ -556,9 +560,8 @@ internal open class TestBean {
     var id: String? = null
 }
 
-internal open class TestOccurrenceBean {
+internal open class TestOccurrenceBean: IdBean() {
     var name: String? = null
-    var id: String? = null
     var status: String? = null
     var ignored: Boolean? = null
     var duration: Long? = null
@@ -575,7 +578,17 @@ internal open class TestOccurrenceBean {
     var firstFailed: BuildBean? = null
 
     companion object {
-        val filter = "testOccurrence(name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,details,firstFailed(id),nextFixed(id),build(id),test(id),metadata)"
+        private const val minimalFields = "name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,firstFailed(id),nextFixed(id),build(id),test(id),metadata"
+        val fullFieldsFilter = getFieldsFilter(true)
+
+        fun getFieldsFilter(withDetails: Boolean): String {
+            val params = mutableListOf(minimalFields)
+            if (withDetails) {
+                params.add("details")
+            }
+
+            return "testOccurrence(${params.joinToString(",")})"
+        }
     }
 }
 

@@ -190,6 +190,7 @@ interface TestRunsLocator {
     fun forTest(testId: TestId): TestRunsLocator
     fun forProject(projectId: ProjectId): TestRunsLocator
     fun withStatus(testStatus: TestStatus): TestRunsLocator
+    fun withoutDetailsField(): TestRunsLocator
 
     /**
      * If expandMultipleInvocations is enabled, individual runs of tests, which were executed several

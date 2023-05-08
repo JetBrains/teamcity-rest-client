@@ -2,6 +2,13 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [1.19.0] - 2023-05-05
+
+### Added
+
+- Add ability to fetch test occurrences without 'details' field.
+
+
 ## [1.17.1] - 2021-12-06
 
 ### Changed
