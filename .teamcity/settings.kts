@@ -9,7 +9,7 @@ project {
     description = "REST API client written in Kotlin"
 
     buildType {
-        id("TC_TeamCityTools_TeamCityRestClient_Build")
+        id("Build")
         name = "Build"
         triggers {
             vcs {
@@ -23,6 +23,8 @@ project {
         params {
             text("username", "admin")
             password("password", "admin")
+
+            password("space_test_files_token", "credentialsJSON:e62f0e1a-e534-4184-9680-99edb020abbc")
         }
         vcs {
             cleanCheckout = true
@@ -36,7 +38,9 @@ project {
                 #!/bin/bash
                 DATA_DIR="${'$'}HOME/DataDirs/web-tests-rest"
                 mkdir -p ${'$'}DATA_DIR
-                wget -qO- "https://repo.labs.intellij.net/teamcity/org/jetbrains/teamcity/tc-rest-client-tests-db/1.1.0-SNAPSHOT/tc-rest-client-tests-db-1.1.0-20200123.155623-1.tar.gz" | tar xvz -C ${'$'}DATA_DIR
+                curl -f -L \
+                  -H "Authorization: Bearer %space_test_files_token%" \
+                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/old_tests/tc-rest-client-tests-db-1.1.0-20200123.155623-1.tar.gz | tar xvz -C ${'$'}DATA_DIR                  
                 """.trimIndent()
             }
 
@@ -83,7 +87,7 @@ project {
     }
 
     buildType {
-        id("TC_TeamCityTools_TeamCityRestClient_Publish")
+        id("Publish")
         name = "Publish to Space"
 
         requirements {
