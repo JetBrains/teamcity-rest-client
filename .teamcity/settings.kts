@@ -93,6 +93,9 @@ project {
 
         params {
             text("env.BUILD_COUNTER", "%build.counter%")
+
+            text("env.SPACE_USER", "ce15a478-920a-4b37-8137-b73ab65fd926")
+            password("env.SPACE_KEY", "credentialsJSON:4cad0710-36a3-4452-bd19-a9fd43c6b1f0")
         }
 
         vcs {
