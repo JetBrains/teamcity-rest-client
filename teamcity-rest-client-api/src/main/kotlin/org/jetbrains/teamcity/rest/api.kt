@@ -187,6 +187,9 @@ interface InvestigationLocator {
 interface MuteLocator {
     fun limitResults(count: Int): MuteLocator
     fun forProject(projectId: ProjectId): MuteLocator
+    fun byUser(userId: UserId): MuteLocator
+
+    fun forTest(testId: TestId): MuteLocator
     fun all(): Sequence<Mute>
 }
 

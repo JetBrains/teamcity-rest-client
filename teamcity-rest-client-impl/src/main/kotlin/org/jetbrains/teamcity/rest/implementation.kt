@@ -546,6 +546,8 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
 
 private class MuteLocatorImpl(private val instance: TeamCityInstanceImpl) : MuteLocator {
     private var limitResults: Int? = null
+    private var reporter: UserId? = null
+    private var test: TestId? = null
     private var affectedProjectId: ProjectId? = null
 
     override fun limitResults(count: Int): MuteLocator {
@@ -557,12 +559,24 @@ private class MuteLocatorImpl(private val instance: TeamCityInstanceImpl) : Mute
         return this
     }
 
+    override fun byUser(userId: UserId): MuteLocator {
+        this.reporter = userId
+        return this
+    }
+
+    override fun forTest(testId: TestId): MuteLocator {
+        this.test = testId
+        return this
+    }
+
     override fun all(): Sequence<Mute> {
         var muteLocator : String? = null
 
         val parameters = listOfNotNull(
             limitResults?.let { "count:$it" },
-            affectedProjectId?.let { "affectedProject:$it" }
+            affectedProjectId?.let { "affectedProject:$it" },
+            reporter?.let { "reporter:$it" },
+            test?.let { "test:$it" }
         )
 
         if (parameters.isNotEmpty()) {
