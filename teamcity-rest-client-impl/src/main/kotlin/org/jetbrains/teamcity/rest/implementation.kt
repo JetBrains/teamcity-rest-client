@@ -706,19 +706,19 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
     bean: TBean,
     isFullProjectBean: Boolean,
     instance: TeamCityInstanceImpl) :
-    BaseImpl<TBean>(bean, isFullProjectBean, instance), InvestigationMuteBase {
-    override val id: InvestigationId
+    BaseImpl<TBean>(bean, isFullProjectBean, instance) {
+    val id: InvestigationId
         get() = InvestigationId(idString)
 
-    override val reporter: User?
+    val reporter: User?
         get() {
             val assignment = nullable { it.assignment } ?: return null
             val userBean = assignment.user ?: return null
             return UserImpl( userBean, false, instance)
         }
-    override val comment: String
+    val comment: String
         get() = notNull { it.assignment?.text ?: "" }
-    override val resolveMethod: InvestigationResolveMethod
+    val resolveMethod: InvestigationResolveMethod
         get() {
             val asString = notNull { it.resolution?.type }
             if (asString == "whenFixed") {
@@ -729,7 +729,7 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
 
             throw IllegalStateException("Properties are invalid")
         }
-    override val targetType: InvestigationTargetType
+    val targetType: InvestigationTargetType
         get() {
             val target = notNull { it.target}
             if (target.tests != null) return InvestigationTargetType.TEST
@@ -737,13 +737,13 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
             return InvestigationTargetType.BUILD_CONFIGURATION
         }
 
-    override val testIds: List<TestId>?
+    val testIds: List<TestId>?
         get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id })} }
 
-    override val problemIds: List<BuildProblemId>?
+    val problemIds: List<BuildProblemId>?
         get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id })} }
 
-    override val scope: InvestigationScope
+    val scope: InvestigationScope
         get() {
             val scope = notNull { it.scope }
             val project = scope.project?.let { bean -> ProjectImpl(bean, false, instance) }

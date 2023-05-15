@@ -539,11 +539,7 @@ interface Build {
     val finishDate: Date?
 }
 
-/**
- * Interface for the common part of mutes and investigations, which are action points for the problem.
- * Use Investigation or Mute interfaces accordingly
- */
-interface InvestigationMuteBase {
+interface Investigation {
     val id: InvestigationId
     val assignee: User
     val reporter: User?
@@ -553,13 +549,19 @@ interface InvestigationMuteBase {
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
     val scope: InvestigationScope
-}
-
-interface Investigation : InvestigationMuteBase {
     val state: InvestigationState
 }
 
-interface Mute : InvestigationMuteBase {
+interface Mute {
+    val id: InvestigationId
+    val assignee: User
+    val reporter: User?
+    val comment: String
+    val resolveMethod: InvestigationResolveMethod
+    val targetType: InvestigationTargetType
+    val testIds: List<TestId>?
+    val problemIds: List<BuildProblemId>?
+    val scope: InvestigationScope
     val tests: List<Test>?
 }
 
