@@ -31,6 +31,14 @@ internal interface TeamCityService {
     fun investigations(@Query("locator") investigationLocator: String?): InvestigationListBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/tests")
+    fun tests(@Query("locator") locator: String?): TestListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/tests/id:{id}")
+    fun test(@Path("id") id: String): TestBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/investigations/id:{id}")
     fun investigation(@Path("id") id: String): InvestigationBean
 
@@ -39,7 +47,7 @@ internal interface TeamCityService {
     fun mutes(@Query("locator") muteLocator: String?): MuteListBean
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/mutes")
+    @GET("/app/rest/mutes/id:{id}")
     fun mute(@Path("id") id: String): MuteBean
 
     @Headers("Accept: application/json")
@@ -559,9 +567,10 @@ internal open class TestOccurrencesBean {
     var nextHref: String? = null
     var testOccurrence: List<TestOccurrenceBean> = ArrayList()
 }
-
-internal open class TestBean {
-    var id: String? = null
+internal class TestListBean {
+    var test: List<TestBean> = ArrayList()
+}
+internal open class TestBean: IdBean() {
     var name: String? = null
 }
 

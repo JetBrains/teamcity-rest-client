@@ -19,6 +19,8 @@ abstract class TeamCityInstance : AutoCloseable {
     abstract fun investigations(): InvestigationLocator
 
     abstract fun mutes(): MuteLocator
+
+    abstract fun tests(): TestLocator
     abstract fun build(id: BuildId): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
@@ -188,9 +190,17 @@ interface MuteLocator {
     fun limitResults(count: Int): MuteLocator
     fun forProject(projectId: ProjectId): MuteLocator
     fun byUser(userId: UserId): MuteLocator
-
     fun forTest(testId: TestId): MuteLocator
     fun all(): Sequence<Mute>
+}
+
+interface TestLocator {
+    fun limitResults(count: Int): TestLocator
+    fun byId(testId: TestId): TestLocator
+    fun byName(testName: String): TestLocator
+    fun currentlyMuted(muted: Boolean): TestLocator
+    fun forProject(projectId: ProjectId): TestLocator
+    fun all(): Sequence<Test>
 }
 
 interface TestRunsLocator {
@@ -557,7 +567,7 @@ interface Investigation {
 
 interface Mute {
     val id: InvestigationId
-    val assignee: User
+    val assignee: User?
     val reporter: User?
     val comment: String
     val resolveMethod: InvestigationResolveMethod
@@ -568,11 +578,9 @@ interface Mute {
     val tests: List<Test>?
 }
 
-/**
- * Data class to store Test data, to be replaced with API to handle requests to the tests
- */
-data class Test(val id: String, val name: String) {
-    override fun toString(): String = id
+interface Test {
+    val id: TestId
+    val name: String
 }
 
 interface BuildRunningInfo {

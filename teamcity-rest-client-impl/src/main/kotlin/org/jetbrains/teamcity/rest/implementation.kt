@@ -177,6 +177,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun mutes(): MuteLocator = MuteLocatorImpl(this)
 
+    override fun tests(): TestLocator = TestLocatorImpl(this)
     override fun build(id: BuildId): Build = BuildImpl(
             BuildBean().also { it.id = id.stringId }, false, this)
 
@@ -592,6 +593,62 @@ private class MuteLocatorImpl(private val instance: TeamCityInstanceImpl) : Mute
 
 }
 
+private class TestLocatorImpl(private val instance: TeamCityInstanceImpl) : TestLocator {
+    private var id: TestId? = null
+    private var count: Int? = null
+    private var name: String? = null
+    private var affectedProjectId: ProjectId? = null
+    private var currentlyMuted: Boolean? = null
+
+    override fun limitResults(count: Int): TestLocator {
+        this.count = count
+        return this
+    }
+    override fun byId(testId: TestId): TestLocator {
+        this.id = testId
+        return this
+    }
+
+    override fun byName(name: String): TestLocator {
+        this.name = name
+        return this
+    }
+
+    override fun currentlyMuted(muted: Boolean): TestLocator {
+        this.currentlyMuted = muted
+        return this
+    }
+    override fun forProject(projectId: ProjectId): TestLocator {
+        this.affectedProjectId = projectId
+        return this
+    }
+    override fun all(): Sequence<Test> {
+        if (name == null && id == null && (affectedProjectId == null || currentlyMuted == null)) {
+            throw IllegalArgumentException("TestLocator needs name or id, or affectedProjectID with e.g. currentlyMuted specified")
+        }
+
+        var testLocator : String? = null
+
+        val parameters = listOfNotNull(
+            name?.let { "name:$it" },
+            id?.let { "id:$it" },
+            affectedProjectId?.let { "affectedProject:$it" },
+            currentlyMuted?.let { "currentlyMuted:$it" },
+            count?.let { "count:$it" }
+        )
+
+        if (parameters.isNotEmpty()) {
+            testLocator = parameters.joinToString(",")
+            LOG.debug("Retrieving test from ${instance.serverUrl} using query '$testLocator'")
+        }
+
+        return instance.service
+            .tests(testLocator)
+            .test.map { TestImpl(it, true, instance) }
+            .toSequence()
+    }
+}
+
 private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : TestRunsLocator {
     private var limitResults: Int? = null
     private var pageSize: Int? = null
@@ -802,10 +859,14 @@ private class MuteImpl(
     InvestigationMuteBaseImpl<MuteBean>(bean, isFullProjectBean, instance), Mute {
 
     override val tests: List<Test>?
-        get() = nullable { it.target?.tests?.test?.map { testBean -> Test(notNull { testBean.id }, notNull { testBean.name } )} }
+        get() = nullable { it.target?.tests?.test?.map { testBean -> TestImpl(testBean, false, instance) } }
 
-    override val assignee: User
-        get() = UserImpl( notNull { it.assignment?.user }, false, instance)
+    override val assignee: User?
+        get() {
+            val assignment = nullable { it.assignment } ?: return null
+            val userBean = assignment.user ?: return null
+            return UserImpl( userBean, false, instance)
+        }
 
     override fun fetchFullBean(): MuteBean = instance.service.mute(id.stringId)
 
@@ -1621,6 +1682,24 @@ private class BuildImpl(bean: BuildBean,
         get() = startDateTime?.let { Date.from(it.toInstant()) }
     override val finishDate: Date?
         get() = finishDateTime?.let { Date.from(it.toInstant()) }
+}
+
+private class TestImpl(bean: TestBean,
+                       isFullBuildBean: Boolean,
+                       instance: TeamCityInstanceImpl) :
+    BaseImpl<TestBean>(bean, isFullBuildBean, instance), Test {
+
+    override fun fetchFullBean(): TestBean = instance.service.test(idString)
+
+    override val id: TestId
+        get() = TestId(idString)
+
+    override val name: String
+        get() = notNull { it.name }
+
+    override fun toString(): String {
+        return "Test(id=${id.stringId}, name=$name)"
+    }
 }
 
 private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean): BuildRunningInfo {
