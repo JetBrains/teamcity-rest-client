@@ -13,12 +13,15 @@ class MuteTest {
     @Test
     fun test_assignment() {
         var hasAtLeastOneComment = false
+        var hasAtLeastOneAssignee = false
         val mutes = publicInstance().mutes().limitResults(10).all()
         for (mute in mutes) {
             with(mute) {
-                Assert.assertNotNull(assignee)
-                Assert.assertNotNull(assignee.id)
-                Assert.assertNotNull(assignee.username)
+                if(assignee != null) {
+                    Assert.assertNotNull(assignee!!.id)
+                    Assert.assertNotNull(assignee!!.username)
+                    hasAtLeastOneAssignee = true
+                }
                 if (comment.isNotEmpty()) {
                     hasAtLeastOneComment = true
                 }
@@ -26,6 +29,7 @@ class MuteTest {
         }
 
         Assert.assertTrue("No mutes with non-empty comment found", hasAtLeastOneComment)
+        Assert.assertTrue("No mutes with assignee found", hasAtLeastOneAssignee)
     }
 
     @Test
@@ -69,7 +73,7 @@ class MuteTest {
 
     @Test
     fun test_forProject() {
-        val filteredMutes = publicInstance().mutes().forProject(ProjectId("ProjectForSidebarCounters")).all()
+        val filteredMutes = publicInstance().mutes().forProject(testProject).all()
         val allMutes = publicInstance().mutes().all()
         Assert.assertTrue("No filtered mutes were found, whereas expected", filteredMutes.count() > 0)
         Assert.assertTrue("Number of filtered mutes is more or same as all mutes", filteredMutes.count() < allMutes.count())
