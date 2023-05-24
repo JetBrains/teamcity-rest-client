@@ -18,6 +18,9 @@ abstract class TeamCityInstance : AutoCloseable {
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
 
+    abstract fun mutes(): MuteLocator
+
+    abstract fun tests(): TestLocator
     abstract fun build(id: BuildId): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
@@ -181,6 +184,23 @@ interface InvestigationLocator {
     fun forProject(projectId: ProjectId): InvestigationLocator
     fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator
     fun all(): Sequence<Investigation>
+}
+
+interface MuteLocator {
+    fun limitResults(count: Int): MuteLocator
+    fun forProject(projectId: ProjectId): MuteLocator
+    fun byUser(userId: UserId): MuteLocator
+    fun forTest(testId: TestId): MuteLocator
+    fun all(): Sequence<Mute>
+}
+
+interface TestLocator {
+    fun limitResults(count: Int): TestLocator
+    fun byId(testId: TestId): TestLocator
+    fun byName(testName: String): TestLocator
+    fun currentlyMuted(muted: Boolean): TestLocator
+    fun forProject(projectId: ProjectId): TestLocator
+    fun all(): Sequence<Test>
 }
 
 interface TestRunsLocator {
@@ -535,7 +555,6 @@ interface Build {
 
 interface Investigation {
     val id: InvestigationId
-    val state: InvestigationState
     val assignee: User
     val reporter: User?
     val comment: String
@@ -544,6 +563,25 @@ interface Investigation {
     val testIds: List<TestId>?
     val problemIds: List<BuildProblemId>?
     val scope: InvestigationScope
+    val state: InvestigationState
+}
+
+interface Mute {
+    val id: InvestigationId
+    val assignee: User?
+    val reporter: User?
+    val comment: String
+    val resolveMethod: InvestigationResolveMethod
+    val targetType: InvestigationTargetType
+    val testIds: List<TestId>?
+    val problemIds: List<BuildProblemId>?
+    val scope: InvestigationScope
+    val tests: List<Test>?
+}
+
+interface Test {
+    val id: TestId
+    val name: String
 }
 
 interface BuildRunningInfo {

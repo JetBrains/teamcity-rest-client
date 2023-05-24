@@ -31,8 +31,24 @@ internal interface TeamCityService {
     fun investigations(@Query("locator") investigationLocator: String?): InvestigationListBean
 
     @Headers("Accept: application/json")
+    @GET("/app/rest/tests")
+    fun tests(@Query("locator") locator: String?): TestListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/tests/id:{id}")
+    fun test(@Path("id") id: String): TestBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/investigations/id:{id}")
     fun investigation(@Path("id") id: String): InvestigationBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/mutes")
+    fun mutes(@Query("locator") muteLocator: String?): MuteListBean
+
+    @Headers("Accept: application/json")
+    @GET("/app/rest/mutes/id:{id}")
+    fun mute(@Path("id") id: String): MuteBean
 
     @Headers("Accept: application/json")
     @GET("/app/rest/changes")
@@ -555,9 +571,11 @@ internal open class TestOccurrencesBean {
     var nextHref: String? = null
     var testOccurrence: List<TestOccurrenceBean> = ArrayList()
 }
-
-internal open class TestBean {
-    var id: String? = null
+internal class TestListBean {
+    var test: List<TestBean> = ArrayList()
+}
+internal open class TestBean: IdBean() {
+    var name: String? = null
 }
 
 internal open class TestOccurrenceBean: IdBean() {
@@ -592,17 +610,25 @@ internal open class TestOccurrenceBean: IdBean() {
     }
 }
 
-internal class InvestigationListBean {
-    var investigation: List<InvestigationBean> = ArrayList()
+internal class MuteListBean {
+    var mute: List<MuteBean> = ArrayList()
 }
 
-internal class InvestigationBean: IdBean() {
-    val state: InvestigationState? = null
-    val assignee: UserBean? = null
+internal open class InvestigationMuteBaseBean: IdBean() {
     val assignment: AssignmentBean? = null
     val resolution: InvestigationResolutionBean? = null
     val scope: InvestigationScopeBean? = null
     val target: InvestigationTargetBean? = null
+}
+internal class MuteBean : InvestigationMuteBaseBean()
+
+internal class InvestigationListBean {
+    var investigation: List<InvestigationBean> = ArrayList()
+}
+
+internal class InvestigationBean : InvestigationMuteBaseBean() {
+    val assignee: UserBean? = null
+    val state: InvestigationState? = null
 }
 
 class InvestigationResolutionBean {
