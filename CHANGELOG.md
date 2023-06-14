@@ -2,6 +2,20 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+
+
+## [1.21.0] - 2023-05-24
+
+### Added
+
+- Add ability to fetch builds in project and it's ancestors.
+
+## [1.20.0] - 2023-05-24
+
+### Added
+
+- Add ability to fetch mutes and tests.
+
 ## [1.19.0] - 2023-05-05
 
 ### Added
