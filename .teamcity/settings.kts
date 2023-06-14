@@ -1,4 +1,6 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
+import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
 import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
@@ -29,6 +31,15 @@ project {
         vcs {
             cleanCheckout = true
             root(DslContext.settingsRoot)
+        }
+        features {
+            pullRequests {
+                provider = github {
+                    authType = vcsRoot()
+                    filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+                    ignoreDrafts = true
+                }
+            }
         }
 
         steps {
