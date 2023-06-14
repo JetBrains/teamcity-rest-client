@@ -113,6 +113,8 @@ interface UserLocator {
 }
 
 interface BuildLocator {
+    fun forProject(projectId: ProjectId): BuildLocator
+
     fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
 
     fun withNumber(buildNumber: String): BuildLocator
