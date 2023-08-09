@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -47,7 +48,7 @@ class BranchesTest {
                     println(it)
                 }
 
-        Assert.assertTrue("Actual branches: $branches", branches.size > 1)
+        assertThat(branches).containsOnly("master", "branch-1570634926")
     }
 
     @Test
