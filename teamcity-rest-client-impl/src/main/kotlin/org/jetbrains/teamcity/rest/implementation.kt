@@ -729,7 +729,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
-        val fields = TestOccurrenceBean.getFieldsFilter(includeDetailsField)
+        val fields = TestOccurrenceBean.getFieldFilter(includeDetailsField, full = false, wrap = true)
         val isFullBean = fields == TestOccurrenceBean.fullFieldsFilter
         val sequence = lazyPaging(instance, {
             val testOccurrencesLocator = parameters.joinToString(",")
@@ -769,7 +769,11 @@ private abstract class BaseImpl<TBean : IdBean>(
 
     val fullBean: TBean by lazy {
         if (!isFullBean) {
-            bean = fetchFullBean()
+            val full = fetchFullBean()
+            require(full.id == bean.id) {
+                "Incorrect full bean fetched for ${bean.id}: $full"
+            }
+            bean = full
             isFullBean = true
         }
         bean
@@ -2013,7 +2017,10 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean,
     override val testId: TestId
         get() = TestId(notNull { it.test }.id!!)
 
-    override fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notNull { it.id }, TestOccurrenceBean.fullFieldsFilter)
+    override val logAnchor: String
+        get() = notNull { it.logAnchor }
+
+    override fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notNull { it.id }, TestOccurrenceBean.fullFieldsFilterInner)
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
