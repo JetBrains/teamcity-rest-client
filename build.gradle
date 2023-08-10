@@ -11,6 +11,17 @@ allprojects {
     }
 }
 
+group = 'org.jetbrains.teamcity'
+if (hasProperty("forcedVersion")) {
+    version = forcedVersion
+} else if(System.getenv("BUILD_COUNTER") != null) {
+    version = "$projectVersion.${System.getenv("BUILD_COUNTER")}-SNAPSHOT"
+} else {
+    version = "$projectVersion.9999-SNAPSHOT"
+}
+println "##teamcity[buildNumber '$version']"
+
+
 configure(project(':teamcity-rest-client-api')) {
     dependencies {
         implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
@@ -40,16 +51,6 @@ dependencies {
     compile project(':teamcity-rest-client-api')
     compile project(':teamcity-rest-client-impl')
 }
-
-group = 'org.jetbrains.teamcity'
-version = System.getenv("BUILD_COUNTER")
-if (hasProperty("forcedVersion")) {
-    version forcedVersion
-} else if (version == null) {
-    version projectVersion + ".9999-SNAPSHOT"
-}
-
-println "##teamcity[buildNumber '$version']"
 
 apply plugin: "maven-publish"
 
