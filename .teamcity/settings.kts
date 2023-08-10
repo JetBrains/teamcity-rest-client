@@ -36,7 +36,7 @@ project {
             pullRequests {
                 provider = github {
                     authType = vcsRoot()
-                    filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+                    filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER_OR_COLLABORATOR
                     ignoreDrafts = true
                 }
             }
