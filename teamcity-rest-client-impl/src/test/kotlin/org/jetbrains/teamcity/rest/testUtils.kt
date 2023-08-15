@@ -43,6 +43,7 @@ fun customInstanceByConnectionFile(): TeamCityInstance {
 
 val reportProject = ProjectId("ProjectForReports")
 val testProject = ProjectId("TestProject")
+val mutesProject = ProjectId("ProjectForMutes")
 val changesBuildConfiguration = BuildConfigurationId("ProjectForSidebarCounters_MultibranchChange")
 val testsBuildConfiguration = BuildConfigurationId("ProjectForSidebarCounters_MultibranchTestResult")
 val runTestsBuildConfiguration = BuildConfigurationId("TestProject_RunTests")

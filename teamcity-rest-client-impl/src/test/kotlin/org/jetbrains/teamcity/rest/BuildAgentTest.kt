@@ -19,7 +19,6 @@ class BuildAgentTest {
     }
 
     @Test
-    @Ignore
     fun compatible_with_configuration() {
         val compatibleAgents = publicInstance().buildAgents()
             .compatibleWith(manyTestsBuildConfiguration)

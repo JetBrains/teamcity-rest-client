@@ -73,7 +73,7 @@ class MuteTest {
 
     @Test
     fun test_forProject() {
-        val filteredMutes = publicInstance().mutes().forProject(testProject).all()
+        val filteredMutes = publicInstance().mutes().forProject(mutesProject).all()
         val allMutes = publicInstance().mutes().all()
         Assert.assertTrue("No filtered mutes were found, whereas expected", filteredMutes.count() > 0)
         Assert.assertTrue("Number of filtered mutes is more or same as all mutes", filteredMutes.count() < allMutes.count())
