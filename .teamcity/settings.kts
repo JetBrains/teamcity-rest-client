@@ -23,6 +23,8 @@ project {
             equals("teamcity.agent.jvm.os.name", "Linux")
         }
         params {
+            text("env.BUILD_COUNTER", "%build.counter%")
+
             text("username", "admin")
             password("password", "admin")
 
@@ -107,8 +109,15 @@ project {
         }
 
         params {
-            text("env.BUILD_COUNTER", "%build.counter%")
-
+            text(
+                "releaseVersion",
+                "SNAPSHOT",
+                "Version number to be used when publishing to Space",
+                "Version number to be used when publishing to Space",
+                ParameterDisplay.PROMPT,
+                readOnly = false,
+                allowEmpty = false
+            )
             text("env.SPACE_USER", "ce15a478-920a-4b37-8137-b73ab65fd926")
             password("env.SPACE_KEY", "credentialsJSON:4cad0710-36a3-4452-bd19-a9fd43c6b1f0")
         }
@@ -116,12 +125,14 @@ project {
         vcs {
             cleanCheckout = true
             root(DslContext.settingsRoot)
+            branchFilter = "+:<default>"
         }
 
         steps {
             gradle {
                 name = "Publish"
                 tasks = "publish"
+                gradleParams = "-PforcedVersion=%releaseVersion%"
                 useGradleWrapper = true
             }
         }
