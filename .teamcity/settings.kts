@@ -53,7 +53,7 @@ project {
                 mkdir -p ${'$'}DATA_DIR
                 curl -f -L \
                   -H "Authorization: Bearer %space_test_files_token%" \
-                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.2.0-20230815.tar.gz | tar xvz -C ${'$'}DATA_DIR                  
+                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.3.0-20230816.tar.gz | tar xvz -C ${'$'}DATA_DIR                  
                 """.trimIndent()
             }
 
