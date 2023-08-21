@@ -61,7 +61,7 @@ project {
                 name = "Start server"
                 scriptContent = """
                 #!/bin/bash
-                docker run -d --name teamcity-server -v ${'$'}HOME/DataDirs/web-tests-rest:/data/teamcity_server/datadir -p 8111:8111 jetbrains/teamcity-server:2020.1.5
+                docker run -d --name teamcity-server -v ${'$'}HOME/DataDirs/web-tests-rest:/data/teamcity_server/datadir -p 8111:8111 jetbrains/teamcity-server:2023.05.2
                 until $(curl --output /dev/null --silent --head --fail http://localhost:8111/login.html); do
                 echo "waiting for teamcity server startup completion..."
                 sleep 5
