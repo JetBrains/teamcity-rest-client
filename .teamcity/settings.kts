@@ -68,10 +68,18 @@ project {
                            -v logs:/opt/teamcity/logs \
                            -p 8111:8111 \
                            jetbrains/teamcity-server:2023.05.2
-                until $(curl --output /dev/null --silent --head --fail http://localhost:8111/login.html); do
-                echo "waiting for teamcity server startup completion..."
+                           
+                COUNTER=120 # 10 min
+                until [ ${'$'}COUNTER -eq 0 ] || [[ ${'$'}(curl --output /dev/null --silent --head --fail http://localhost:8111/login.html) -ne 0 ]]; do
+                echo "Waiting for teamcity server startup completion..."
                 sleep 5
+                let COUNTER-=1
                 done
+                
+                if ${'$'}(curl --output /dev/null --silent --head --fail http://localhost:8111/login.html); then
+                echo "Server did not started in 10 minutes, aborting."
+                exit 1
+                fi                  
                 """.trimIndent()
             }
 
