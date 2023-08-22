@@ -5,7 +5,7 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-version = "2022.10"
+version = "2023.05"
 
 project {
     description = "REST API client written in Kotlin"
