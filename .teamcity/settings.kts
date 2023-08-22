@@ -24,6 +24,8 @@ project {
         }
         params {
             text("env.BUILD_COUNTER", "%build.counter%")
+            text("env.DATA_DIR", "tests/datadir")
+            text("env.LOGS_DIR", "tests/logs")
 
             text("username", "admin")
             password("password", "admin")
@@ -43,18 +45,17 @@ project {
                 }
             }
         }
-        artifactRules = "+:logs -> server_logs" // server logs
+        artifactRules = "+:%env.LOGS_DIR% -> server_logs"
 
         steps {
             script {
                 name = "Deploy test data"
                 scriptContent = """
-                #!/bin/bash
-                DATA_DIR="${'$'}HOME/DataDirs/web-tests-rest"
-                mkdir -p ${'$'}DATA_DIR
+                #!/bin/bash                
+                mkdir ${'$'}DATA_DIR
                 curl -f -L \
                   -H "Authorization: Bearer %space_test_files_token%" \
-                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.3.0-20230816.tar.gz | tar xvz -C ${'$'}DATA_DIR                  
+                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.3.0-20230816.tar.gz | tar xvz -C ${'$'}DATA_DIR                
                 """.trimIndent()
             }
 
@@ -62,10 +63,10 @@ project {
                 name = "Start server"
                 scriptContent = """
                 #!/bin/bash
-                mkdir logs
+                mkdir ${'$'}LOGS_DIR
                 docker run -d --name teamcity-server \
-                           -v ${'$'}HOME/DataDirs/web-tests-rest:/data/teamcity_server/datadir \
-                           -v logs:/opt/teamcity/logs \
+                           -v ${'$'}DATA_DIR:/data/teamcity_server/datadir \
+                           -v ${'$'}LOGS_DIR:/opt/teamcity/logs \
                            -p 8111:8111 \
                            jetbrains/teamcity-server:2023.05.2
                            
