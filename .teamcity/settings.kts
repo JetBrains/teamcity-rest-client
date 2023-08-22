@@ -52,7 +52,7 @@ project {
                 name = "Deploy test data"
                 scriptContent = """
                 #!/bin/bash                
-                mkdir ${'$'}DATA_DIR
+                mkdir -p ${'$'}DATA_DIR
                 curl -f -L \
                   -H "Authorization: Bearer %space_test_files_token%" \
                   https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.3.0-20230816.tar.gz | tar xvz -C ${'$'}DATA_DIR                
@@ -63,7 +63,7 @@ project {
                 name = "Start server"
                 scriptContent = """
                 #!/bin/bash
-                mkdir ${'$'}LOGS_DIR
+                mkdir -p ${'$'}LOGS_DIR
                 docker run -d --name teamcity-server \
                            -v ${'$'}DATA_DIR:/data/teamcity_server/datadir \
                            -v ${'$'}LOGS_DIR:/opt/teamcity/logs \
