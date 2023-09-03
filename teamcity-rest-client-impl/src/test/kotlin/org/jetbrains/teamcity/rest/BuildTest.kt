@@ -139,6 +139,9 @@ class BuildTest {
     fun pagination() {
         val iterator = publicInstance().builds()
                 .fromConfiguration(manyTestsBuildConfiguration)
+                // Default reasonableMaxPageSize=1024, but we have only 100 builds in test data
+                // Paging will never happen if we don't set page size explicitly
+                .pageSize(5)
                 .all()
                 .iterator()
 
