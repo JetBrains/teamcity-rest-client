@@ -25,6 +25,7 @@ println "##teamcity[buildNumber '$version']"
 configure(project(':teamcity-rest-client-api')) {
     dependencies {
         implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+        implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1"
     }
 }
 
