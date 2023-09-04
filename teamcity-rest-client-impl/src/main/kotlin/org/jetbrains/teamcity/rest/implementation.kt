@@ -57,7 +57,7 @@ private class RetryInterceptor : Interceptor {
         // Do not retry non-GET methods, their result may be not idempotent
         if (request.method != "GET") return false
 
-        return  code == HttpURLConnection.HTTP_CLIENT_TIMEOUT ||
+        return code == HttpURLConnection.HTTP_CLIENT_TIMEOUT ||
                 code == HttpURLConnection.HTTP_INTERNAL_ERROR ||
                 code == HttpURLConnection.HTTP_BAD_GATEWAY ||
                 code == HttpURLConnection.HTTP_UNAVAILABLE ||
@@ -103,15 +103,17 @@ private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int
     return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
 }
 
-internal class TeamCityInstanceImpl(override val serverUrl: String,
-                                    val serverUrlBase: String,
-                                    private val authHeader: String?,
-                                    logResponses: Boolean,
-                                    timeout: Long = 2,
-                                    unit: TimeUnit = TimeUnit.MINUTES
+internal class TeamCityInstanceImpl(
+    override val serverUrl: String,
+    val serverUrlBase: String,
+    private val authHeader: String?,
+    logResponses: Boolean,
+    timeout: Long = 2,
+    unit: TimeUnit = TimeUnit.MINUTES
 ) : TeamCityInstance() {
     override fun withLogResponses() = TeamCityInstanceImpl(serverUrl, serverUrlBase, authHeader, true)
-    override fun withTimeout(timeout: Long, unit: TimeUnit) = TeamCityInstanceImpl(serverUrl, serverUrlBase, authHeader, true, timeout, unit)
+    override fun withTimeout(timeout: Long, unit: TimeUnit) =
+        TeamCityInstanceImpl(serverUrl, serverUrlBase, authHeader, true, timeout, unit)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -139,7 +141,7 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             //by default non-daemon threads are used, and it blocks JVM from exit
             ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
                 SynchronousQueue(),
-                object: ThreadFactory {
+                object : ThreadFactory {
                     private val count = AtomicInteger(0)
                     override fun newThread(r: Runnable) = thread(
                         block = { r.run() },
@@ -166,10 +168,10 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
             LOG.warn("Failed to close connection. ${t.message}", t)
         }
 
-        catchAll {  client.dispatcher.cancelAll() }
-        catchAll {  client.dispatcher.executorService.shutdown() }
-        catchAll {  client.connectionPool.evictAll() }
-        catchAll {  client.cache?.close() }
+        catchAll { client.dispatcher.cancelAll() }
+        catchAll { client.dispatcher.executorService.shutdown() }
+        catchAll { client.connectionPool.evictAll() }
+        catchAll { client.cache?.close() }
     }
 
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
@@ -180,24 +182,26 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     override fun tests(): TestLocator = TestLocatorImpl(this)
     override fun build(id: BuildId): Build = BuildImpl(
-            BuildBean().also { it.id = id.stringId }, false, this)
+        BuildBean().also { it.id = id.stringId }, false, this
+    )
 
     override fun build(buildConfigurationId: BuildConfigurationId, number: String): Build? =
-            BuildLocatorImpl(this).fromConfiguration(buildConfigurationId).withNumber(number).latest()
+        BuildLocatorImpl(this).fromConfiguration(buildConfigurationId).withNumber(number).latest()
 
     override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration =
-            BuildConfigurationImpl(BuildTypeBean().also { it.id = id.stringId }, false, this)
+        BuildConfigurationImpl(BuildTypeBean().also { it.id = id.stringId }, false, this)
 
     override fun vcsRoots(): VcsRootLocator = VcsRootLocatorImpl(this)
 
     override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootImpl(service.vcsRoot(id.stringId), true, this)
 
-    override fun project(id: ProjectId): Project = ProjectImpl(ProjectBean().let { it.id = id.stringId; it }, false, this)
+    override fun project(id: ProjectId): Project =
+        ProjectImpl(ProjectBean().let { it.id = id.stringId; it }, false, this)
 
     override fun rootProject(): Project = project(ProjectId("_Root"))
 
     override fun user(id: UserId): User =
-            UserImpl(UserBean().also { it.id = id.stringId }, false, this)
+        UserImpl(UserBean().also { it.id = id.stringId }, false, this)
 
     override fun user(userName: String): User {
         val bean = service.users("username:$userName")
@@ -207,11 +211,14 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun users(): UserLocator = UserLocatorImpl(this)
 
     override fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change =
-            ChangeImpl(service.change(
-                    buildType = buildConfigurationId.stringId, version = vcsRevision), true, this)
+        ChangeImpl(
+            service.change(
+                buildType = buildConfigurationId.stringId, version = vcsRevision
+            ), true, this
+        )
 
     override fun change(id: ChangeId): Change =
-            ChangeImpl(ChangeBean().also { it.id = id.stringId }, false, this)
+        ChangeImpl(ChangeBean().also { it.id = id.stringId }, false, this)
 
     override fun buildQueue(): BuildQueue = BuildQueueImpl(this)
 
@@ -220,22 +227,26 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
     override fun buildAgentPools(): BuildAgentPoolLocator = BuildAgentPoolLocatorImpl(this)
 
     override fun getWebUrl(projectId: ProjectId, branch: String?): String =
-            project(projectId).getHomeUrl(branch = branch)
+        project(projectId).getHomeUrl(branch = branch)
 
     override fun getWebUrl(buildConfigurationId: BuildConfigurationId, branch: String?): String =
-            buildConfiguration(buildConfigurationId).getHomeUrl(branch = branch)
+        buildConfiguration(buildConfigurationId).getHomeUrl(branch = branch)
 
     override fun getWebUrl(buildId: BuildId): String =
-            build(buildId).getHomeUrl()
+        build(buildId).getHomeUrl()
 
-    override fun getWebUrl(changeId: ChangeId, specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
-            change(changeId).getHomeUrl(
-                    specificBuildConfigurationId = specificBuildConfigurationId,
-                    includePersonalBuilds = includePersonalBuilds
-            )
+    override fun getWebUrl(
+        changeId: ChangeId,
+        specificBuildConfigurationId: BuildConfigurationId?,
+        includePersonalBuilds: Boolean?
+    ): String =
+        change(changeId).getHomeUrl(
+            specificBuildConfigurationId = specificBuildConfigurationId,
+            includePersonalBuilds = includePersonalBuilds
+        )
 
     override fun queuedBuilds(projectId: ProjectId?): List<Build> =
-            buildQueue().queuedBuilds(projectId = projectId).toList()
+        buildQueue().queuedBuilds(projectId = projectId).toList()
 
     override fun testRuns(): TestRunsLocator = TestRunsLocatorImpl(this)
 }
@@ -244,7 +255,7 @@ private fun <T> List<T>.toSequence(): Sequence<T> = object : Sequence<T> {
     override fun iterator(): Iterator<T> = this@toSequence.iterator()
 }
 
-private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentLocator {
+private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildAgentLocator {
     private var compatibleConfigurationId: BuildConfigurationId? = null
 
     override fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator {
@@ -276,12 +287,12 @@ private class BuildAgentLocatorImpl(private val instance: TeamCityInstanceImpl):
     }
 }
 
-private class BuildAgentPoolLocatorImpl(private val instance: TeamCityInstanceImpl): BuildAgentPoolLocator {
+private class BuildAgentPoolLocatorImpl(private val instance: TeamCityInstanceImpl) : BuildAgentPoolLocator {
     override fun all(): Sequence<BuildAgentPool> =
         instance.service.agentPools().agentPool.map { BuildAgentPoolImpl(it, false, instance) }.toSequence()
 }
 
-private class UserLocatorImpl(private val instance: TeamCityInstanceImpl): UserLocator {
+private class UserLocatorImpl(private val instance: TeamCityInstanceImpl) : UserLocator {
     private var id: UserId? = null
     private var username: String? = null
 
@@ -456,34 +467,34 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
 
         val parameters = listOfNotNull(
-                affectedProjectId?.stringId?.let { "affectedProject:(id:$it)" },
-                buildConfigurationId?.stringId?.let { "buildType:$it" },
-                snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
-                number?.let { "number:$it" },
-                running?.let { "running:$it" },
-                canceled?.let { "canceled:$it" },
-                vcsRevision?.let { "revision:$it" },
-                status?.name?.let { "status:$it" },
-                if (tags.isNotEmpty())
-                    tags.joinToString(",", prefix = "tags:(", postfix = ")")
-                else null,
-                if (pinnedOnly) "pinned:true" else null,
-                count?.let { "count:$it" },
+            affectedProjectId?.stringId?.let { "affectedProject:(id:$it)" },
+            buildConfigurationId?.stringId?.let { "buildType:$it" },
+            snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
+            number?.let { "number:$it" },
+            running?.let { "running:$it" },
+            canceled?.let { "canceled:$it" },
+            vcsRevision?.let { "revision:$it" },
+            status?.name?.let { "status:$it" },
+            if (tags.isNotEmpty())
+                tags.joinToString(",", prefix = "tags:(", postfix = ")")
+            else null,
+            if (pinnedOnly) "pinned:true" else null,
+            count?.let { "count:$it" },
 
-                since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
-                until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
+            since?.let { "sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}" },
+            until?.let { "untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}" },
 
-                if (!includeAllBranches)
-                    branch?.let { "branch:$it" }
-                else
-                    "branch:default:any",
+            if (!includeAllBranches)
+                branch?.let { "branch:$it" }
+            else
+                "branch:default:any",
 
-                personal?.let { "personal:$it" },
+            personal?.let { "personal:$it" },
 
-                // Always use default filter since sometimes TC automatically switches between
-                // defaultFilter:true and defaultFilter:false
-                // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
-                "defaultFilter:true"
+            // Always use default filter since sometimes TC automatically switches between
+            // defaultFilter:true and defaultFilter:false
+            // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
+            "defaultFilter:true"
         )
 
         if (parameters.isEmpty()) {
@@ -496,8 +507,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             return@lazyPaging instance.service.builds(buildLocator = buildLocator)
         }) { buildsBean ->
             Page(
-                    data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                    nextHref = buildsBean.nextHref
+                data = buildsBean.build.map { BuildImpl(it, false, instance) },
+                nextHref = buildsBean.nextHref
             )
         }
 
@@ -532,12 +543,12 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
     }
 
     override fun all(): Sequence<Investigation> {
-        var investigationLocator : String? = null
+        var investigationLocator: String? = null
 
         val parameters = listOfNotNull(
-                limitResults?.let { "count:$it" },
-                affectedProjectId?.let { "affectedProject:$it" },
-                targetType?.let { "type:${it.value}" }
+            limitResults?.let { "count:$it" },
+            affectedProjectId?.let { "affectedProject:$it" },
+            targetType?.let { "type:${it.value}" }
         )
 
         if (parameters.isNotEmpty()) {
@@ -546,9 +557,9 @@ private class InvestigationLocatorImpl(private val instance: TeamCityInstanceImp
         }
 
         return instance.service
-                .investigations(investigationLocator = investigationLocator)
-                .investigation.map { InvestigationImpl(it, true, instance) }
-                .toSequence()
+            .investigations(investigationLocator = investigationLocator)
+            .investigation.map { InvestigationImpl(it, true, instance) }
+            .toSequence()
     }
 
 }
@@ -563,6 +574,7 @@ private class MuteLocatorImpl(private val instance: TeamCityInstanceImpl) : Mute
         this.limitResults = count
         return this
     }
+
     override fun forProject(projectId: ProjectId): MuteLocator {
         this.affectedProjectId = projectId
         return this
@@ -579,7 +591,7 @@ private class MuteLocatorImpl(private val instance: TeamCityInstanceImpl) : Mute
     }
 
     override fun all(): Sequence<Mute> {
-        var muteLocator : String? = null
+        var muteLocator: String? = null
 
         val parameters = listOfNotNull(
             limitResults?.let { "count:$it" },
@@ -612,6 +624,7 @@ private class TestLocatorImpl(private val instance: TeamCityInstanceImpl) : Test
         this.count = count
         return this
     }
+
     override fun byId(testId: TestId): TestLocator {
         this.id = testId
         return this
@@ -626,16 +639,18 @@ private class TestLocatorImpl(private val instance: TeamCityInstanceImpl) : Test
         this.currentlyMuted = muted
         return this
     }
+
     override fun forProject(projectId: ProjectId): TestLocator {
         this.affectedProjectId = projectId
         return this
     }
+
     override fun all(): Sequence<Test> {
         if (name == null && id == null && (affectedProjectId == null || currentlyMuted == null)) {
             throw IllegalArgumentException("TestLocator needs name or id, or affectedProjectID with e.g. currentlyMuted specified")
         }
 
-        var testLocator : String? = null
+        var testLocator: String? = null
 
         val parameters = listOfNotNull(
             name?.let { "name:$it" },
@@ -673,7 +688,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
     }
 
     override fun pageSize(pageSize: Int): TestRunsLocator {
-        this.pageSize= pageSize
+        this.pageSize = pageSize
         return this
     }
 
@@ -718,12 +733,12 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 
         val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
         val parameters = listOfNotNull(
-                count?.let { "count:$it" },
-                affectedProjectId?.let { "affectedProject:$it" },
-                buildId?.let { "build:$it" },
-                testId?.let { "test:$it" },
-                expandMultipleInvocations.let { "expandInvocations:$it" },
-                statusLocator
+            count?.let { "count:$it" },
+            affectedProjectId?.let { "affectedProject:$it" },
+            buildId?.let { "build:$it" },
+            testId?.let { "test:$it" },
+            expandMultipleInvocations.let { "expandInvocations:$it" },
+            statusLocator
         )
 
         if (parameters.isEmpty()) {
@@ -739,8 +754,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
             return@lazyPaging instance.service.testOccurrences(locator = testOccurrencesLocator, fields = fields)
         }) { testOccurrencesBean ->
             Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, isFullBean, instance) },
-                    nextHref = testOccurrencesBean.nextHref
+                data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, isFullBean, instance) },
+                nextHref = testOccurrencesBean.nextHref
             )
         }
 
@@ -750,9 +765,10 @@ private class TestRunsLocatorImpl(private val instance: TeamCityInstanceImpl) : 
 }
 
 private abstract class BaseImpl<TBean : IdBean>(
-        private var bean: TBean,
-        private var isFullBean: Boolean,
-        protected val instance: TeamCityInstanceImpl) {
+    private var bean: TBean,
+    private var isFullBean: Boolean,
+    protected val instance: TeamCityInstanceImpl
+) {
     init {
         if (bean.id == null) {
             throw IllegalStateException("bean.id should not be null")
@@ -763,10 +779,10 @@ private abstract class BaseImpl<TBean : IdBean>(
         get() = bean.id!!
 
     protected inline fun <T> notNull(getter: (TBean) -> T?): T =
-            getter(bean) ?: getter(fullBean)!!
+        getter(bean) ?: getter(fullBean)!!
 
     protected inline fun <T> nullable(getter: (TBean) -> T?): T? =
-            getter(bean) ?: getter(fullBean)
+        getter(bean) ?: getter(fullBean)
 
     val fullBean: TBean by lazy {
         if (!isFullBean) {
@@ -792,7 +808,8 @@ private abstract class BaseImpl<TBean : IdBean>(
 private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBean>(
     bean: TBean,
     isFullProjectBean: Boolean,
-    instance: TeamCityInstanceImpl) :
+    instance: TeamCityInstanceImpl
+) :
     BaseImpl<TBean>(bean, isFullProjectBean, instance) {
     val id: InvestigationId
         get() = InvestigationId(idString)
@@ -801,7 +818,7 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
         get() {
             val assignment = nullable { it.assignment } ?: return null
             val userBean = assignment.user ?: return null
-            return UserImpl( userBean, false, instance)
+            return UserImpl(userBean, false, instance)
         }
     val comment: String
         get() = notNull { it.assignment?.text ?: "" }
@@ -818,17 +835,17 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
         }
     val targetType: InvestigationTargetType
         get() {
-            val target = notNull { it.target}
+            val target = notNull { it.target }
             if (target.tests != null) return InvestigationTargetType.TEST
             if (target.problems != null) return InvestigationTargetType.BUILD_PROBLEM
             return InvestigationTargetType.BUILD_CONFIGURATION
         }
 
     val testIds: List<TestId>?
-        get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id })} }
+        get() = nullable { it.target?.tests?.test?.map { x -> TestId(notNull { x.id }) } }
 
     val problemIds: List<BuildProblemId>?
-        get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id })} }
+        get() = nullable { it.target?.problems?.problem?.map { x -> BuildProblemId(notNull { x.id }) } }
 
     val scope: InvestigationScope
         get() {
@@ -842,7 +859,8 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
             if (scope.buildTypes?.buildType != null && scope.buildTypes.buildType.size > 1) {
                 throw IllegalStateException("more then one buildType")
             }
-            val buildConfiguration = scope.buildTypes?.let { bean -> BuildConfigurationImpl(bean.buildType[0], false, instance) }
+            val buildConfiguration =
+                scope.buildTypes?.let { bean -> BuildConfigurationImpl(bean.buildType[0], false, instance) }
             if (buildConfiguration != null) {
                 return InvestigationScope.InBuildConfiguration(buildConfiguration)
             }
@@ -852,16 +870,17 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
 }
 
 private class InvestigationImpl(
-        bean: InvestigationBean,
-        isFullProjectBean: Boolean,
-        instance: TeamCityInstanceImpl) :
-        InvestigationMuteBaseImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
+    bean: InvestigationBean,
+    isFullProjectBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    InvestigationMuteBaseImpl<InvestigationBean>(bean, isFullProjectBean, instance), Investigation {
     override fun fetchFullBean(): InvestigationBean = instance.service.investigation(id.stringId)
 
     override fun toString(): String = "Investigation(id=$idString,state=$state)"
 
     override val assignee: User
-        get() = UserImpl( notNull { it.assignee }, false, instance)
+        get() = UserImpl(notNull { it.assignee }, false, instance)
 
     override val state: InvestigationState
         get() = notNull { it.state }
@@ -871,7 +890,8 @@ private class InvestigationImpl(
 private class MuteImpl(
     bean: MuteBean,
     isFullProjectBean: Boolean,
-    instance: TeamCityInstanceImpl) :
+    instance: TeamCityInstanceImpl
+) :
     InvestigationMuteBaseImpl<MuteBean>(bean, isFullProjectBean, instance), Mute {
 
     override val tests: List<Test>?
@@ -881,7 +901,7 @@ private class MuteImpl(
         get() {
             val assignment = nullable { it.assignment } ?: return null
             val userBean = assignment.user ?: return null
-            return UserImpl( userBean, false, instance)
+            return UserImpl(userBean, false, instance)
         }
 
     override fun fetchFullBean(): MuteBean = instance.service.mute(id.stringId)
@@ -890,22 +910,23 @@ private class MuteImpl(
 }
 
 private class ProjectImpl(
-        bean: ProjectBean,
-        isFullProjectBean: Boolean,
-        instance: TeamCityInstanceImpl) :
-        BaseImpl<ProjectBean>(bean, isFullProjectBean, instance), Project {
+    bean: ProjectBean,
+    isFullProjectBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<ProjectBean>(bean, isFullProjectBean, instance), Project {
     override fun fetchFullBean(): ProjectBean = instance.service.project(id.stringId)
 
     override fun toString(): String = "Project(id=$idString,name=$name)"
 
     override fun getHomeUrl(branch: String?): String =
-            getUserUrlPage(instance.serverUrl, "project.html", projectId = id, branch = branch)
+        getUserUrlPage(instance.serverUrl, "project.html", projectId = id, branch = branch)
 
     override fun getTestHomeUrl(testId: TestId): String = getUserUrlPage(
-            instance.serverUrl, "project.html",
-            projectId = id,
-            testNameId = testId,
-            tab = "testDetails"
+        instance.serverUrl, "project.html",
+        projectId = id,
+        testNameId = testId,
+        tab = "testDetails"
     )
 
     override val id: ProjectId
@@ -952,7 +973,12 @@ private class ProjectImpl(
         return ProjectImpl(projectBean, true, instance)
     }
 
-    override fun createVcsRoot(id: VcsRootId, name: String, type: VcsRootType, properties: Map<String, String>): VcsRoot {
+    override fun createVcsRoot(
+        id: VcsRootId,
+        name: String,
+        type: VcsRootType,
+        properties: Map<String, String>
+    ): VcsRoot {
         val vcsRootDescriptionXml = xml {
             element("vcs-root") {
                 attribute("name", name)
@@ -989,16 +1015,19 @@ private class ProjectImpl(
     override fun fetchParameters(): List<Parameter> = parameters
 }
 
-private class BuildConfigurationImpl(bean: BuildTypeBean,
-                                     isFullBean: Boolean,
-                                     instance: TeamCityInstanceImpl) :
-        BaseImpl<BuildTypeBean>(bean, isFullBean, instance), BuildConfiguration {
+private class BuildConfigurationImpl(
+    bean: BuildTypeBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<BuildTypeBean>(bean, isFullBean, instance), BuildConfiguration {
     override fun fetchFullBean(): BuildTypeBean = instance.service.buildConfiguration(idString)
 
     override fun toString(): String = "BuildConfiguration(id=$idString,name=$name)"
 
     override fun getHomeUrl(branch: String?): String = getUserUrlPage(
-            instance.serverUrl, "viewType.html", buildTypeId = id, branch = branch)
+        instance.serverUrl, "viewType.html", buildTypeId = id, branch = branch
+    )
 
     override val name: String
         get() = notNull { it.name }
@@ -1018,17 +1047,17 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
 
     override val finishBuildTriggers: List<FinishBuildTrigger> by lazy {
         instance.service.buildTypeTriggers(idString)
-                .trigger
-                ?.filter { it.type == "buildDependencyTrigger" }
-                ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
+            .trigger
+            ?.filter { it.type == "buildDependencyTrigger" }
+            ?.map { FinishBuildTriggerImpl(it) }.orEmpty()
     }
 
     override val artifactDependencies: List<ArtifactDependency> by lazy {
         instance.service
-                .buildTypeArtifactDependencies(idString)
-                .`artifact-dependency`
-                ?.filter { it.disabled == false }
-                ?.map { ArtifactDependencyImpl(it, true, instance) }.orEmpty()
+            .buildTypeArtifactDependencies(idString)
+            .`artifact-dependency`
+            ?.filter { it.disabled == false }
+            ?.map { ArtifactDependencyImpl(it, true, instance) }.orEmpty()
     }
 
     override fun setParameter(name: String, value: String) {
@@ -1038,7 +1067,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
 
     override var buildCounter: Int
         get() = getSetting("buildNumberCounter")?.toIntOrNull()
-                ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
+            ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
         set(value) {
             LOG.info("Setting build counter to '$value' in BuildConfigurationId=$idString")
             instance.service.setBuildTypeSettings(idString, "buildNumberCounter", value.toString().toRequestBody())
@@ -1046,14 +1075,14 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
 
     override var buildNumberFormat: String
         get() = getSetting("buildNumberPattern")
-                ?: throw TeamCityQueryException("Cannot get 'buildNumberPattern' setting for $idString")
+            ?: throw TeamCityQueryException("Cannot get 'buildNumberPattern' setting for $idString")
         set(value) {
             LOG.info("Setting build number format to '$value' in BuildConfigurationId=$idString")
             instance.service.setBuildTypeSettings(idString, "buildNumberPattern", value.toRequestBody())
         }
 
     private fun getSetting(settingName: String) =
-            nullable { it.settings }?.property?.firstOrNull { it.name == settingName }?.value
+        nullable { it.settings }?.property?.firstOrNull { it.name == settingName }?.value
 
     override fun runBuild(
         parameters: Map<String, String>?,
@@ -1064,20 +1093,26 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
         logicalBranchName: String?,
         personal: Boolean
     ): Build {
-        return runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies,
-            comment, logicalBranchName, null, personal, null, null)
+        return runBuild(
+            parameters, queueAtTop, cleanSources, rebuildAllDependencies,
+            comment, logicalBranchName, null, personal, null, null
+        )
     }
 
-    override fun runBuild(parameters: Map<String, String>?,
-                          queueAtTop: Boolean,
-                          cleanSources: Boolean?,
-                          rebuildAllDependencies: Boolean,
-                          comment: String?,
-                          logicalBranchName: String?,
-                          agentId: String?,
-                          personal: Boolean): Build {
-        return runBuild(parameters, queueAtTop, cleanSources, rebuildAllDependencies,
-            comment, logicalBranchName, agentId, personal, null, null)
+    override fun runBuild(
+        parameters: Map<String, String>?,
+        queueAtTop: Boolean,
+        cleanSources: Boolean?,
+        rebuildAllDependencies: Boolean,
+        comment: String?,
+        logicalBranchName: String?,
+        agentId: String?,
+        personal: Boolean
+    ): Build {
+        return runBuild(
+            parameters, queueAtTop, cleanSources, rebuildAllDependencies,
+            comment, logicalBranchName, agentId, personal, null, null
+        )
     }
 
     override fun runBuild(
@@ -1146,8 +1181,8 @@ private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : V
             return@lazyPaging instance.service.vcsRoots()
         }) { vcsRootsBean ->
             Page(
-                    data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it, false, instance) },
-                    nextHref = vcsRootsBean.nextHref
+                data = vcsRootsBean.`vcs-root`.map { VcsRootImpl(it, false, instance) },
+                nextHref = vcsRootsBean.nextHref
             )
         }
     }
@@ -1155,23 +1190,29 @@ private class VcsRootLocatorImpl(private val instance: TeamCityInstanceImpl) : V
     override fun list(): List<VcsRoot> = all().toList()
 }
 
-private class ChangeImpl(bean: ChangeBean,
-                         isFullBean: Boolean,
-                         instance: TeamCityInstanceImpl) :
-        BaseImpl<ChangeBean>(bean, isFullBean, instance), Change {
+private class ChangeImpl(
+    bean: ChangeBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<ChangeBean>(bean, isFullBean, instance), Change {
     override fun fetchFullBean(): ChangeBean = instance.service.change(changeId = idString)
 
-    override fun getHomeUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String = getUserUrlPage(
-            instance.serverUrl, "viewModification.html",
-            modId = id,
-            buildTypeId = specificBuildConfigurationId,
-            personal = includePersonalBuilds)
+    override fun getHomeUrl(
+        specificBuildConfigurationId: BuildConfigurationId?,
+        includePersonalBuilds: Boolean?
+    ): String = getUserUrlPage(
+        instance.serverUrl, "viewModification.html",
+        modId = id,
+        buildTypeId = specificBuildConfigurationId,
+        personal = includePersonalBuilds
+    )
 
     override fun firstBuilds(): List<Build> =
-            instance.service
-                    .changeFirstBuilds(id.stringId)
-                    .build
-                    .map { BuildImpl(it, false, instance) }
+        instance.service
+            .changeFirstBuilds(id.stringId)
+            .build
+            .map { BuildImpl(it, false, instance) }
 
     override val id: ChangeId
         get() = ChangeId(idString)
@@ -1199,14 +1240,18 @@ private class ChangeImpl(bean: ChangeBean,
     }
 
     override fun toString() =
-            "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment, " +
-                    "vcsRootInstance=$vcsRootInstance)"
+        "Change(id=$id, version=$version, username=$username, user=$user, date=$dateTime, comment=$comment, " +
+                "vcsRootInstance=$vcsRootInstance)"
 
-    override fun getWebUrl(specificBuildConfigurationId: BuildConfigurationId?, includePersonalBuilds: Boolean?): String =
-            getHomeUrl(
-                    specificBuildConfigurationId = specificBuildConfigurationId,
-                    includePersonalBuilds = includePersonalBuilds
-            )
+    override fun getWebUrl(
+        specificBuildConfigurationId: BuildConfigurationId?,
+        includePersonalBuilds: Boolean?
+    ): String =
+        getHomeUrl(
+            specificBuildConfigurationId = specificBuildConfigurationId,
+            includePersonalBuilds = includePersonalBuilds
+        )
+
     override val date: Date
         get() = Date.from(dateTime.toInstant())
 }
@@ -1232,10 +1277,12 @@ private class ChangeFileImpl(private val bean: ChangeFileBean) : ChangeFile {
     }
 }
 
-private class UserImpl(bean: UserBean,
-                       isFullBuildBean: Boolean,
-                       instance: TeamCityInstanceImpl) :
-        BaseImpl<UserBean>(bean, isFullBuildBean, instance), User {
+private class UserImpl(
+    bean: UserBean,
+    isFullBuildBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<UserBean>(bean, isFullBuildBean, instance), User {
 
     override fun fetchFullBean(): UserBean = instance.service.users("id:${id.stringId}")
 
@@ -1252,8 +1299,8 @@ private class UserImpl(bean: UserBean,
         get() = nullable { it.name }
 
     override fun getHomeUrl(): String = getUserUrlPage(
-            instance.serverUrl, "admin/editUser.html",
-            userId = id
+        instance.serverUrl, "admin/editUser.html",
+        userId = id
     )
 
     override fun toString(): String {
@@ -1267,16 +1314,20 @@ private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityInstanceImpl) : P
     override val time: Date = Date.from(dateTime.toInstant())
 }
 
-private class TriggeredImpl(private val bean: TriggeredBean,
-                            private val instance: TeamCityInstanceImpl) : TriggeredInfo {
+private class TriggeredImpl(
+    private val bean: TriggeredBean,
+    private val instance: TeamCityInstanceImpl
+) : TriggeredInfo {
     override val user: User?
         get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val build: Build?
         get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
 }
 
-private class BuildCanceledInfoImpl(private val bean: BuildCanceledBean,
-                                    private val instance: TeamCityInstanceImpl) : BuildCanceledInfo {
+private class BuildCanceledInfoImpl(
+    private val bean: BuildCanceledBean,
+    private val instance: TeamCityInstanceImpl
+) : BuildCanceledInfo {
     override val cancelDateTime: ZonedDateTime
         get() = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
     override val user: User?
@@ -1307,10 +1358,10 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
 
     private val branchPatterns: List<String>
         get() = bean.properties
-                    ?.property
-                    ?.find { it.name == "branchFilter" }
-                    ?.value
-                    ?.split(" ").orEmpty()
+            ?.property
+            ?.find { it.name == "branchFilter" }
+            ?.value
+            ?.split(" ").orEmpty()
 
     override val includedBranchPatterns: Set<String>
         get() = branchPatterns.filter { !it.startsWith("-:") }.mapTo(HashSet()) { it.substringAfter(":") }
@@ -1319,10 +1370,12 @@ private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuil
         get() = branchPatterns.filter { it.startsWith("-:") }.mapTo(HashSet()) { it.substringAfter(":") }
 }
 
-private class ArtifactDependencyImpl(bean: ArtifactDependencyBean,
-                                     isFullBean: Boolean,
-                                     instance: TeamCityInstanceImpl) :
-        BaseImpl<ArtifactDependencyBean>(bean, isFullBean, instance), ArtifactDependency {
+private class ArtifactDependencyImpl(
+    bean: ArtifactDependencyBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<ArtifactDependencyBean>(bean, isFullBean, instance), ArtifactDependency {
 
     override fun fetchFullBean(): ArtifactDependencyBean {
         error("Not supported, ArtifactDependencyImpl should be created with full bean")
@@ -1334,7 +1387,7 @@ private class ArtifactDependencyImpl(bean: ArtifactDependencyBean,
         get() = BuildConfigurationImpl(notNull { it.`source-buildType` }, false, instance)
 
     override val branch: String?
-        get () = findPropertyByName("revisionBranch")
+        get() = findPropertyByName("revisionBranch")
 
     override val artifactRules: List<ArtifactRule>
         get() = findPropertyByName("pathRules")!!.split(' ').map { ArtifactRuleImpl(it) }
@@ -1359,8 +1412,10 @@ private class BuildProblemImpl(private val bean: BuildProblemBean) : BuildProble
         "BuildProblem(id=${id.stringId},type=$type,identity=$identity)"
 }
 
-private class BuildProblemOccurrenceImpl(private val bean: BuildProblemOccurrenceBean,
-                                         private val instance: TeamCityInstanceImpl) : BuildProblemOccurrence {
+private class BuildProblemOccurrenceImpl(
+    private val bean: BuildProblemOccurrenceBean,
+    private val instance: TeamCityInstanceImpl
+) : BuildProblemOccurrence {
     override val buildProblem: BuildProblem
         get() = BuildProblemImpl(bean.problem!!)
     override val build: Build
@@ -1400,16 +1455,17 @@ private class RevisionImpl(private val bean: RevisionBean) : Revision {
 }
 
 private data class BranchImpl(
-        override val name: String?,
-        override val isDefault: Boolean) : Branch
+    override val name: String?,
+    override val isDefault: Boolean
+) : Branch
 
 private data class Page<out T>(val data: List<T>, val nextHref: String?)
 
 private val GSON = Gson()
 
-private inline fun <reified BeanType> ResponseBody.toBean(): BeanType =  GSON.fromJson(string(), BeanType::class.java)
+private inline fun <reified BeanType> ResponseBody.toBean(): BeanType = GSON.fromJson(string(), BeanType::class.java)
 
-private fun String.splitToPathAndParams() : Pair<String, Map<String, String>> {
+private fun String.splitToPathAndParams(): Pair<String, Map<String, String>> {
     val uri = URI(this)
     val path = uri.path
     val fullParams = uri.query
@@ -1420,9 +1476,11 @@ private fun String.splitToPathAndParams() : Pair<String, Map<String, String>> {
     return path to paramsMap
 }
 
-private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
-                                                crossinline getFirstBean: () -> Bean,
-                                                crossinline convertToPage: (Bean) -> Page<T>): Sequence<T> {
+private inline fun <reified Bean, T> lazyPaging(
+    instance: TeamCityInstanceImpl,
+    crossinline getFirstBean: () -> Bean,
+    crossinline convertToPage: (Bean) -> Page<T>
+): Sequence<T> {
     val initialValue = Page<T>(listOf(), null)
     return generateSequence(initialValue) { prev ->
         when {
@@ -1439,15 +1497,17 @@ private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
     }.map(Page<T>::data).flatten()
 }
 
-private class BuildImpl(bean: BuildBean,
-                        isFullBean: Boolean,
-                        instance: TeamCityInstanceImpl) :
-        BaseImpl<BuildBean>(bean, isFullBean, instance), Build {
+private class BuildImpl(
+    bean: BuildBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<BuildBean>(bean, isFullBean, instance), Build {
     override fun fetchFullBean(): BuildBean = instance.service.build(id.stringId)
 
     override fun getHomeUrl(): String = getUserUrlPage(
-            instance.serverUrl, "viewLog.html",
-            buildId = id
+        instance.serverUrl, "viewLog.html",
+        buildId = id
     )
 
     override val id: BuildId
@@ -1478,8 +1538,8 @@ private class BuildImpl(bean: BuildBean,
             val branchName = nullable { it.branchName }
             val isDefaultBranch = nullable { it.defaultBranch }
             return BranchImpl(
-                    name = branchName,
-                    isDefault = isDefaultBranch ?: (branchName == null)
+                name = branchName,
+                isDefault = isDefaultBranch ?: (branchName == null)
             )
         }
 
@@ -1524,26 +1584,28 @@ private class BuildImpl(bean: BuildBean,
 
     override val pinInfo get() = fullBean.pinInfo?.let { PinInfoImpl(it, instance) }
     override val triggeredInfo get() = fullBean.triggered?.let { TriggeredImpl(it, instance) }
-    override val snapshotDependencies: List<Build> get() =
-        fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
+    override val snapshotDependencies: List<Build>
+        get() =
+            fullBean.`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
 
     override fun tests(status: TestStatus?): Sequence<TestRun> = testRuns(status)
 
     override fun testRuns(status: TestStatus?): Sequence<TestRun> = instance
-            .testRuns()
-            .forBuild(id)
-            .let { if (status == null) it else it.withStatus(status) }
-            .all()
+        .testRuns()
+        .forBuild(id)
+        .let { if (status == null) it else it.withStatus(status) }
+        .all()
 
     override val buildProblems: Sequence<BuildProblemOccurrence>
         get() = lazyPaging(instance, {
             return@lazyPaging instance.service.problemOccurrences(
-                    locator = "build:(id:${id.stringId})",
-                    fields = "\$long,problemOccurrence(\$long)")
+                locator = "build:(id:${id.stringId})",
+                fields = "\$long,problemOccurrence(\$long)"
+            )
         }) { occurrencesBean ->
             Page(
-                    data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
-                    nextHref = occurrencesBean.nextHref
+                data = occurrencesBean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
+                nextHref = occurrencesBean.nextHref
             )
         }
 
@@ -1556,9 +1618,10 @@ private class BuildImpl(bean: BuildBean,
 
     override val changes: List<Change>
         get() = instance.service.changes(
-                "build:$idString",
-                "change(id,version,username,user,date,comment,vcsRootInstance)")
-                .change!!.map { ChangeImpl(it, true, instance) }
+            "build:$idString",
+            "change(id,version,username,user,date,comment,vcsRootInstance)"
+        )
+            .change!!.map { ChangeImpl(it, true, instance) }
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build ${getHomeUrl()}")
@@ -1590,8 +1653,16 @@ private class BuildImpl(bean: BuildBean,
         val locator = "recursive:$recursive,hidden:$hidden"
         val fields = "file(${ArtifactFileBean.FIELDS})"
         return instance.service.artifactChildren(id.stringId, parentPath, locator, fields).file
-                .filter { it.fullName != null && it.modificationTime != null }
-                .map { BuildArtifactImpl(this, it.name!!, it.fullName!!, it.size, ZonedDateTime.parse(it.modificationTime!!, teamCityServiceDateFormat)) }
+            .filter { it.fullName != null && it.modificationTime != null }
+            .map {
+                BuildArtifactImpl(
+                    this,
+                    it.name!!,
+                    it.fullName!!,
+                    it.size,
+                    ZonedDateTime.parse(it.modificationTime!!, teamCityServiceDateFormat)
+                )
+            }
     }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact {
@@ -1656,7 +1727,7 @@ private class BuildImpl(bean: BuildBean,
         }
     }
 
-    private fun openArtifactInputStreamImpl(artifactPath: String) : InputStream {
+    private fun openArtifactInputStreamImpl(artifactPath: String): InputStream {
         return instance.service.artifactContent(id.stringId, artifactPath).byteStream()
     }
 
@@ -1712,9 +1783,11 @@ private class BuildImpl(bean: BuildBean,
         get() = finishDateTime?.let { Date.from(it.toInstant()) }
 }
 
-private class TestImpl(bean: TestBean,
-                       isFullBuildBean: Boolean,
-                       instance: TeamCityInstanceImpl) :
+private class TestImpl(
+    bean: TestBean,
+    isFullBuildBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
     BaseImpl<TestBean>(bean, isFullBuildBean, instance), Test {
 
     override fun fetchFullBean(): TestBean = instance.service.test(idString)
@@ -1730,7 +1803,7 @@ private class TestImpl(bean: TestBean,
     }
 }
 
-private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean): BuildRunningInfo {
+private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean) : BuildRunningInfo {
     override val percentageComplete: Int
         get() = bean.percentageComplete
     override val elapsedSeconds: Long
@@ -1743,8 +1816,10 @@ private class BuildRunningInfoImpl(private val bean: BuildRunningInfoBean): Buil
         get() = bean.probablyHanging
 }
 
-private class BuildCommentInfoImpl(private val bean: BuildCommentBean,
-                                   private val instance: TeamCityInstanceImpl): BuildCommentInfo {
+private class BuildCommentInfoImpl(
+    private val bean: BuildCommentBean,
+    private val instance: TeamCityInstanceImpl
+) : BuildCommentInfo {
     override val timestamp: ZonedDateTime
         get() = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
     override val user: User?
@@ -1757,10 +1832,12 @@ private class BuildCommentInfoImpl(private val bean: BuildCommentBean,
     }
 }
 
-private class VcsRootImpl(bean: VcsRootBean,
-                          isFullVcsRootBean: Boolean,
-                          instance: TeamCityInstanceImpl) :
-        BaseImpl<VcsRootBean>(bean, isFullVcsRootBean, instance), VcsRoot {
+private class VcsRootImpl(
+    bean: VcsRootBean,
+    isFullVcsRootBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<VcsRootBean>(bean, isFullVcsRootBean, instance), VcsRoot {
 
     override fun fetchFullBean(): VcsRootBean = instance.service.vcsRoot(idString)
 
@@ -1783,10 +1860,12 @@ private class VcsRootImpl(bean: VcsRootBean,
         get() = getNameValueProperty(properties, "branch")
 }
 
-private class BuildAgentPoolImpl(bean: BuildAgentPoolBean,
-                                 isFullBean: Boolean,
-                                 instance: TeamCityInstanceImpl) :
-        BaseImpl<BuildAgentPoolBean>(bean, isFullBean, instance), BuildAgentPool {
+private class BuildAgentPoolImpl(
+    bean: BuildAgentPoolBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<BuildAgentPoolBean>(bean, isFullBean, instance), BuildAgentPool {
 
     override fun fetchFullBean(): BuildAgentPoolBean = instance.service.agentPools("id:$idString")
 
@@ -1805,10 +1884,12 @@ private class BuildAgentPoolImpl(bean: BuildAgentPoolBean,
         get() = fullBean.agents?.agent?.map { BuildAgentImpl(it, false, instance) } ?: emptyList()
 }
 
-private class BuildAgentImpl(bean: BuildAgentBean,
-                                 isFullBean: Boolean,
-                                 instance: TeamCityInstanceImpl) :
-        BaseImpl<BuildAgentBean>(bean, isFullBean, instance), BuildAgent {
+private class BuildAgentImpl(
+    bean: BuildAgentBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) :
+    BaseImpl<BuildAgentBean>(bean, isFullBean, instance), BuildAgent {
 
     override fun fetchFullBean(): BuildAgentBean = instance.service.agent("id:$idString")
 
@@ -1842,9 +1923,9 @@ private class BuildAgentImpl(bean: BuildAgentBean,
         get() = fullBean.enabledInfo?.let { info ->
             info.comment?.let { comment ->
                 BuildAgentEnabledInfoImpl(
-                        user = comment.user?.let { UserImpl(it, false, instance) },
-                        timestamp = ZonedDateTime.parse(comment.timestamp!!, teamCityServiceDateFormat),
-                        text = comment.text ?: ""
+                    user = comment.user?.let { UserImpl(it, false, instance) },
+                    timestamp = ZonedDateTime.parse(comment.timestamp!!, teamCityServiceDateFormat),
+                    text = comment.text ?: ""
                 )
             }
         }
@@ -1853,9 +1934,9 @@ private class BuildAgentImpl(bean: BuildAgentBean,
         get() = fullBean.authorizedInfo?.let { info ->
             info.comment?.let { comment ->
                 BuildAgentAuthorizedInfoImpl(
-                        user = comment.user?.let { UserImpl(it, false, instance) },
-                        timestamp = ZonedDateTime.parse(comment.timestamp!!, teamCityServiceDateFormat),
-                        text = comment.text ?: ""
+                    user = comment.user?.let { UserImpl(it, false, instance) },
+                    timestamp = ZonedDateTime.parse(comment.timestamp!!, teamCityServiceDateFormat),
+                    text = comment.text ?: ""
                 )
             }
         }
@@ -1869,14 +1950,16 @@ private class BuildAgentImpl(bean: BuildAgentBean,
     override fun getHomeUrl(): String = "${instance.serverUrl}/agentDetails.html?id=${id.stringId}"
 
     private class BuildAgentAuthorizedInfoImpl(
-            override val user: User?,
-            override val timestamp: ZonedDateTime,
-            override val text: String) : BuildAgentAuthorizedInfo
+        override val user: User?,
+        override val timestamp: ZonedDateTime,
+        override val text: String
+    ) : BuildAgentAuthorizedInfo
 
     private class BuildAgentEnabledInfoImpl(
-            override val user: User?,
-            override val timestamp: ZonedDateTime,
-            override val text: String) : BuildAgentEnabledInfo
+        override val user: User?,
+        override val timestamp: ZonedDateTime,
+        override val text: String
+    ) : BuildAgentEnabledInfo
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
@@ -1902,11 +1985,12 @@ private class NameValueProperty(private val bean: NameValuePropertyBean) {
 }
 
 private class BuildArtifactImpl(
-        override val build: Build,
-        override val name: String,
-        override val fullName: String,
-        override val size: Long?,
-        override val modificationDateTime: ZonedDateTime) : BuildArtifact {
+    override val build: Build,
+    override val name: String,
+    override val fullName: String,
+    override val size: Long?,
+    override val modificationDateTime: ZonedDateTime
+) : BuildArtifact {
 
     override val modificationTime: Date
         get() = Date.from(modificationDateTime.toInstant())
@@ -1924,7 +2008,7 @@ private class BuildArtifactImpl(
     }
 }
 
-private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQueue {
+private class BuildQueueImpl(private val instance: TeamCityInstanceImpl) : BuildQueue {
     override fun removeBuild(id: BuildId, comment: String, reAddIntoQueue: Boolean) {
         val request = BuildCancelRequestBean()
         request.comment = comment
@@ -1957,12 +2041,15 @@ private class BuildQueueImpl(private val instance: TeamCityInstanceImpl): BuildQ
     }
 }
 
-private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? = properties.singleOrNull { it.name == name}?.value
+private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? =
+    properties.singleOrNull { it.name == name }?.value
 
 @Suppress("DEPRECATION")
-private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean,
-                                      isFullBean: Boolean,
-                                      instance: TeamCityInstanceImpl): TestOccurrence, BaseImpl<TestOccurrenceBean>(bean, isFullBean, instance) {
+private open class TestOccurrenceImpl(
+    private val bean: TestOccurrenceBean,
+    isFullBean: Boolean,
+    instance: TeamCityInstanceImpl
+) : TestOccurrence, BaseImpl<TestOccurrenceBean>(bean, isFullBean, instance) {
     override val name: String
         get() = notNull { it.name }
 
@@ -2010,7 +2097,7 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean,
             return BuildId(notNull { it.nextFixed }.id!!)
         }
 
-    override val firstFailedIn : BuildId?
+    override val firstFailedIn: BuildId?
         get() {
             if (nullable { it.firstFailed }?.id == null)
                 return null
@@ -2020,13 +2107,14 @@ private open class TestOccurrenceImpl(private val bean: TestOccurrenceBean,
 
     override val metadataValues: List<String>?
         get() {
-            return nullable { it.metadata }?.typedValues?.map { it.value.toString()  }
+            return nullable { it.metadata }?.typedValues?.map { it.value.toString() }
         }
 
     override val testId: TestId
         get() = TestId(notNull { it.test }.id!!)
 
-    override fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notNull { it.id }, TestOccurrenceBean.fullFieldsFilter)
+    override fun fetchFullBean(): TestOccurrenceBean =
+        instance.service.testOccurrence(notNull { it.id }, TestOccurrenceBean.fullFieldsFilter)
 
     override fun toString() = "Test(name=$name, status=$status, duration=$duration, details=$details)"
 }
@@ -2040,17 +2128,19 @@ private fun convertToJavaRegexp(pattern: String): Regex {
 
 private fun String.urlencode(): String = URLEncoder.encode(this, "UTF-8")
 
-private fun getUserUrlPage(serverUrl: String,
-                           pageName: String,
-                           tab: String? = null,
-                           projectId: ProjectId? = null,
-                           buildId: BuildId? = null,
-                           testNameId: TestId? = null,
-                           userId: UserId? = null,
-                           modId: ChangeId? = null,
-                           personal: Boolean? = null,
-                           buildTypeId: BuildConfigurationId? = null,
-                           branch: String? = null): String {
+private fun getUserUrlPage(
+    serverUrl: String,
+    pageName: String,
+    tab: String? = null,
+    projectId: ProjectId? = null,
+    buildId: BuildId? = null,
+    testNameId: TestId? = null,
+    userId: UserId? = null,
+    modId: ChangeId? = null,
+    personal: Boolean? = null,
+    buildTypeId: BuildConfigurationId? = null,
+    branch: String? = null
+): String {
     val params = mutableListOf<String>()
 
     tab?.let { params.add("tab=" + tab.urlencode()) }
@@ -2069,7 +2159,7 @@ private fun getUserUrlPage(serverUrl: String,
 
 private fun saveToFile(body: ResponseBody, file: File) {
     file.parentFile?.mkdirs()
-    body.byteStream() .use { input ->
+    body.byteStream().use { input ->
         file.outputStream().use { output ->
             input.copyTo(output, bufferSize = 512 * 1024)
         }
