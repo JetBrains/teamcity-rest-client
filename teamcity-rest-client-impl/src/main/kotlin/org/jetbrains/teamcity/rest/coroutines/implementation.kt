@@ -104,12 +104,16 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val authHeader: String?,
     private val logResponses: Boolean,
     private val timeout: Long,
-    private val unit: TimeUnit = TimeUnit.MINUTES,
+    private val unit: TimeUnit,
+    private val maxConcurrentRequests: Int,
+    private val maxConcurrentRequestsPerHost: Int,
 ) : TeamCityCoroutinesInstanceEx {
     override fun toBuilder(): TeamCityInstanceBuilder = TeamCityInstanceBuilder(serverUrl)
         .setUrlBaseAndAuthHeader(serverUrlBase, authHeader)
         .setResponsesLoggingEnabled(logResponses)
         .withTimeout(timeout, unit)
+        .withMaxConcurrentRequests(maxConcurrentRequests)
+        .withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -146,7 +150,11 @@ internal class TeamCityCoroutinesInstanceImpl(
                         name = "TeamCity-Rest-Client - OkHttp Dispatcher - ${count.incrementAndGet()}"
                     )
                 }
-            )))
+            ))
+            .apply {
+                maxRequests = maxConcurrentRequests
+                maxRequestsPerHost = maxConcurrentRequestsPerHost
+            })
         .build()
 
     internal val service = Retrofit.Builder()

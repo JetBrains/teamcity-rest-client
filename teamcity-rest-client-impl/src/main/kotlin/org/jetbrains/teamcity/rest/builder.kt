@@ -19,6 +19,8 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private var logResponses: Boolean = false
     private var timeout: Long = 2
     private var timeoutTimeUnit: TimeUnit = TimeUnit.MINUTES
+    private var maxConcurrentRequests: Int = 64
+    private var maxConcurrentRequestsPerHost: Int = 5
 
     /**
      * Creates guest authenticated accessor. Default setting.
@@ -73,6 +75,16 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         return this
     }
 
+    fun withMaxConcurrentRequests(maxConcurrentRequests: Int): TeamCityInstanceBuilder {
+        this.maxConcurrentRequests = maxConcurrentRequests
+        return this
+    }
+
+    fun withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost: Int): TeamCityInstanceBuilder {
+        this.maxConcurrentRequestsPerHost = maxConcurrentRequestsPerHost
+        return this
+    }
+
     /**
      * Build instance over coroutines
      */
@@ -82,7 +94,9 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         authHeader, 
         logResponses,
         timeout,
-        timeoutTimeUnit
+        timeoutTimeUnit,
+        maxConcurrentRequests,
+        maxConcurrentRequestsPerHost
     )
     
     fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(buildCoroutinesInstance())
@@ -105,6 +119,8 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         if (logResponses != other.logResponses) return false
         if (timeout != other.timeout) return false
         if (timeoutTimeUnit != other.timeoutTimeUnit) return false
+        if (maxConcurrentRequests != other.maxConcurrentRequests) return false
+        if (maxConcurrentRequestsPerHost != other.maxConcurrentRequestsPerHost) return false
 
         return true
     }
@@ -116,6 +132,8 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         result = 31 * result + logResponses.hashCode()
         result = 31 * result + timeout.hashCode()
         result = 31 * result + timeoutTimeUnit.hashCode()
+        result = 31 * result + maxConcurrentRequests.hashCode()
+        result = 31 * result + maxConcurrentRequestsPerHost.hashCode()
         return result
     }
 
