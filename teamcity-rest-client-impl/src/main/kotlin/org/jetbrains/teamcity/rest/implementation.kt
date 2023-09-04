@@ -3,17 +3,18 @@
 package org.jetbrains.teamcity.rest
 
 import com.google.gson.Gson
-import com.jakewharton.retrofit.Ok3Client
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.Response
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
+import okhttp3.logging.HttpLoggingInterceptor
 import org.slf4j.LoggerFactory
-import retrofit.RestAdapter
-import retrofit.converter.GsonConverter
-import retrofit.mime.TypedString
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.io.*
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URLEncoder
 import java.time.Duration
 import java.time.Instant
@@ -36,20 +37,20 @@ private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
 internal fun createGuestAuthInstance(serverUrl: String): TeamCityInstanceImpl {
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/guestAuth", null, false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/guestAuth/", null, false)
 }
 
 internal fun createHttpAuthInstance(serverUrl: String, username: String, password: String): TeamCityInstanceImpl {
     val authorization = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/httpAuth", "Basic $authorization", false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/httpAuth/", "Basic $authorization", false)
 }
 
 internal fun createTokenAuthInstance(serverUrl: String, token: String): TeamCityInstanceImpl {
-    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "", "Bearer $token", false)
+    return TeamCityInstanceImpl(serverUrl.trimEnd('/'), "/", "Bearer $token", false)
 }
 
 private class RetryInterceptor : Interceptor {
-    private fun Response.retryRequired(): Boolean {
+    private fun okhttp3.Response.retryRequired(): Boolean {
         val code = code
         if (code < 400) return false
 
@@ -63,7 +64,7 @@ private class RetryInterceptor : Interceptor {
                 code == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
     }
 
-    override fun intercept(chain: Interceptor.Chain): Response {
+    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
         val request = chain.request()
         var response = chain.proceed(request)
 
@@ -114,49 +115,49 @@ internal class TeamCityInstanceImpl(override val serverUrl: String,
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
+    private val loggingInterceptor = HttpLoggingInterceptor { message ->
+        restLog.debug(if (authHeader != null) message.replace(authHeader, "[REDACTED]") else message)
+    }.apply {
+        level = if (logResponses) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.HEADERS
+    }
+
     private var client = OkHttpClient.Builder()
-            .readTimeout(timeout, unit)
-            .writeTimeout(timeout, unit)
-            .connectTimeout(timeout, unit)
-            .addInterceptor(RetryInterceptor())
-            .dispatcher(Dispatcher(
-                    //by default non-daemon threads are used, and it blocks JVM from exit
-                    ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
-                            SynchronousQueue(),
-                            object: ThreadFactory {
-                                private val count = AtomicInteger(0)
-                                override fun newThread(r: Runnable) = thread(
-                                        block = { r.run() },
-                                        isDaemon = true,
-                                        start = false,
-                                        name = "TeamCity-Rest-Client - OkHttp Dispatcher - ${count.incrementAndGet()}"
-                                )
-                            }
-            )))
-            .build()
-
-    internal val service = RestAdapter.Builder()
-            .setClient(Ok3Client(client))
-            .setEndpoint("$serverUrl$serverUrlBase")
-            .setLog { restLog.debug(if (authHeader != null) it.replace(authHeader, "[REDACTED]") else it) }
-            .setLogLevel(if (logResponses) RestAdapter.LogLevel.FULL else RestAdapter.LogLevel.HEADERS_AND_ARGS)
-            .setRequestInterceptor { request ->
+        .readTimeout(timeout, unit)
+        .writeTimeout(timeout, unit)
+        .connectTimeout(timeout, unit)
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder().apply {
                 if (authHeader != null) {
-                    request.addHeader("Authorization", authHeader)
+                    header("Authorization", authHeader)
                 }
-            }
-            .setErrorHandler { retrofitError ->
-                val responseText = try {
-                    retrofitError.response.body.`in`().reader().use { it.readText() }
-                } catch (t: Throwable) {
-                    LOG.warn("Exception while reading error response text: ${t.message}", t)
-                    ""
+            }.build()
+            chain.proceed(request)
+        }
+        .addInterceptor(loggingInterceptor)
+        .addInterceptor(RetryInterceptor())
+        .dispatcher(Dispatcher(
+            //by default non-daemon threads are used, and it blocks JVM from exit
+            ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
+                SynchronousQueue(),
+                object: ThreadFactory {
+                    private val count = AtomicInteger(0)
+                    override fun newThread(r: Runnable) = thread(
+                        block = { r.run() },
+                        isDaemon = true,
+                        start = false,
+                        name = "TeamCity-Rest-Client - OkHttp Dispatcher - ${count.incrementAndGet()}"
+                    )
                 }
+            )))
+        .build()
 
-                throw TeamCityConversationException("Failed to connect to ${retrofitError.url}: ${retrofitError.message} $responseText", retrofitError)
-            }
-            .build()
-            .create(TeamCityService::class.java)
+    internal val service = Retrofit.Builder()
+        .client(client)
+        .baseUrl("$serverUrl$serverUrlBase")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(TeamCityService::class.java)
+        .blockingBridge()
 
     override fun close() {
         fun catchAll(action: () -> Unit): Unit = try {
@@ -933,7 +934,7 @@ private class ProjectImpl(
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ProjectId=$idString")
-        instance.service.setProjectParameter(id.stringId, name, TypedString(value))
+        instance.service.setProjectParameter(id.stringId, name, value.toRequestBody())
     }
 
     override fun createProject(id: ProjectId, name: String): Project {
@@ -947,7 +948,7 @@ private class ProjectImpl(
             }
         }
 
-        val projectBean = instance.service.createProject(TypedString(projectXmlDescription))
+        val projectBean = instance.service.createProject(projectXmlDescription.toRequestBody())
         return ProjectImpl(projectBean, true, instance)
     }
 
@@ -973,12 +974,12 @@ private class ProjectImpl(
             }
         }
 
-        val vcsRootBean = instance.service.createVcsRoot(TypedString(vcsRootDescriptionXml))
+        val vcsRootBean = instance.service.createVcsRoot(vcsRootDescriptionXml.toRequestBody())
         return VcsRootImpl(vcsRootBean, true, instance)
     }
 
     override fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration {
-        val bean = instance.service.createBuildType(TypedString(buildConfigurationDescriptionXml))
+        val bean = instance.service.createBuildType(buildConfigurationDescriptionXml.toRequestBody())
         return BuildConfigurationImpl(bean, false, instance)
     }
 
@@ -1032,7 +1033,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
 
     override fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in BuildConfigurationId=$idString")
-        instance.service.setBuildTypeParameter(idString, name, TypedString(value))
+        instance.service.setBuildTypeParameter(idString, name, value.toRequestBody())
     }
 
     override var buildCounter: Int
@@ -1040,7 +1041,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
                 ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
         set(value) {
             LOG.info("Setting build counter to '$value' in BuildConfigurationId=$idString")
-            instance.service.setBuildTypeSettings(idString, "buildNumberCounter", TypedString(value.toString()))
+            instance.service.setBuildTypeSettings(idString, "buildNumberCounter", value.toString().toRequestBody())
         }
 
     override var buildNumberFormat: String
@@ -1048,7 +1049,7 @@ private class BuildConfigurationImpl(bean: BuildTypeBean,
                 ?: throw TeamCityQueryException("Cannot get 'buildNumberPattern' setting for $idString")
         set(value) {
             LOG.info("Setting build number format to '$value' in BuildConfigurationId=$idString")
-            instance.service.setBuildTypeSettings(idString, "buildNumberPattern", TypedString(value))
+            instance.service.setBuildTypeSettings(idString, "buildNumberPattern", value.toRequestBody())
         }
 
     private fun getSetting(settingName: String) =
@@ -1404,25 +1405,38 @@ private data class BranchImpl(
 
 private data class Page<out T>(val data: List<T>, val nextHref: String?)
 
-private val CONVERTER = GsonConverter(Gson())
+private val GSON = Gson()
+
+private inline fun <reified BeanType> ResponseBody.toBean(): BeanType =  GSON.fromJson(string(), BeanType::class.java)
+
+private fun String.splitToPathAndParams() : Pair<String, Map<String, String>> {
+    val uri = URI(this)
+    val path = uri.path
+    val fullParams = uri.query
+    val paramsMap = fullParams.split("&").associate {
+        val (key, value) = it.split("=")
+        key to value
+    }
+    return path to paramsMap
+}
 
 private inline fun <reified Bean, T> lazyPaging(instance: TeamCityInstanceImpl,
                                                 crossinline getFirstBean: () -> Bean,
                                                 crossinline convertToPage: (Bean) -> Page<T>): Sequence<T> {
     val initialValue = Page<T>(listOf(), null)
     return generateSequence(initialValue) { prev ->
-        return@generateSequence when {
+        when {
             prev === initialValue -> convertToPage(getFirstBean())
-            prev.nextHref == null || prev.nextHref.isBlank() -> return@generateSequence null
+            prev.nextHref.isNullOrBlank() -> null
             else -> {
-                val path = prev.nextHref.removePrefix("${instance.serverUrlBase}/")
-                val response = instance.service.root(path)
-                val body = response.body ?: return@generateSequence null
-                val bean = CONVERTER.fromBody(body, Bean::class.java) as Bean
-                convertToPage(bean)
+                val hrefSuffix = prev.nextHref.removePrefix(instance.serverUrlBase)
+                val (path, params) = hrefSuffix.splitToPathAndParams()
+                val body = instance.service.root(path, params)
+                val bean = body.toBean<Bean>()
+                bean?.let(convertToPage)
             }
         }
-    }.mapNotNull { it.data }.flatten()
+    }.map(Page<T>::data).flatten()
 }
 
 private class BuildImpl(bean: BuildBean,
@@ -1548,12 +1562,12 @@ private class BuildImpl(bean: BuildBean,
 
     override fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build ${getHomeUrl()}")
-        instance.service.addTag(idString, TypedString(tag))
+        instance.service.addTag(idString, tag.toRequestBody())
     }
 
     override fun setComment(comment: String) {
         LOG.info("Adding comment $comment to build ${getHomeUrl()}")
-        instance.service.setComment(idString, TypedString(comment))
+        instance.service.setComment(idString, comment.toRequestBody())
     }
 
     override fun replaceTags(tags: List<String>) {
@@ -1564,12 +1578,12 @@ private class BuildImpl(bean: BuildBean,
 
     override fun pin(comment: String) {
         LOG.info("Pinning build ${getHomeUrl()}")
-        instance.service.pin(idString, TypedString(comment))
+        instance.service.pin(idString, comment.toRequestBody())
     }
 
     override fun unpin(comment: String) {
         LOG.info("Unpinning build ${getHomeUrl()}")
-        instance.service.unpin(idString, TypedString(comment))
+        instance.service.unpin(idString, comment.toRequestBody())
     }
 
     override fun getArtifacts(parentPath: String, recursive: Boolean, hidden: Boolean): List<BuildArtifact> {
@@ -1643,8 +1657,7 @@ private class BuildImpl(bean: BuildBean,
     }
 
     private fun openArtifactInputStreamImpl(artifactPath: String) : InputStream {
-        val response = instance.service.artifactContent(id.stringId, artifactPath)
-        return response.body.`in`()
+        return instance.service.artifactContent(id.stringId, artifactPath).byteStream()
     }
 
     private fun downloadArtifactImpl(artifactPath: String, output: OutputStream) {
@@ -2054,9 +2067,9 @@ private fun getUserUrlPage(serverUrl: String,
             if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
 }
 
-private fun saveToFile(response: retrofit.client.Response, file: File) {
+private fun saveToFile(body: ResponseBody, file: File) {
     file.parentFile?.mkdirs()
-    response.body.`in`().use { input ->
+    body.byteStream() .use { input ->
         file.outputStream().use { output ->
             input.copyTo(output, bufferSize = 512 * 1024)
         }

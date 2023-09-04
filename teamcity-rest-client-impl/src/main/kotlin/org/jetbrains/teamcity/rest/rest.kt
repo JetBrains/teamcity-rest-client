@@ -2,213 +2,309 @@
 
 package org.jetbrains.teamcity.rest
 
-import retrofit.client.Response
-import retrofit.http.*
-import retrofit.mime.TypedString
+import kotlinx.coroutines.runBlocking
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
+import retrofit2.Response
+import retrofit2.http.*
 import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
-
+    // Even with `@Path(encoded = true)` retrofit2 will encode special characters like [?,=,&]
+    // So caller must specify path part and query params explicit
     @Streaming
     @Headers("Accept: application/json")
-    @GET("/{path}")
-    fun root(@Path("path", encode = false) path: String): Response
+    @GET("{path}")
+    suspend fun root(@Path("path", encoded = true) path: String, @QueryMap(encoded = true) encodedParams: Map<String, String>): Response<ResponseBody>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds")
-    fun builds(@Query("locator") buildLocator: String): BuildListBean
+    @GET("app/rest/builds")
+    suspend fun builds(@Query("locator") buildLocator: String): Response<BuildListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/buildQueue")
-    fun queuedBuilds(@Query("locator") locator: String?): BuildListBean
+    @GET("app/rest/buildQueue")
+    suspend fun queuedBuilds(@Query("locator") locator: String?): Response<BuildListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds/id:{id}")
-    fun build(@Path("id") id: String): BuildBean
+    @GET("app/rest/builds/id:{id}")
+    suspend fun build(@Path("id") id: String): Response<BuildBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/investigations")
-    fun investigations(@Query("locator") investigationLocator: String?): InvestigationListBean
+    @GET("app/rest/investigations")
+    suspend fun investigations(@Query("locator") investigationLocator: String?): Response<InvestigationListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/tests")
-    fun tests(@Query("locator") locator: String?): TestListBean
+    @GET("app/rest/tests")
+    suspend fun tests(@Query("locator") locator: String?): Response<TestListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/tests/id:{id}")
-    fun test(@Path("id") id: String): TestBean
+    @GET("app/rest/tests/id:{id}")
+    suspend fun test(@Path("id") id: String): Response<TestBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/investigations/id:{id}")
-    fun investigation(@Path("id") id: String): InvestigationBean
+    @GET("app/rest/investigations/id:{id}")
+    suspend fun investigation(@Path("id") id: String): Response<InvestigationBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/mutes")
-    fun mutes(@Query("locator") muteLocator: String?): MuteListBean
+    @GET("app/rest/mutes")
+    suspend fun mutes(@Query("locator") muteLocator: String?): Response<MuteListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/mutes/id:{id}")
-    fun mute(@Path("id") id: String): MuteBean
+    @GET("app/rest/mutes/id:{id}")
+    suspend fun mute(@Path("id") id: String): Response<MuteBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/changes")
-    fun changes(@Query("locator") locator: String, @Query("fields") fields: String): ChangesBean
+    @GET("app/rest/changes")
+    suspend fun changes(@Query("locator") locator: String, @Query("fields") fields: String): Response<ChangesBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/testOccurrences/")
-    fun testOccurrences(@Query("locator") locator: String, @Query("fields") fields: String?): TestOccurrencesBean
+    @GET("app/rest/testOccurrences/")
+    suspend fun testOccurrences(@Query("locator") locator: String, @Query("fields") fields: String?): Response<TestOccurrencesBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/testOccurrences/{id}")
-    fun testOccurrence(@Path("id") id: String, @Query("fields") fields: String?): TestOccurrenceBean
+    @GET("app/rest/testOccurrences/{id}")
+    suspend fun testOccurrence(@Path("id") id: String, @Query("fields") fields: String?): Response<TestOccurrenceBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/vcs-roots")
-    fun vcsRoots(@Query("locator") locator: String? = null): VcsRootListBean
+    @GET("app/rest/vcs-roots")
+    suspend fun vcsRoots(@Query("locator") locator: String? = null): Response<VcsRootListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/vcs-roots/id:{id}")
-    fun vcsRoot(@Path("id") id: String): VcsRootBean
+    @GET("app/rest/vcs-roots/id:{id}")
+    suspend fun vcsRoot(@Path("id") id: String): Response<VcsRootBean>
 
-    @POST("/app/rest/builds/id:{id}/tags/")
-    fun addTag(@Path("id") buildId: String, @Body tag: TypedString): Response
+    @POST("app/rest/builds/id:{id}/tags/")
+    suspend fun addTag(@Path("id") buildId: String, @Body tag: RequestBody): Response<ResponseBody>
 
-    @PUT("/app/rest/builds/id:{id}/comment/")
-    fun setComment(@Path("id") buildId: String, @Body comment: TypedString): Response
+    @PUT("app/rest/builds/id:{id}/comment/")
+    suspend fun setComment(@Path("id") buildId: String, @Body comment: RequestBody): Response<ResponseBody>
 
-    @PUT("/app/rest/builds/id:{id}/tags/")
-    fun replaceTags(@Path("id") buildId: String, @Body tags: TagsBean): Response
+    @PUT("app/rest/builds/id:{id}/tags/")
+    suspend fun replaceTags(@Path("id") buildId: String, @Body tags: TagsBean): Response<ResponseBody>
 
-    @PUT("/app/rest/builds/id:{id}/pin/")
-    fun pin(@Path("id") buildId: String, @Body comment: TypedString): Response
+    @PUT("app/rest/builds/id:{id}/pin/")
+    suspend fun pin(@Path("id") buildId: String, @Body comment: RequestBody): Response<ResponseBody>
 
-    //The standard DELETE annotation doesn't allow to include a body, so we need to use our own.
-    //Probably it would be better to change Rest API here (https://youtrack.jetbrains.com/issue/TW-49178).
-    @DELETE_WITH_BODY("/app/rest/builds/id:{id}/pin/")
-    fun unpin(@Path("id") buildId: String, @Body comment: TypedString): Response
+    //The standard @DELETE method doesn't allow including a body, so we need to use our own.
+    //Probably it would be better to change TeamCity REST API here (https://youtrack.jetbrains.com/issue/TW-49178).
+    @HTTP(method = "DELETE", path = "app/rest/builds/id:{id}/pin/", hasBody = true)
+    suspend fun unpin(@Path("id") buildId: String, @Body comment: RequestBody): Response<ResponseBody>
 
     @Streaming
-    @GET("/app/rest/builds/id:{id}/artifacts/content/{path}")
-    fun artifactContent(@Path("id") buildId: String, @Path("path", encode = false) artifactPath: String): Response
+    @GET("app/rest/builds/id:{id}/artifacts/content/{path}")
+    suspend fun artifactContent(@Path("id") buildId: String, @Path("path", encoded = true) artifactPath: String): Response<ResponseBody>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds/id:{id}/artifacts/children/{path}")
-    fun artifactChildren(@Path("id") buildId: String,
-                         @Path("path", encode = false) artifactPath: String,
+    @GET("app/rest/builds/id:{id}/artifacts/children/{path}")
+    suspend fun artifactChildren(@Path("id") buildId: String,
+                         @Path("path", encoded = true) artifactPath: String,
                          @Query("locator") locator: String,
-                         @Query("fields") fields: String): ArtifactFileListBean
+                         @Query("fields") fields: String): Response<ArtifactFileListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/builds/id:{id}/resulting-properties")
-    fun resultingProperties(@Path("id") buildId: String): ParametersBean
+    @GET("app/rest/builds/id:{id}/resulting-properties")
+    suspend fun resultingProperties(@Path("id") buildId: String): Response<ParametersBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/projects/id:{id}")
-    fun project(@Path("id") id: String): ProjectBean
+    @GET("app/rest/projects/id:{id}")
+    suspend fun project(@Path("id") id: String): Response<ProjectBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/buildTypes/id:{id}")
-    fun buildConfiguration(@Path("id") buildTypeId: String): BuildTypeBean
+    @GET("app/rest/buildTypes/id:{id}")
+    suspend fun buildConfiguration(@Path("id") buildTypeId: String): Response<BuildTypeBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/buildTypes/id:{id}/buildTags")
-    fun buildTypeTags(@Path("id") buildTypeId: String): TagsBean
+    @GET("app/rest/buildTypes/id:{id}/buildTags")
+    suspend fun buildTypeTags(@Path("id") buildTypeId: String): Response<TagsBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/buildTypes/id:{id}/triggers")
-    fun buildTypeTriggers(@Path("id") buildTypeId: String): TriggersBean
+    @GET("app/rest/buildTypes/id:{id}/triggers")
+    suspend fun buildTypeTriggers(@Path("id") buildTypeId: String): Response<TriggersBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/buildTypes/id:{id}/artifact-dependencies")
-    fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): ArtifactDependenciesBean
+    @GET("app/rest/buildTypes/id:{id}/artifact-dependencies")
+    suspend fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): Response<ArtifactDependenciesBean>
 
-    @PUT("/app/rest/projects/id:{id}/parameters/{name}")
-    fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: TypedString): Response
+    @PUT("app/rest/projects/id:{id}/parameters/{name}")
+    suspend fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
 
-    @PUT("/app/rest/buildTypes/id:{id}/parameters/{name}")
-    fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
+    @PUT("app/rest/buildTypes/id:{id}/parameters/{name}")
+    suspend fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
 
-    @PUT("/app/rest/buildTypes/id:{id}/settings/{name}")
-    fun setBuildTypeSettings(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: TypedString): Response
-
-    @Headers("Accept: application/json")
-    @POST("/app/rest/buildQueue")
-    fun triggerBuild(@Body value: TriggerBuildRequestBean): TriggeredBuildBean
+    @PUT("app/rest/buildTypes/id:{id}/settings/{name}")
+    suspend fun setBuildTypeSettings(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
 
     @Headers("Accept: application/json")
-    @POST("/app/rest/builds/id:{id}")
-    fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
-
-    @PUT("/app/rest/builds/id:{id}/finish")
-    fun finishBuild(@Path("id") buildId: String): Response
+    @POST("app/rest/buildQueue")
+    suspend fun triggerBuild(@Body value: TriggerBuildRequestBean): Response<TriggeredBuildBean>
 
     @Headers("Accept: application/json")
-    @POST("/app/rest/buildQueue/id:{id}")
-    fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response
+    @POST("app/rest/builds/id:{id}")
+    suspend fun cancelBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response<ResponseBody>
+
+    @PUT("app/rest/builds/id:{id}/finish")
+    suspend fun finishBuild(@Path("id") buildId: String): Response<ResponseBody>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/users")
-    fun users(): UserListBean
+    @POST("app/rest/buildQueue/id:{id}")
+    suspend fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response<ResponseBody>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/users/{userLocator}")
-    fun users(@Path("userLocator") userLocator: String): UserBean
+    @GET("app/rest/users")
+    suspend fun users(): Response<UserListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/agents")
-    fun agents(): BuildAgentsBean
+    @GET("app/rest/users/{userLocator}")
+    suspend fun users(@Path("userLocator") userLocator: String): Response<UserBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/agentPools")
-    fun agentPools(): BuildAgentPoolsBean
+    @GET("app/rest/agents")
+    suspend fun agents(): Response<BuildAgentsBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/agents/{locator}")
-    fun agent(@Path("locator") agentLocator: String? = null): BuildAgentBean
+    @GET("app/rest/agentPools")
+    suspend fun agentPools(): Response<BuildAgentPoolsBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/agents")
-    fun agents(@Query("locator") locator: String, @Query("fields") fields: String): BuildAgentsListBean
+    @GET("app/rest/agents/{locator}")
+    suspend fun agent(@Path("locator") agentLocator: String? = null): Response<BuildAgentBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/agentPools/{locator}")
-    fun agentPools(@Path("locator") agentLocator: String? = null): BuildAgentPoolBean
+    @GET("app/rest/agents")
+    suspend fun agents(@Query("locator") locator: String, @Query("fields") fields: String): Response<BuildAgentsListBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/problemOccurrences")
-    fun problemOccurrences(@Query("locator") locator: String, @Query("fields") fields: String): BuildProblemOccurrencesBean
+    @GET("app/rest/agentPools/{locator}")
+    suspend fun agentPools(@Path("locator") agentLocator: String? = null): Response<BuildAgentPoolBean>
 
-    @POST("/app/rest/projects")
+    @Headers("Accept: application/json")
+    @GET("app/rest/problemOccurrences")
+    suspend fun problemOccurrences(@Query("locator") locator: String, @Query("fields") fields: String): Response<BuildProblemOccurrencesBean>
+
+    @POST("app/rest/projects")
     @Headers("Accept: application/json", "Content-Type: application/xml")
-    fun createProject(@Body projectDescriptionXml: TypedString): ProjectBean
+    suspend fun createProject(@Body projectDescriptionXml: RequestBody): Response<ProjectBean>
 
-    @POST("/app/rest/vcs-roots")
+    @POST("app/rest/vcs-roots")
     @Headers("Accept: application/json", "Content-Type: application/xml")
-    fun createVcsRoot(@Body vcsRootXml: TypedString): VcsRootBean
+    suspend fun createVcsRoot(@Body vcsRootXml: RequestBody): Response<VcsRootBean>
 
-    @POST("/app/rest/buildTypes")
+    @POST("app/rest/buildTypes")
     @Headers("Accept: application/json", "Content-Type: application/xml")
-    fun createBuildType(@Body buildTypeXml: TypedString): BuildTypeBean
+    suspend fun createBuildType(@Body buildTypeXml: RequestBody): Response<BuildTypeBean>
 
     @Streaming
-    @GET("/downloadBuildLog.html")
-    fun buildLog(@Query ("buildId") id: String): Response
+    @GET("downloadBuildLog.html")
+    suspend fun buildLog(@Query ("buildId") id: String): Response<ResponseBody>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/changes/buildType:{id},version:{version}")
-    fun change(@Path("id") buildType: String, @Path("version") version: String): ChangeBean
+    @GET("app/rest/changes/buildType:{id},version:{version}")
+    suspend fun change(@Path("id") buildType: String, @Path("version") version: String): Response<ChangeBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/changes/id:{id}")
-    fun change(@Path("id") changeId: String): ChangeBean
+    @GET("app/rest/changes/id:{id}")
+    suspend fun change(@Path("id") changeId: String): Response<ChangeBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/changes/id:{id}?fields=files")
-    fun changeFiles(@Path("id") changeId: String): ChangeFilesBean
+    @GET("app/rest/changes/id:{id}?fields=files")
+    suspend fun changeFiles(@Path("id") changeId: String): Response<ChangeFilesBean>
 
     @Headers("Accept: application/json")
-    @GET("/app/rest/changes/{id}/firstBuilds")
-    fun changeFirstBuilds(@Path("id") id: String): BuildListBean
+    @GET("app/rest/changes/{id}/firstBuilds")
+    suspend fun changeFirstBuilds(@Path("id") id: String): Response<BuildListBean>
+}
+
+internal fun TeamCityService.blockingBridge() = TeamCityServiceBlockingBridge(this)
+
+internal class TeamCityServiceBlockingBridge(private val service: TeamCityService) {
+    private fun <T> runBlockingBridgeCall(provider: suspend () -> Response<T>): T {
+        try {
+            val response = runBlocking { provider() }
+
+            if (response.isSuccessful) {
+                return checkNotNull(response.body())
+            }
+
+            val errorMessageSuffix = response.errorBody()?.string()?.let { error -> ", error: $error" } ?: ""
+            throw TeamCityConversationException(
+                "Failed to connect to ${response.raw().request.url}, code ${response.code()}$errorMessageSuffix",
+                null
+            )
+        } catch (e: TeamCityRestException) {
+            throw e
+        } catch (t: Throwable) {
+            throw TeamCityRestException("Connect failed: ${t.message}", t)
+        }
+    }
+
+    fun root(path: String, encodedParams: Map<String, String>): ResponseBody = runBlockingBridgeCall { service.root(path, encodedParams) }
+    fun builds(buildLocator: String): BuildListBean = runBlockingBridgeCall { service.builds(buildLocator) }
+    fun queuedBuilds(locator: String?): BuildListBean = runBlockingBridgeCall { service.queuedBuilds(locator) }
+    fun build(id: String): BuildBean = runBlockingBridgeCall { service.build(id) }
+    fun investigations(investigationLocator: String?): InvestigationListBean = runBlockingBridgeCall { service.investigations(investigationLocator) }
+    fun tests(locator: String?): TestListBean = runBlockingBridgeCall { service.tests(locator) }
+    fun test(id: String): TestBean = runBlockingBridgeCall { service.test(id) }
+    fun investigation(id: String): InvestigationBean = runBlockingBridgeCall { service.investigation(id) }
+    fun mutes(muteLocator: String?): MuteListBean = runBlockingBridgeCall { service.mutes(muteLocator) }
+    fun mute(id: String): MuteBean = runBlockingBridgeCall { service.mute(id) }
+    fun changes(locator: String, fields: String): ChangesBean = runBlockingBridgeCall { service.changes(locator, fields) }
+    fun testOccurrences(locator: String, fields: String?): TestOccurrencesBean = runBlockingBridgeCall { service.testOccurrences(locator, fields) }
+    fun testOccurrence(id: String, fields: String?): TestOccurrenceBean = runBlockingBridgeCall { service.testOccurrence(id, fields) }
+    fun vcsRoots(locator: String? = null): VcsRootListBean = runBlockingBridgeCall { service.vcsRoots(locator) }
+    fun vcsRoot(id: String): VcsRootBean = runBlockingBridgeCall { service.vcsRoot(id) }
+    fun addTag(buildId: String, tag: RequestBody): ResponseBody = runBlockingBridgeCall { service.addTag(buildId, tag) }
+    fun setComment(buildId: String, comment: RequestBody): ResponseBody = runBlockingBridgeCall { service.setComment(buildId, comment) }
+    fun replaceTags(buildId: String, tags: TagsBean): ResponseBody = runBlockingBridgeCall { service.replaceTags(buildId, tags) }
+    fun pin(buildId: String, comment: RequestBody): ResponseBody = runBlockingBridgeCall { service.pin(buildId, comment) }
+    fun unpin(buildId: String, comment: RequestBody): ResponseBody = runBlockingBridgeCall { service.unpin(buildId, comment) }
+    fun artifactContent(buildId: String, artifactPath: String): ResponseBody = runBlockingBridgeCall { service.artifactContent(buildId, artifactPath) }
+    fun artifactChildren(
+        buildId: String,
+        artifactPath: String,
+        locator: String,
+        fields: String
+    ): ArtifactFileListBean = runBlockingBridgeCall { service.artifactChildren(buildId, artifactPath, locator, fields) }
+    fun resultingProperties(buildId: String): ParametersBean = runBlockingBridgeCall { service.resultingProperties(buildId) }
+    fun project(id: String): ProjectBean = runBlockingBridgeCall { service.project(id) }
+    fun buildConfiguration(buildTypeId: String): BuildTypeBean = runBlockingBridgeCall { service.buildConfiguration(buildTypeId) }
+    fun buildTypeTags(buildTypeId: String): TagsBean = runBlockingBridgeCall { service.buildTypeTags(buildTypeId) }
+    fun buildTypeTriggers(buildTypeId: String): TriggersBean = runBlockingBridgeCall { service.buildTypeTriggers(buildTypeId) }
+    fun buildTypeArtifactDependencies(buildTypeId: String): ArtifactDependenciesBean = runBlockingBridgeCall { service.buildTypeArtifactDependencies(buildTypeId) }
+    fun setProjectParameter(
+        projectId: String,
+        name: String,
+        value: RequestBody
+    ): ResponseBody = runBlockingBridgeCall { service.setProjectParameter(projectId, name, value) }
+    fun setBuildTypeParameter(
+        buildTypeId: String,
+        name: String,
+        value: RequestBody
+    ): ResponseBody = runBlockingBridgeCall { service.setBuildTypeParameter(buildTypeId, name, value) }
+    fun setBuildTypeSettings(
+        buildTypeId: String,
+        name: String,
+        value: RequestBody
+    ): ResponseBody = runBlockingBridgeCall { service.setBuildTypeSettings(buildTypeId, name, value) }
+    fun triggerBuild(value: TriggerBuildRequestBean): TriggeredBuildBean = runBlockingBridgeCall { service.triggerBuild(value) }
+    fun cancelBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runBlockingBridgeCall { service.cancelBuild(buildId, value) }
+    fun finishBuild(buildId: String): ResponseBody = runBlockingBridgeCall { service.finishBuild(buildId) }
+    fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runBlockingBridgeCall { service.removeQueuedBuild(buildId, value) }
+    fun users(): UserListBean = runBlockingBridgeCall { service.users() }
+    fun users(userLocator: String): UserBean = runBlockingBridgeCall { service.users(userLocator) }
+    fun agents(): BuildAgentsBean = runBlockingBridgeCall { service.agents() }
+    fun agents(locator: String, fields: String): BuildAgentsListBean = runBlockingBridgeCall { service.agents(locator, fields) }
+    fun agentPools(): BuildAgentPoolsBean = runBlockingBridgeCall { service.agentPools() }
+    fun agentPools(agentLocator: String? = null): BuildAgentPoolBean = runBlockingBridgeCall { service.agentPools(agentLocator) }
+    fun agent(agentLocator: String? = null): BuildAgentBean = runBlockingBridgeCall { service.agent(agentLocator) }
+    fun problemOccurrences(locator: String, fields: String): BuildProblemOccurrencesBean = runBlockingBridgeCall { service.problemOccurrences(locator, fields) }
+    fun createProject(projectDescriptionXml: RequestBody): ProjectBean = runBlockingBridgeCall { service.createProject(projectDescriptionXml) }
+    fun createVcsRoot(vcsRootXml: RequestBody): VcsRootBean = runBlockingBridgeCall { service.createVcsRoot(vcsRootXml) }
+    fun createBuildType(buildTypeXml: RequestBody): BuildTypeBean = runBlockingBridgeCall { service.createBuildType(buildTypeXml) }
+    fun buildLog(id: String): ResponseBody = runBlockingBridgeCall { service.buildLog(id) }
+    fun change(buildType: String, version: String): ChangeBean = runBlockingBridgeCall { service.change(buildType, version) }
+    fun change(changeId: String): ChangeBean = runBlockingBridgeCall { service.change(changeId) }
+    fun changeFiles(changeId: String): ChangeFilesBean = runBlockingBridgeCall { service.changeFiles(changeId) }
+    fun changeFirstBuilds(id: String): BuildListBean = runBlockingBridgeCall { service.changeFirstBuilds(id) }
 }
 
 internal class ProjectsBean {
