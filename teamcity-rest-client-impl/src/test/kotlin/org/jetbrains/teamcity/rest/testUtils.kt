@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import org.apache.log4j.*
+import org.junit.Assert.assertEquals
 import java.io.File
 import java.io.FileInputStream
 import java.util.*
@@ -21,25 +22,28 @@ fun setupLog4jDebug() {
 
 val publicInstanceUrl = "http://localhost:8111"
 
-fun publicInstance() = TeamCityInstanceFactory.guestAuth(publicInstanceUrl).withLogResponses()
-
-fun customInstance(serverUrl: String, username: String, password: String) = TeamCityInstanceFactory
-        .httpAuth(serverUrl, username, password)
-        .withLogResponses()
+fun testInstanceBuilder(serverUrl: String = publicInstanceUrl) =
+    TeamCityInstanceBuilder(serverUrl).setResponsesLoggingEnabled(true)
 
 fun haveCustomInstance(): Boolean = ConnectionPropertiesFileLoader(TEAMCITY_CONNECTION_FILE_PATH).validate()
-
-fun customInstanceByConnectionFile(): TeamCityInstance {
+private fun customInstanceByConnectionFileBuilder(): TeamCityInstanceBuilder {
     val connectionPropertiesFileLoader = ConnectionPropertiesFileLoader(TEAMCITY_CONNECTION_FILE_PATH)
     return if (connectionPropertiesFileLoader.validate()) {
         val connectionConfig = connectionPropertiesFileLoader.fetch()
-        customInstance(connectionConfig.serverUrl,
-                connectionConfig.username,
-                connectionConfig.password)
+        testInstanceBuilder(connectionConfig.serverUrl)
+            .withHttpAuth(connectionConfig.username, connectionConfig.password)
+            .setResponsesLoggingEnabled(true)
     } else {
-        publicInstance()
+        testInstanceBuilder(publicInstanceUrl)
     }
 }
+
+fun publicInstance() = testInstanceBuilder().buildBlockingInstance()
+fun publicCoroutinesInstance() = testInstanceBuilder().buildCoroutinesInstance()
+
+fun customInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().buildBlockingInstance()
+fun customCoroutinesInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().buildCoroutinesInstance()
+
 
 val reportProject = ProjectId("ProjectForReports")
 val testProject = ProjectId("TestProject")
@@ -118,4 +122,8 @@ inline fun <reified T> callPublicPropertiesAndFetchMethods(instance: T) {
             }
         }
     }
+}
+
+fun <C: Comparable<C>, I : Iterable<C>> assertEqualsAnyOrder(first: I, second: I) {
+    assertEquals(first.sorted(), second.sorted())
 }

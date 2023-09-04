@@ -9,8 +9,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCityInstance> {
+    @Deprecated("Use TeamCityInstanceBuilder#setResponsesLoggingEnabled")
     abstract fun withLogResponses(): TeamCityInstance
 
+    @Deprecated("Use TeamCityInstanceBuilder#withTimeout")
     abstract fun withTimeout(timeout: Long, unit: TimeUnit): TeamCityInstance
 
     abstract fun builds(): BuildLocator
@@ -54,22 +56,26 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
     abstract fun queuedBuilds(projectId: ProjectId? = null): List<Build>
 
     companion object {
-        private const val factoryFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceFactory"
+        private const val builderFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceBuilder"
 
         @JvmStatic
-        @Deprecated("Use [TeamCityInstanceFactory] class instead", ReplaceWith("TeamCityInstanceFactory.guestAuth(serverUrl)", factoryFQN))
-        fun guestAuth(serverUrl: String): TeamCityInstance = TeamCityInstance::class.java.classLoader
-                .loadClass(factoryFQN)
-                .getMethod("guestAuth", String::class.java)
-                .invoke(null, serverUrl) as TeamCityInstance
+        @Deprecated("Use [TeamCityInstanceBuilder] class instead", ReplaceWith("TeamCityInstanceBuilder(serverUrl).withGuestAuth().buildBlockingInstance()", builderFQN))
+        fun guestAuth(serverUrl: String): TeamCityInstance {
+            val builderClass = TeamCityInstance::class.java.classLoader.loadClass(builderFQN)
+            val builder = builderClass.getConstructor(String::class.java).newInstance(serverUrl)
+            builderClass.getMethod("withGuestAuth").invoke(builder)
+            return builderClass.getMethod("buildBlockingInstance").invoke(builder) as TeamCityInstance
+        }
 
         @JvmStatic
-        @Deprecated("Use [TeamCityInstanceFactory] class instead", ReplaceWith("TeamCityInstanceFactory.httpAuth(serverUrl, username, password)", factoryFQN))
-        fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance
-                = TeamCityInstance::class.java.classLoader
-                .loadClass(factoryFQN)
-                .getMethod("httpAuth", String::class.java, String::class.java, String::class.java)
-                .invoke(null, serverUrl, username, password) as TeamCityInstance
+        @Deprecated("Use [TeamCityInstanceBuilder] class instead", ReplaceWith("TeamCityInstanceBuilder(serverUrl).withHttpAuth(serverUrl, username, password).buildBlockingInstance()", builderFQN))
+        fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance{
+            val builderClass = TeamCityInstance::class.java.classLoader.loadClass(builderFQN)
+            val builder = builderClass.getConstructor(String::class.java).newInstance(serverUrl)
+            builderClass.getMethod("withHttpAuth", String::class.java, String::class.java)
+                .invoke(builder, username, password)
+            return builderClass.getMethod("buildBlockingInstance").invoke(builder) as TeamCityInstance
+        }
     }
 }
 

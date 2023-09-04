@@ -2,12 +2,10 @@
 
 package org.jetbrains.teamcity.rest
 
-import kotlinx.coroutines.runBlocking
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
-import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
     // Even with `@Path(encoded = true)` retrofit2 will encode special characters like [?,=,&]
@@ -214,13 +212,12 @@ internal interface TeamCityService {
     suspend fun changeFirstBuilds(@Path("id") id: String): Response<BuildListBean>
 }
 
-internal fun TeamCityService.blockingBridge() = TeamCityServiceBlockingBridge(this)
+internal fun TeamCityService.errorCatchingBridge() = TeamCityServiceErrorCatchingBridge(this)
 
-internal class TeamCityServiceBlockingBridge(private val service: TeamCityService) {
-    private fun <T> runBlockingBridgeCall(provider: suspend () -> Response<T>): T {
+internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityService) {
+    private suspend fun <T> runErrorWrappingBridgeCall(provider: suspend () -> Response<T>): T {
         try {
-            val response = runBlocking { provider() }
-
+            val response = provider()
             if (response.isSuccessful) {
                 return checkNotNull(response.body())
             }
@@ -237,74 +234,74 @@ internal class TeamCityServiceBlockingBridge(private val service: TeamCityServic
         }
     }
 
-    fun root(path: String, encodedParams: Map<String, String>): ResponseBody = runBlockingBridgeCall { service.root(path, encodedParams) }
-    fun builds(buildLocator: String): BuildListBean = runBlockingBridgeCall { service.builds(buildLocator) }
-    fun queuedBuilds(locator: String?): BuildListBean = runBlockingBridgeCall { service.queuedBuilds(locator) }
-    fun build(id: String): BuildBean = runBlockingBridgeCall { service.build(id) }
-    fun investigations(investigationLocator: String?): InvestigationListBean = runBlockingBridgeCall { service.investigations(investigationLocator) }
-    fun tests(locator: String?): TestListBean = runBlockingBridgeCall { service.tests(locator) }
-    fun test(id: String): TestBean = runBlockingBridgeCall { service.test(id) }
-    fun investigation(id: String): InvestigationBean = runBlockingBridgeCall { service.investigation(id) }
-    fun mutes(muteLocator: String?): MuteListBean = runBlockingBridgeCall { service.mutes(muteLocator) }
-    fun mute(id: String): MuteBean = runBlockingBridgeCall { service.mute(id) }
-    fun changes(locator: String, fields: String): ChangesBean = runBlockingBridgeCall { service.changes(locator, fields) }
-    fun testOccurrences(locator: String, fields: String?): TestOccurrencesBean = runBlockingBridgeCall { service.testOccurrences(locator, fields) }
-    fun testOccurrence(id: String, fields: String?): TestOccurrenceBean = runBlockingBridgeCall { service.testOccurrence(id, fields) }
-    fun vcsRoots(locator: String? = null): VcsRootListBean = runBlockingBridgeCall { service.vcsRoots(locator) }
-    fun vcsRoot(id: String): VcsRootBean = runBlockingBridgeCall { service.vcsRoot(id) }
-    fun addTag(buildId: String, tag: RequestBody): ResponseBody = runBlockingBridgeCall { service.addTag(buildId, tag) }
-    fun setComment(buildId: String, comment: RequestBody): ResponseBody = runBlockingBridgeCall { service.setComment(buildId, comment) }
-    fun replaceTags(buildId: String, tags: TagsBean): ResponseBody = runBlockingBridgeCall { service.replaceTags(buildId, tags) }
-    fun pin(buildId: String, comment: RequestBody): ResponseBody = runBlockingBridgeCall { service.pin(buildId, comment) }
-    fun unpin(buildId: String, comment: RequestBody): ResponseBody = runBlockingBridgeCall { service.unpin(buildId, comment) }
-    fun artifactContent(buildId: String, artifactPath: String): ResponseBody = runBlockingBridgeCall { service.artifactContent(buildId, artifactPath) }
-    fun artifactChildren(
+    suspend fun root(path: String, encodedParams: Map<String, String>): ResponseBody = runErrorWrappingBridgeCall { service.root(path, encodedParams) }
+    suspend fun builds(buildLocator: String): BuildListBean = runErrorWrappingBridgeCall { service.builds(buildLocator) }
+    suspend fun queuedBuilds(locator: String?): BuildListBean = runErrorWrappingBridgeCall { service.queuedBuilds(locator) }
+    suspend fun build(id: String): BuildBean = runErrorWrappingBridgeCall { service.build(id) }
+    suspend fun investigations(investigationLocator: String?): InvestigationListBean = runErrorWrappingBridgeCall { service.investigations(investigationLocator) }
+    suspend fun tests(locator: String?): TestListBean = runErrorWrappingBridgeCall { service.tests(locator) }
+    suspend fun test(id: String): TestBean = runErrorWrappingBridgeCall { service.test(id) }
+    suspend fun investigation(id: String): InvestigationBean = runErrorWrappingBridgeCall { service.investigation(id) }
+    suspend fun mutes(muteLocator: String?): MuteListBean = runErrorWrappingBridgeCall { service.mutes(muteLocator) }
+    suspend fun mute(id: String): MuteBean = runErrorWrappingBridgeCall { service.mute(id) }
+    suspend fun changes(locator: String, fields: String): ChangesBean = runErrorWrappingBridgeCall { service.changes(locator, fields) }
+    suspend fun testOccurrences(locator: String, fields: String?): TestOccurrencesBean = runErrorWrappingBridgeCall { service.testOccurrences(locator, fields) }
+    suspend fun testOccurrence(id: String, fields: String?): TestOccurrenceBean = runErrorWrappingBridgeCall { service.testOccurrence(id, fields) }
+    suspend fun vcsRoots(locator: String? = null): VcsRootListBean = runErrorWrappingBridgeCall { service.vcsRoots(locator) }
+    suspend fun vcsRoot(id: String): VcsRootBean = runErrorWrappingBridgeCall { service.vcsRoot(id) }
+    suspend fun addTag(buildId: String, tag: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.addTag(buildId, tag) }
+    suspend fun setComment(buildId: String, comment: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.setComment(buildId, comment) }
+    suspend fun replaceTags(buildId: String, tags: TagsBean): ResponseBody = runErrorWrappingBridgeCall { service.replaceTags(buildId, tags) }
+    suspend fun pin(buildId: String, comment: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.pin(buildId, comment) }
+    suspend fun unpin(buildId: String, comment: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.unpin(buildId, comment) }
+    suspend fun artifactContent(buildId: String, artifactPath: String): ResponseBody = runErrorWrappingBridgeCall { service.artifactContent(buildId, artifactPath) }
+    suspend fun artifactChildren(
         buildId: String,
         artifactPath: String,
         locator: String,
         fields: String
-    ): ArtifactFileListBean = runBlockingBridgeCall { service.artifactChildren(buildId, artifactPath, locator, fields) }
-    fun resultingProperties(buildId: String): ParametersBean = runBlockingBridgeCall { service.resultingProperties(buildId) }
-    fun project(id: String): ProjectBean = runBlockingBridgeCall { service.project(id) }
-    fun buildConfiguration(buildTypeId: String): BuildTypeBean = runBlockingBridgeCall { service.buildConfiguration(buildTypeId) }
-    fun buildTypeTags(buildTypeId: String): TagsBean = runBlockingBridgeCall { service.buildTypeTags(buildTypeId) }
-    fun buildTypeTriggers(buildTypeId: String): TriggersBean = runBlockingBridgeCall { service.buildTypeTriggers(buildTypeId) }
-    fun buildTypeArtifactDependencies(buildTypeId: String): ArtifactDependenciesBean = runBlockingBridgeCall { service.buildTypeArtifactDependencies(buildTypeId) }
-    fun setProjectParameter(
+    ): ArtifactFileListBean = runErrorWrappingBridgeCall { service.artifactChildren(buildId, artifactPath, locator, fields) }
+    suspend fun resultingProperties(buildId: String): ParametersBean = runErrorWrappingBridgeCall { service.resultingProperties(buildId) }
+    suspend fun project(id: String): ProjectBean = runErrorWrappingBridgeCall { service.project(id) }
+    suspend fun buildConfiguration(buildTypeId: String): BuildTypeBean = runErrorWrappingBridgeCall { service.buildConfiguration(buildTypeId) }
+    suspend fun buildTypeTags(buildTypeId: String): TagsBean = runErrorWrappingBridgeCall { service.buildTypeTags(buildTypeId) }
+    suspend fun buildTypeTriggers(buildTypeId: String): TriggersBean = runErrorWrappingBridgeCall { service.buildTypeTriggers(buildTypeId) }
+    suspend fun buildTypeArtifactDependencies(buildTypeId: String): ArtifactDependenciesBean = runErrorWrappingBridgeCall { service.buildTypeArtifactDependencies(buildTypeId) }
+    suspend fun setProjectParameter(
         projectId: String,
         name: String,
         value: RequestBody
-    ): ResponseBody = runBlockingBridgeCall { service.setProjectParameter(projectId, name, value) }
-    fun setBuildTypeParameter(
+    ): ResponseBody = runErrorWrappingBridgeCall { service.setProjectParameter(projectId, name, value) }
+    suspend fun setBuildTypeParameter(
         buildTypeId: String,
         name: String,
         value: RequestBody
-    ): ResponseBody = runBlockingBridgeCall { service.setBuildTypeParameter(buildTypeId, name, value) }
-    fun setBuildTypeSettings(
+    ): ResponseBody = runErrorWrappingBridgeCall { service.setBuildTypeParameter(buildTypeId, name, value) }
+    suspend fun setBuildTypeSettings(
         buildTypeId: String,
         name: String,
         value: RequestBody
-    ): ResponseBody = runBlockingBridgeCall { service.setBuildTypeSettings(buildTypeId, name, value) }
-    fun triggerBuild(value: TriggerBuildRequestBean): TriggeredBuildBean = runBlockingBridgeCall { service.triggerBuild(value) }
-    fun cancelBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runBlockingBridgeCall { service.cancelBuild(buildId, value) }
-    fun finishBuild(buildId: String): ResponseBody = runBlockingBridgeCall { service.finishBuild(buildId) }
-    fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runBlockingBridgeCall { service.removeQueuedBuild(buildId, value) }
-    fun users(): UserListBean = runBlockingBridgeCall { service.users() }
-    fun users(userLocator: String): UserBean = runBlockingBridgeCall { service.users(userLocator) }
-    fun agents(): BuildAgentsBean = runBlockingBridgeCall { service.agents() }
-    fun agents(locator: String, fields: String): BuildAgentsListBean = runBlockingBridgeCall { service.agents(locator, fields) }
-    fun agentPools(): BuildAgentPoolsBean = runBlockingBridgeCall { service.agentPools() }
-    fun agentPools(agentLocator: String? = null): BuildAgentPoolBean = runBlockingBridgeCall { service.agentPools(agentLocator) }
-    fun agent(agentLocator: String? = null): BuildAgentBean = runBlockingBridgeCall { service.agent(agentLocator) }
-    fun problemOccurrences(locator: String, fields: String): BuildProblemOccurrencesBean = runBlockingBridgeCall { service.problemOccurrences(locator, fields) }
-    fun createProject(projectDescriptionXml: RequestBody): ProjectBean = runBlockingBridgeCall { service.createProject(projectDescriptionXml) }
-    fun createVcsRoot(vcsRootXml: RequestBody): VcsRootBean = runBlockingBridgeCall { service.createVcsRoot(vcsRootXml) }
-    fun createBuildType(buildTypeXml: RequestBody): BuildTypeBean = runBlockingBridgeCall { service.createBuildType(buildTypeXml) }
-    fun buildLog(id: String): ResponseBody = runBlockingBridgeCall { service.buildLog(id) }
-    fun change(buildType: String, version: String): ChangeBean = runBlockingBridgeCall { service.change(buildType, version) }
-    fun change(changeId: String): ChangeBean = runBlockingBridgeCall { service.change(changeId) }
-    fun changeFiles(changeId: String): ChangeFilesBean = runBlockingBridgeCall { service.changeFiles(changeId) }
-    fun changeFirstBuilds(id: String): BuildListBean = runBlockingBridgeCall { service.changeFirstBuilds(id) }
+    ): ResponseBody = runErrorWrappingBridgeCall { service.setBuildTypeSettings(buildTypeId, name, value) }
+    suspend fun triggerBuild(value: TriggerBuildRequestBean): TriggeredBuildBean = runErrorWrappingBridgeCall { service.triggerBuild(value) }
+    suspend fun cancelBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runErrorWrappingBridgeCall { service.cancelBuild(buildId, value) }
+    suspend fun finishBuild(buildId: String): ResponseBody = runErrorWrappingBridgeCall { service.finishBuild(buildId) }
+    suspend fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runErrorWrappingBridgeCall { service.removeQueuedBuild(buildId, value) }
+    suspend fun users(): UserListBean = runErrorWrappingBridgeCall { service.users() }
+    suspend fun users(userLocator: String): UserBean = runErrorWrappingBridgeCall { service.users(userLocator) }
+    suspend fun agents(): BuildAgentsBean = runErrorWrappingBridgeCall { service.agents() }
+    suspend fun agents(locator: String, fields: String): BuildAgentsListBean = runErrorWrappingBridgeCall { service.agents(locator, fields) }
+    suspend fun agentPools(): BuildAgentPoolsBean = runErrorWrappingBridgeCall { service.agentPools() }
+    suspend fun agentPools(agentLocator: String? = null): BuildAgentPoolBean = runErrorWrappingBridgeCall { service.agentPools(agentLocator) }
+    suspend fun agent(agentLocator: String? = null): BuildAgentBean = runErrorWrappingBridgeCall { service.agent(agentLocator) }
+    suspend fun problemOccurrences(locator: String, fields: String): BuildProblemOccurrencesBean = runErrorWrappingBridgeCall { service.problemOccurrences(locator, fields) }
+    suspend fun createProject(projectDescriptionXml: RequestBody): ProjectBean = runErrorWrappingBridgeCall { service.createProject(projectDescriptionXml) }
+    suspend fun createVcsRoot(vcsRootXml: RequestBody): VcsRootBean = runErrorWrappingBridgeCall { service.createVcsRoot(vcsRootXml) }
+    suspend fun createBuildType(buildTypeXml: RequestBody): BuildTypeBean = runErrorWrappingBridgeCall { service.createBuildType(buildTypeXml) }
+    suspend fun buildLog(id: String): ResponseBody = runErrorWrappingBridgeCall { service.buildLog(id) }
+    suspend fun change(buildType: String, version: String): ChangeBean = runErrorWrappingBridgeCall { service.change(buildType, version) }
+    suspend fun change(changeId: String): ChangeBean = runErrorWrappingBridgeCall { service.change(changeId) }
+    suspend fun changeFiles(changeId: String): ChangeFilesBean = runErrorWrappingBridgeCall { service.changeFiles(changeId) }
+    suspend fun changeFirstBuilds(id: String): BuildListBean = runErrorWrappingBridgeCall { service.changeFirstBuilds(id) }
 }
 
 internal class ProjectsBean {
