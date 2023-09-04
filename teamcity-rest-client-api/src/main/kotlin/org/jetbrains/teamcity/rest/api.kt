@@ -4,15 +4,13 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.Duration
-import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-abstract class TeamCityInstance : AutoCloseable {
-    abstract val serverUrl: String
-
+abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCityInstance> {
     abstract fun withLogResponses(): TeamCityInstance
+
     abstract fun withTimeout(timeout: Long, unit: TimeUnit): TeamCityInstance
 
     abstract fun builds(): BuildLocator
@@ -75,15 +73,11 @@ abstract class TeamCityInstance : AutoCloseable {
     }
 }
 
-data class VcsRootType(val stringType: String) {
-    companion object {
-        val GIT = VcsRootType("jetbrains.git")
-    }
-}
+interface VcsRootLocatorSettings<Self : VcsRootLocatorSettings<Self>>
 
-data class SpecifiedRevision(val version: String, val vcsBranchName: String, val vcsRootId: VcsRootId)
+interface UserLocatorSettings<Self : UserLocatorSettings<Self>>
 
-interface VcsRootLocator {
+interface VcsRootLocator : VcsRootLocatorSettings<VcsRootLocator> {
     fun all(): Sequence<VcsRoot>
 
     @Deprecated(message = "use all() which returns lazy sequence",
@@ -91,16 +85,15 @@ interface VcsRootLocator {
     fun list(): List<VcsRoot>
 }
 
-interface BuildAgentLocator {
+interface BuildAgentLocator : BuildAgentLocatorSettings<BuildAgentLocator> {
     fun all(): Sequence<BuildAgent>
-    fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator
 }
 
-interface BuildAgentPoolLocator {
+interface BuildAgentPoolLocator : BuildAgentPoolLocatorSettings<BuildAgentPoolLocator> {
     fun all(): Sequence<BuildAgentPool>
 }
 
-interface UserLocator {
+interface UserLocator : UserLocatorSettings<UserLocator> {
     fun all(): Sequence<User>
 
     @Deprecated("use instance.user(id)")
@@ -112,172 +105,39 @@ interface UserLocator {
     fun list(): List<User>
 }
 
-interface BuildLocator {
-    fun forProject(projectId: ProjectId): BuildLocator
-
-    fun fromConfiguration(buildConfigurationId: BuildConfigurationId): BuildLocator
-
-    fun withNumber(buildNumber: String): BuildLocator
-
-    /**
-     * Filters builds to include only ones which are built on top of the specified revision.
-     */
-    fun withVcsRevision(vcsRevision: String): BuildLocator
-
-    fun snapshotDependencyTo(buildId: BuildId): BuildLocator
-
-    /**
-     * By default only successful builds are returned, call this method to include failed builds as well.
-     */
-    fun includeFailed(): BuildLocator
-
-    /**
-     * By default only finished builds are returned
-     */
-    fun includeRunning(): BuildLocator
-    fun onlyRunning(): BuildLocator
-
-    /**
-     * By default canceled builds are not returned
-     */
-    fun includeCanceled(): BuildLocator
-    fun onlyCanceled(): BuildLocator
-
-    fun withStatus(status: BuildStatus): BuildLocator
-    fun withTag(tag: String): BuildLocator
-
-    fun withBranch(branch: String): BuildLocator
-
-    /**
-     * By default only builds from the default branch are returned, call this method to include builds from all branches.
-     */
-    fun withAllBranches(): BuildLocator
-
-    fun pinnedOnly(): BuildLocator
-
-    fun includePersonal() : BuildLocator
-    fun onlyPersonal(): BuildLocator
-
-    fun limitResults(count: Int): BuildLocator
-    fun pageSize(pageSize: Int): BuildLocator
-
-    fun since(date: Instant) : BuildLocator
-    fun until(date: Instant) : BuildLocator
+interface BuildLocator : BuildLocatorSettings<BuildLocator> {
+    @Deprecated(message = "use `since` with java.time.Instant",
+        replaceWith = ReplaceWith("since(date.toInstant())"))
+    fun sinceDate(date: Date) : BuildLocator
+    @Deprecated(message = "use `until` with java.time.Instant",
+        replaceWith = ReplaceWith("until(date.toInstant())"))
+    fun untilDate(date: Date) : BuildLocator
+    @Deprecated(message = "use includeFailed()",
+        replaceWith = ReplaceWith("includeFailed()"))
+    fun withAnyStatus(): BuildLocator
 
     fun latest(): Build?
     fun all(): Sequence<Build>
 
     @Deprecated(message = "use all() which returns lazy sequence",
-                replaceWith = ReplaceWith("all().toList()"))
+        replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<Build>
-    @Deprecated(message = "use `since` with java.time.Instant",
-                replaceWith = ReplaceWith("since(date.toInstant())"))
-    fun sinceDate(date: Date) : BuildLocator
-    @Deprecated(message = "use `until` with java.time.Instant",
-                replaceWith = ReplaceWith("until(date.toInstant())"))
-    fun untilDate(date: Date) : BuildLocator
-    @Deprecated(message = "use includeFailed()",
-                replaceWith = ReplaceWith("includeFailed()"))
-    fun withAnyStatus(): BuildLocator
 }
 
-interface InvestigationLocator {
-    fun limitResults(count: Int): InvestigationLocator
-    fun forProject(projectId: ProjectId): InvestigationLocator
-    fun withTargetType(targetType: InvestigationTargetType): InvestigationLocator
+interface InvestigationLocator : InvestigationLocatorSettings<InvestigationLocator> {
     fun all(): Sequence<Investigation>
 }
 
-interface MuteLocator {
-    fun limitResults(count: Int): MuteLocator
-    fun forProject(projectId: ProjectId): MuteLocator
-    fun byUser(userId: UserId): MuteLocator
-    fun forTest(testId: TestId): MuteLocator
+interface MuteLocator : MuteLocatorSettings<MuteLocator> {
     fun all(): Sequence<Mute>
 }
 
-interface TestLocator {
-    fun limitResults(count: Int): TestLocator
-    fun byId(testId: TestId): TestLocator
-    fun byName(testName: String): TestLocator
-    fun currentlyMuted(muted: Boolean): TestLocator
-    fun forProject(projectId: ProjectId): TestLocator
+interface TestLocator : TestLocatorSettings<TestLocator> {
     fun all(): Sequence<Test>
 }
 
-interface TestRunsLocator {
-    fun limitResults(count: Int): TestRunsLocator
-    fun pageSize(pageSize: Int): TestRunsLocator
-    fun forBuild(buildId: BuildId): TestRunsLocator
-    fun forTest(testId: TestId): TestRunsLocator
-    fun forProject(projectId: ProjectId): TestRunsLocator
-    fun withStatus(testStatus: TestStatus): TestRunsLocator
-    fun withoutDetailsField(): TestRunsLocator
-
-    /**
-     * If expandMultipleInvocations is enabled, individual runs of tests, which were executed several
-     * times in same build, are returned as separate entries.
-     * By default such runs are aggregated into a single value, duration property will be the sum of durations
-     * of individual runs, and status will be SUCCESSFUL if and only if all runs are successful.
-     */
-    fun expandMultipleInvocations() : TestRunsLocator
+interface TestRunsLocator : TestRunsLocatorSettings<TestRunsLocator> {
     fun all(): Sequence<TestRun>
-}
-
-data class ProjectId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class BuildId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class TestId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class TestOccurrenceId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class ChangeId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class BuildConfigurationId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class VcsRootId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class BuildProblemId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class BuildAgentPoolId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class BuildAgentId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class InvestigationId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
-data class BuildProblemType(val stringType: String) {
-    override fun toString(): String = stringType
-
-    val isSnapshotDependencyError: Boolean
-        get() = stringType == "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE" ||
-                stringType == "SNAPSHOT_DEPENDENCY_ERROR"
-
-    companion object {
-        val FAILED_TESTS = BuildProblemType("TC_FAILED_TESTS")
-    }
 }
 
 interface Project {
@@ -639,22 +499,6 @@ interface ChangeFile {
     val relativeFilePath: String?
 }
 
-enum class ChangeType {
-    EDITED,
-    ADDED,
-    REMOVED,
-    /**
-     * This type is used when directory or subdirectory is copied and/or modified, and individual files there
-     * are not included separately in the [Change].
-     */
-    COPIED,
-    UNKNOWN
-}
-
-data class UserId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
 interface User {
     val id: UserId
     val username: String
@@ -728,38 +572,6 @@ interface VcsRootInstance {
     val name: String
 }
 
-enum class BuildStatus {
-    SUCCESS,
-    FAILURE,
-    ERROR,
-    UNKNOWN,
-}
-
-enum class BuildState {
-    QUEUED,
-    RUNNING,
-    FINISHED,
-    DELETED,
-    UNKNOWN,
-}
-
-enum class InvestigationState {
-    TAKEN,
-    FIXED,
-    GIVEN_UP
-}
-
-enum class InvestigationResolveMethod {
-    MANUALLY,
-    WHEN_FIXED;
-}
-
-enum class InvestigationTargetType(val value: String) {
-    TEST("test"),
-    BUILD_PROBLEM("problem"),
-    BUILD_CONFIGURATION("anyProblem")
-}
-
 interface PinInfo {
     val user: User
     val dateTime: ZonedDateTime
@@ -773,13 +585,6 @@ interface Revision {
     val version: String
     val vcsBranchName: String
     val vcsRootInstance: VcsRootInstance
-}
-
-enum class TestStatus {
-    SUCCESSFUL,
-    IGNORED,
-    FAILED,
-    UNKNOWN
 }
 
 @Deprecated(message = "Deprecated due to unclear naming. use TestRun class", replaceWith = ReplaceWith("TestRun"))
@@ -855,12 +660,6 @@ interface ArtifactRule {
      */
     val destinationPath: String?
 }
-
-open class TeamCityRestException(message: String?, cause: Throwable?) : RuntimeException(message, cause)
-
-open class TeamCityQueryException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
-
-open class TeamCityConversationException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
 
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
