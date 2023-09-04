@@ -5,7 +5,13 @@ import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import java.io.InputStream
+import java.nio.file.Files
+import java.security.MessageDigest
 import java.util.*
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.inputStream
+import kotlin.io.path.outputStream
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -170,5 +176,51 @@ class BuildTest {
         assertTrue(resultingParameters.isNotEmpty())
         assertEquals(147, resultingParameters.count())
         assertEquals("1", resultingParameters.first { it.name == "build.counter" }.value)
+    }
+
+    @Test
+    fun test_download_artifact() {
+        val build = customInstanceByConnectionFile().build(BuildId("422"))
+        val nonHiddenArtifacts = build.getArtifacts()
+        assertTrue(nonHiddenArtifacts.isEmpty())
+
+        val hiddenArtifacts = build.getArtifacts(hidden = true, recursive = true)
+        assertTrue(hiddenArtifacts.isNotEmpty())
+
+        val artifact = hiddenArtifacts.firstOrNull { it.fullName == ".teamcity/settings/buildSettings.xml" }
+        assertNotNull(artifact)
+
+        val expectedSha256 = "ffcba858d36f9344866cc644fe01b2ac20ba1a35229b4fc51ddd3eb46b450480"
+        
+        val actualInputStreamSha256 = artifact.openArtifactInputStream().use(::calculateSha256Hash)
+        assertEquals(expectedSha256, actualInputStreamSha256)
+
+        Files.createTempFile("test_download_artifact_", ".xml").apply {
+            try {
+                artifact.download(toFile())
+                val actualDownloadFileSha256 = calculateSha256Hash(inputStream())
+                assertEquals(expectedSha256, actualDownloadFileSha256)
+
+                artifact.download(outputStream())
+                val actualOutputStreamSha256 = calculateSha256Hash(inputStream())
+                assertEquals(expectedSha256, actualOutputStreamSha256)
+            } finally {
+                deleteIfExists() // cleanup
+            }
+        }
+    }
+
+    private fun calculateSha256Hash(stream: InputStream): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(2048)
+
+        var bytesRead: Int
+        while (stream.read(buffer).also { bytesRead = it } != -1) {
+            digest.update(buffer, 0, bytesRead)
+        }
+
+        return digest.digest().joinToString(separator = "") { byte ->
+            String.format("%02x", byte)
+        }
     }
 }
