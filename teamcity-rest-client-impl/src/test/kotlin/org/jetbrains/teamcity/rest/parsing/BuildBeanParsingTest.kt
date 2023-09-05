@@ -1,7 +1,7 @@
 package org.jetbrains.teamcity.rest.parsing
 
 import com.google.gson.Gson
-import org.jetbrains.teamcity.rest.BuildBean
+import org.jetbrains.teamcity.rest.coroutines.BuildBean
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

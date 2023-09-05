@@ -7,29 +7,12 @@
  * Solution: All locators, in addition to `fun all(): Flow<T>`
  *           have `fun allSeq(): Sequence<T>` method to retrieve data blocking, but lazily
  */
-package org.jetbrains.teamcity.rest
+package org.jetbrains.teamcity.rest.coroutines
 
-import org.jetbrains.teamcity.rest.coroutines.Build
-import org.jetbrains.teamcity.rest.coroutines.BuildAgent
-import org.jetbrains.teamcity.rest.coroutines.BuildAgentLocator
-import org.jetbrains.teamcity.rest.coroutines.BuildAgentPool
-import org.jetbrains.teamcity.rest.coroutines.BuildAgentPoolLocator
-import org.jetbrains.teamcity.rest.coroutines.BuildLocator
-import org.jetbrains.teamcity.rest.coroutines.BuildProblemOccurrence
-import org.jetbrains.teamcity.rest.coroutines.BuildQueue
-import org.jetbrains.teamcity.rest.coroutines.Investigation
-import org.jetbrains.teamcity.rest.coroutines.InvestigationLocator
-import org.jetbrains.teamcity.rest.coroutines.Mute
-import org.jetbrains.teamcity.rest.coroutines.MuteLocator
-import org.jetbrains.teamcity.rest.coroutines.TeamCityCoroutinesInstance
-import org.jetbrains.teamcity.rest.coroutines.Test
-import org.jetbrains.teamcity.rest.coroutines.TestLocator
-import org.jetbrains.teamcity.rest.coroutines.TestRun
-import org.jetbrains.teamcity.rest.coroutines.TestRunsLocator
-import org.jetbrains.teamcity.rest.coroutines.User
-import org.jetbrains.teamcity.rest.coroutines.UserLocator
-import org.jetbrains.teamcity.rest.coroutines.VcsRoot
-import org.jetbrains.teamcity.rest.coroutines.VcsRootLocator
+import org.jetbrains.teamcity.rest.BuildConfigurationId
+import org.jetbrains.teamcity.rest.ProjectId
+import org.jetbrains.teamcity.rest.TeamCityInstanceBuilder
+import org.jetbrains.teamcity.rest.TestStatus
 
 internal interface TeamCityCoroutinesInstanceEx : TeamCityCoroutinesInstance {
     fun toBuilder(): TeamCityInstanceBuilder

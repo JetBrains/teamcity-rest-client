@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import org.jetbrains.teamcity.rest.coroutines.TeamCityCoroutinesInstance
+import org.jetbrains.teamcity.rest.coroutines.TeamCityCoroutinesInstanceImpl
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 

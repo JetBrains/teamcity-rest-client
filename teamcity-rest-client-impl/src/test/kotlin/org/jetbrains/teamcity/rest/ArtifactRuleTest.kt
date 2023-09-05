@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import junit.framework.TestCase.*
+import org.jetbrains.teamcity.rest.coroutines.ArtifactRuleImpl
 import org.junit.Before
 import org.junit.Test
 

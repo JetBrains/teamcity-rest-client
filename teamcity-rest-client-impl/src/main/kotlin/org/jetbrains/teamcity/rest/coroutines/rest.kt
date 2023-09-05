@@ -1,9 +1,13 @@
 @file:Suppress("RemoveRedundantBackticks")
 
-package org.jetbrains.teamcity.rest
+package org.jetbrains.teamcity.rest.coroutines
 
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
+import org.jetbrains.teamcity.rest.BuildStatus
+import org.jetbrains.teamcity.rest.InvestigationState
+import org.jetbrains.teamcity.rest.TeamCityConversationException
+import org.jetbrains.teamcity.rest.TeamCityRestException
 import retrofit2.Response
 import retrofit2.http.*
 
