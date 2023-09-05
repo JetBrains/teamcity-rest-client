@@ -1,5 +1,7 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.Assert
@@ -143,19 +145,27 @@ class BuildTest {
 
     @Test
     fun pagination() {
-        val iterator = publicInstance().builds()
+        val builds = publicInstance().builds()
                 .fromConfiguration(manyTestsBuildConfiguration)
                 // Default reasonableMaxPageSize=1024, but we have only 100 builds in test data
                 // Paging will never happen if we don't set page size explicitly
                 .pageSize(5)
                 .all()
-                .iterator()
+                .toList()
+        assertThat(builds.size).isGreaterThanOrEqualTo(100)
 
-        var i = 0
-        while (i++ < 100) {
-            assertTrue(iterator.hasNext())
-            assertNotNull(iterator.next())
+        val buildsAsync = runBlocking {
+            publicCoroutinesInstance().builds()
+                .fromConfiguration(manyTestsBuildConfiguration)
+                // Default reasonableMaxPageSize=1024, but we have only 100 builds in test data
+                // Paging will never happen if we don't set page size explicitly
+                .pageSize(5)
+                .all()
+                .toList()
         }
+        assertThat(buildsAsync.size).isGreaterThanOrEqualTo(100)
+        assertEquals(builds.size, buildsAsync.size)
+        assertEqualsAnyOrder(builds.map { it.id.stringId }, buildsAsync.map { it.id.stringId })
     }
 
     @Test

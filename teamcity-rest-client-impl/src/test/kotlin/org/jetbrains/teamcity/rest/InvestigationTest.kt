@@ -1,5 +1,7 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -22,7 +24,7 @@ class InvestigationTest {
     @Test
     fun test_assignee() {
         var hasAtLeastOneName = false
-        val investigations = publicInstance().investigations().limitResults(10).all()
+        val investigations = publicInstance().investigations().limitResults(10).all().toList()
         for (investigation in investigations) {
             Assert.assertNotNull(investigation.assignee)
             Assert.assertNotNull(investigation.assignee.id)
@@ -31,8 +33,22 @@ class InvestigationTest {
                 hasAtLeastOneName = true
             }
         }
-
         Assert.assertTrue(hasAtLeastOneName)
+
+        runBlocking {
+            var hasAtLeastOneNameAsync = false
+            val investigationsAsync = publicCoroutinesInstance().investigations().limitResults(10).all().toList()
+            for (investigation in investigationsAsync) {
+                Assert.assertNotNull(investigation.assignee)
+                Assert.assertNotNull(investigation.assignee.id)
+                Assert.assertNotNull(investigation.assignee.getUsername())
+                if (investigation.assignee.getName() != null) {
+                    hasAtLeastOneNameAsync = true
+                }
+            }
+            Assert.assertTrue(hasAtLeastOneNameAsync)
+            assertEqualsAnyOrder(investigations.map { it.id.stringId }, investigationsAsync.map { it.id.stringId })
+        }
     }
 
     @Test
