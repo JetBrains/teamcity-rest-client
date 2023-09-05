@@ -1,23 +1,27 @@
 # teamcity-rest-client [![JetBrains team project](http://jb.gg/badges/team.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![plugin status](https://teamcity.jetbrains.com/app/rest/builds/buildType:(id:TeamCityRestApiClients_KotlinClient_Build)/statusIcon.svg)](https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityRestApiClients_KotlinClient_Build&guest=1)
 
-Client for TeamCity REST API written in Kotlin. The code snippet below will download `*.zip` artifacts from the latest successful build with tag `publish` of the specified build configuration to `out` directory.
+Client for TeamCity REST API written in Kotlin. The code snippet below will download `*.zip` artifacts from the latest successful build with tag `publish` of the specified build configuration to `out` directory using *blocking API*.
 ```kotlin
 val docs = BuildConfigurationId("Kotlin_StandardLibraryDocumentation")
-val build = TeamCityInstanceFactory.guestAuth("https://teamcity.jetbrains.com").builds()
-                            .fromConfiguration(docs)
-                            .withTag("publish")
-                            .latest()
+val build = TeamCityInstanceBuilder("https://teamcity.jetbrains.com").buildBlockingInstance()
+    .builds()
+    .fromConfiguration(docs)
+    .withTag("publish")
+    .latest()
 build!!.downloadArtifacts("*.zip", File("out"))
 ```
 
-Another snippet will run a build on your own server
+Another snippet will run a build on your own server using *coroutines non-blocking API*.
 ```kotlin
-val tc = TeamCityInstanceFactory.httpAuth(
-        "https://myserver.local", "login", "password")
+val tc = TeamCityInstanceBuilder("https://myserver.local")
+    .withHttpAuth("login", "password")
+    .buildCoroutinesInstance()
 
+// suspending call
 val buildConfiguration = tc.buildConfiguration(BuildConfigurationId("BuildConfId"))
-val build = buildConfiguration.runBuild(
-        parameters = mapOf("myparameter1" to "value", "myparameter2" to "value")
+// suspending call
+val build = buildConfiguration.runBuild( 
+    parameters = mapOf("myparameter1" to "value", "myparameter2" to "value")
 )
 ```
 # Published to Space
