@@ -482,14 +482,16 @@ private class ProjectBridge(
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchParameters(): List<Parameter> = parameters
+    override fun toString(): String = delegate.toString()
 }
 
 private class ParameterBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.Parameter,
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.Parameter,
 ) : Parameter {
     override val name: String by lazy { delegate.name }
     override val value: String by lazy { delegate.value }
     override val own: Boolean by lazy { delegate.own }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildConfigurationBridge(
@@ -603,19 +605,21 @@ private class BuildConfigurationBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchArtifactDependencies(): List<ArtifactDependency> = artifactDependencies
 
+    override fun toString(): String = delegate.toString()
 }
 
 private class FinishBuildTriggerBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.FinishBuildTrigger
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.FinishBuildTrigger
 ) : FinishBuildTrigger {
     override val initiatedBuildConfiguration: BuildConfigurationId = delegate.initiatedBuildConfiguration
     override val afterSuccessfulBuildOnly: Boolean = delegate.afterSuccessfulBuildOnly
     override val includedBranchPatterns: Set<String> = delegate.includedBranchPatterns
     override val excludedBranchPatterns: Set<String> = delegate.excludedBranchPatterns
+    override fun toString(): String = delegate.toString()
 }
 
 private class ArtifactDependencyBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.ArtifactDependency
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.ArtifactDependency
 ) : ArtifactDependency {
     override val dependsOnBuildConfiguration: BuildConfiguration =
         BuildConfigurationBridge(delegate.dependsOnBuildConfiguration)
@@ -625,16 +629,19 @@ private class ArtifactDependencyBridge(
         delegate.getArtifactRules().map(::ArtifactRuleBridge)
     }
     override val cleanDestinationDirectory: Boolean by lazyBlocking { delegate.isCleanDestinationDirectory() }
+    override fun toString(): String = delegate.toString()
 }
 
 private class ArtifactRuleBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.ArtifactRule
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.ArtifactRule
 ) : ArtifactRule {
     override val include: Boolean = delegate.include
     override val sourcePath: String = delegate.sourcePath
     override val archivePath: String? = delegate.archivePath
     override val destinationPath: String? = delegate.destinationPath
+    override fun toString(): String = delegate.toString()
 }
+
 private class UserBridge(private val delegate: org.jetbrains.teamcity.rest.coroutines.User) : User {
     override val id: UserId by lazy { delegate.id }
     override val username: String by lazyBlocking { delegate.getUsername() }
@@ -642,6 +649,7 @@ private class UserBridge(private val delegate: org.jetbrains.teamcity.rest.corou
     override val email: String? by lazyBlocking { delegate.getEmail() }
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
+    override fun toString(): String = delegate.toString()
 }
 
 
@@ -793,6 +801,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
+    override fun toString(): String = delegate.toString()
 }
 
 
@@ -813,21 +822,24 @@ private class BuildArtifactBridge(
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val modificationTime: Date = Date.from(modificationDateTime.toInstant())
+    override fun toString(): String = delegate.toString()
 }
 
 private class BranchBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.Branch
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.Branch
 ) : Branch {
     override val name: String? by lazy { delegate.name }
     override val isDefault: Boolean by lazy { delegate.isDefault }
+    override fun toString(): String = delegate.toString()
 }
 
 private class RevisionBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.Revision,
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.Revision,
 ) : Revision {
     override val version: String by lazy { delegate.version }
     override val vcsBranchName: String by lazy { delegate.vcsBranchName }
     override val vcsRootInstance: VcsRootInstance = VcsRootInstanceBridge(delegate.vcsRootInstance)
+    override fun toString(): String = delegate.toString()
 }
 
 private class ChangeBridge(
@@ -859,20 +871,22 @@ private class ChangeBridge(
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val date: Date by lazy { Date.from(dateTime.toInstant()) }
+    override fun toString(): String = delegate.toString()
 }
 
 private class ChangeFileBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.ChangeFile
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.ChangeFile
 ) : ChangeFile {
     override val fileRevisionBeforeChange: String? by lazy { delegate.fileRevisionBeforeChange }
     override val fileRevisionAfterChange: String? by lazy { delegate.fileRevisionAfterChange }
     override val changeType: ChangeType by lazy { delegate.changeType }
     override val filePath: String? by lazy { delegate.filePath }
     override val relativeFilePath: String? by lazy { delegate.relativeFilePath }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildCanceledInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildCanceledInfo,
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildCanceledInfo,
 ) : BuildCanceledInfo {
     override val user: User? by lazy { delegate.user?.let(::UserBridge) }
     override val cancelDateTime: ZonedDateTime by lazy { delegate.cancelDateTime }
@@ -880,58 +894,65 @@ private class BuildCanceledInfoBridge(
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val cancelDate: Date = Date.from(delegate.cancelDateTime.toInstant())
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildCommentInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildCommentInfo,
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildCommentInfo,
 ) : BuildCommentInfo {
     override val user: User? by lazy { delegate.user?.let(::UserBridge) }
     override val timestamp: ZonedDateTime by lazy { delegate.timestamp }
     override val text: String by lazy { delegate.text }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildRunningInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildRunningInfo,
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildRunningInfo,
 ) : BuildRunningInfo {
     override val percentageComplete: Int by lazy { delegate.percentageComplete }
     override val elapsedSeconds: Long by lazy { delegate.elapsedSeconds }
     override val estimatedTotalSeconds: Long by lazy { delegate.estimatedTotalSeconds }
     override val outdated: Boolean by lazy { delegate.outdated }
     override val probablyHanging: Boolean by lazy { delegate.probablyHanging }
+    override fun toString(): String = delegate.toString()
 }
 
 private class PinInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.PinInfo
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.PinInfo
 ) : PinInfo {
     override val user: User = UserBridge(delegate.user)
     override val dateTime: ZonedDateTime by lazy { delegate.dateTime }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val time: Date = Date.from(dateTime.toInstant())
+    override fun toString(): String = delegate.toString()
 }
 
 private class TriggeredInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.TriggeredInfo
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.TriggeredInfo
 ) : TriggeredInfo {
     override val user: User? by lazy { delegate.user?.let(::UserBridge) }
     override val build: Build? by lazy { delegate.build?.let(::BuildBridge) }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildProblemOccurrenceBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildProblemOccurrence
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildProblemOccurrence
 ) : BuildProblemOccurrence {
     override val buildProblem: BuildProblem = BuildProblemBridge(delegate.buildProblem)
     override val build: Build = BuildBridge(delegate.build)
     override val details: String by lazy { delegate.details }
     override val additionalData: String? by lazy { delegate.additionalData }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildProblemBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildProblem
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildProblem
 ) : BuildProblem {
     override val id: BuildProblemId by lazy { delegate.id }
     override val type: BuildProblemType by lazy { delegate.type }
     override val identity: String by lazy { delegate.identity }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildAgentPoolBridge(
@@ -941,6 +962,7 @@ private class BuildAgentPoolBridge(
     override val name: String by lazyBlocking { delegate.getName() }
     override val projects: List<Project> by lazyBlocking { delegate.getProjects().map(::ProjectBridge) }
     override val agents: List<BuildAgent> by lazyBlocking { delegate.getAgents().map(::BuildAgentBridge) }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildAgentBridge(
@@ -964,22 +986,25 @@ private class BuildAgentBridge(
     override val currentBuild: Build? by lazyBlocking { delegate.getCurrentBuild()?.let(::BuildBridge) }
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildAgentAuthorizedInfoInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgentAuthorizedInfo
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgentAuthorizedInfo
 ) : BuildAgentAuthorizedInfo {
     override val user: User? by lazy { delegate.user?.let(::UserBridge) }
     override val timestamp: ZonedDateTime by lazy { delegate.timestamp }
     override val text: String by lazy { delegate.text }
+    override fun toString(): String = delegate.toString()
 }
 
 private class BuildAgentEnabledInfoBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgentEnabledInfo
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgentEnabledInfo
 ) : BuildAgentEnabledInfo {
     override val user: User? by lazy { delegate.user?.let(::UserBridge) }
     override val timestamp: ZonedDateTime by lazy { delegate.timestamp }
     override val text: String by lazy { delegate.text }
+    override fun toString(): String = delegate.toString()
 }
 
 private class VcsRootBridge(
@@ -989,17 +1014,19 @@ private class VcsRootBridge(
     override val name: String by lazyBlocking { delegate.getName() }
     override val url: String? by lazyBlocking { delegate.getUrl() }
     override val defaultBranch: String? by lazyBlocking { delegate.getDefaultBranch() }
+    override fun toString(): String = delegate.toString()
 }
 
 private class VcsRootInstanceBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.VcsRootInstance
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.VcsRootInstance
 ) : VcsRootInstance {
     override val vcsRootId: VcsRootId by lazy { delegate.vcsRootId }
     override val name: String by lazy { delegate.name }
+    override fun toString(): String = delegate.toString()
 }
 
 private class InvestigationBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.Investigation
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.Investigation
 ) : Investigation {
     override val id: InvestigationId by lazy { delegate.id }
     override val assignee: User = UserBridge(delegate.assignee)
@@ -1019,6 +1046,7 @@ private class InvestigationBridge(
         }
     }
     override val state: InvestigationState by lazy { delegate.state }
+    override fun toString(): String = delegate.toString()
 }
 
 private class MuteBridge(
@@ -1042,13 +1070,15 @@ private class MuteBridge(
         }
     }
     override val tests: List<Test>? by lazy { delegate.tests?.map(::TestBridge) }
+    override fun toString(): String = delegate.toString()
 }
 
 private class TestBridge(
-    delegate: org.jetbrains.teamcity.rest.coroutines.Test
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.Test
 ) : Test {
     override val id: TestId by lazy { delegate.id }
     override val name: String by lazyBlocking { delegate.getName() }
+    override fun toString(): String = delegate.toString()
 }
 
 private class TestRunBridge(
@@ -1069,4 +1099,5 @@ private class TestRunBridge(
     override val firstFailedIn: BuildId? by lazyBlocking { delegate.getFirstFailedIn() }
     override val testId: TestId by lazyBlocking { delegate.getTestId() }
     override val metadataValues: List<String>? by lazyBlocking { delegate.getMetadataValues() }
+    override fun toString(): String = delegate.toString()
 }
