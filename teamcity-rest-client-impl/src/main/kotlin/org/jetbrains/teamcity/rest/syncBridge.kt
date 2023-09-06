@@ -15,33 +15,33 @@ import java.util.concurrent.TimeUnit
 private fun <T> lazyBlocking(block: suspend () -> T): Lazy<T> = lazy { runBlocking { block() } }
 
 internal class TeamCityInstanceBlockingBridge(
-    private val delegate: TeamCityCoroutinesInstance
+    private val delegate: TeamCityCoroutinesInstanceEx
 ) : TeamCityInstance() {
     override val serverUrl: String by lazy { delegate.serverUrl }
 
     @TestOnly
-    internal fun toBuilder() = (delegate as TeamCityCoroutinesInstanceEx).toBuilder()
+    internal fun toBuilder() = delegate.toBuilder()
 
     @Suppress("OVERRIDE_DEPRECATION")
-    override fun withLogResponses() = (delegate as TeamCityCoroutinesInstanceEx).toBuilder()
+    override fun withLogResponses() = delegate.toBuilder()
         .setResponsesLoggingEnabled(true)
         .buildBlockingInstance()
 
     @Suppress("OVERRIDE_DEPRECATION")
-    override fun withTimeout(timeout: Long, unit: TimeUnit) = (delegate as TeamCityCoroutinesInstanceEx).toBuilder()
+    override fun withTimeout(timeout: Long, unit: TimeUnit) = delegate.toBuilder()
         .withTimeout(timeout, unit)
         .buildBlockingInstance()
 
     override fun builds(): BuildLocator {
-        return BuildLocatorBridge(delegate.builds())
+        return BuildLocatorBridge(delegate.builds() as BuildLocatorEx)
     }
 
     override fun investigations(): InvestigationLocator =
         InvestigationLocatorBridge(delegate.investigations() as InvestigationLocatorEx)
 
-    override fun mutes(): MuteLocator = MuteLocatorBridge(delegate.mutes())
+    override fun mutes(): MuteLocator = MuteLocatorBridge(delegate.mutes() as MuteLocatorEx)
 
-    override fun tests(): TestLocator = TestLocatorBridge(delegate.tests())
+    override fun tests(): TestLocator = TestLocatorBridge(delegate.tests() as TestLocatorEx)
 
     override fun build(id: BuildId): Build = runBlocking {
         BuildBridge(delegate.build(id))
@@ -54,7 +54,7 @@ internal class TeamCityInstanceBlockingBridge(
     override fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration =
         BuildConfigurationBridge(runBlocking { delegate.buildConfiguration(id) })
 
-    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorBridge(delegate.vcsRoots())
+    override fun vcsRoots(): VcsRootLocator = VcsRootLocatorBridge(delegate.vcsRoots() as VcsRootLocatorEx)
 
     override fun vcsRoot(id: VcsRootId): VcsRoot = VcsRootBridge(runBlocking { delegate.vcsRoot(id) })
 
@@ -62,19 +62,19 @@ internal class TeamCityInstanceBlockingBridge(
 
     override fun rootProject(): Project = ProjectBridge(runBlocking { delegate.rootProject() })
 
-    override fun buildQueue(): BuildQueue = BuildQueueBridge(delegate.buildQueue())
+    override fun buildQueue(): BuildQueue = BuildQueueBridge(delegate.buildQueue() as BuildQueueEx)
 
     override fun user(id: UserId): User = UserBridge(runBlocking { delegate.user(id) })
 
     override fun user(userName: String): User = UserBridge(runBlocking { delegate.user(userName) })
 
-    override fun users(): UserLocator = UserLocatorBridge(this, delegate.users())
+    override fun users(): UserLocator = UserLocatorBridge(this, delegate.users() as UserLocatorEx)
 
-    override fun buildAgents(): BuildAgentLocator = BuildAgentLocatorBridge(delegate.buildAgents())
+    override fun buildAgents(): BuildAgentLocator = BuildAgentLocatorBridge(delegate.buildAgents() as BuildAgentLocatorEx)
 
-    override fun buildAgentPools(): BuildAgentPoolLocator = BuildAgentPoolLocatorBridge(delegate.buildAgentPools())
+    override fun buildAgentPools(): BuildAgentPoolLocator = BuildAgentPoolLocatorBridge(delegate.buildAgentPools() as BuildAgentPoolLocatorEx)
 
-    override fun testRuns(): TestRunsLocator = TestRunsLocatorBridge(delegate.testRuns())
+    override fun testRuns(): TestRunsLocator = TestRunsLocatorBridge(delegate.testRuns() as TestRunsLocatorEx)
 
     override fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change =
         ChangeBridge(runBlocking { delegate.change(buildConfigurationId, vcsRevision) })
@@ -106,23 +106,23 @@ internal class TeamCityInstanceBlockingBridge(
 }
 
 private class BuildQueueBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildQueue
+    private val delegate: BuildQueueEx
 ) : BuildQueue {
     override fun removeBuild(id: BuildId, comment: String, reAddIntoQueue: Boolean) = runBlocking {
         delegate.removeBuild(id, comment, reAddIntoQueue)
     }
 
     override fun queuedBuilds(projectId: ProjectId?): Sequence<Build> =
-        (delegate as BuildQueueEx).queuedBuildsSeq(projectId).map(::BuildBridge)
+        delegate.queuedBuildsSeq(projectId).map(::BuildBridge)
 
     override fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Sequence<Build> =
-        (delegate as BuildQueueEx).queuedBuildsSeq(buildConfigurationId).map(::BuildBridge)
+        delegate.queuedBuildsSeq(buildConfigurationId).map(::BuildBridge)
 }
 
 private class VcsRootLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.VcsRootLocator
+    private val delegate: VcsRootLocatorEx
 ) : VcsRootLocator {
-    override fun all(): Sequence<VcsRoot> = (delegate as VcsRootLocatorEx).allSeq().map(::VcsRootBridge)
+    override fun all(): Sequence<VcsRoot> = delegate.allSeq().map(::VcsRootBridge)
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun list(): List<VcsRoot> = all().toList()
@@ -131,7 +131,7 @@ private class VcsRootLocatorBridge(
 
 private class UserLocatorBridge(
     private val instance: TeamCityInstanceBlockingBridge,
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.UserLocator
+    private val delegate: UserLocatorEx
 ) : UserLocator {
     private var id: UserId? = null
     private var username: String? = null
@@ -156,7 +156,7 @@ private class UserLocatorBridge(
         return when {
             id != null -> sequenceOf(instance.user(id))
             username != null -> sequenceOf(instance.user(username))
-            else -> (delegate as UserLocatorEx).allSeq().map(::UserBridge)
+            else -> delegate.allSeq().map(::UserBridge)
         }
     }
 
@@ -165,9 +165,9 @@ private class UserLocatorBridge(
 }
 
 private class BuildAgentLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgentLocator
+    private val delegate: BuildAgentLocatorEx
 ) : BuildAgentLocator {
-    override fun all(): Sequence<BuildAgent> = (delegate as BuildAgentLocatorEx).allSeq().map(::BuildAgentBridge)
+    override fun all(): Sequence<BuildAgent> = delegate.allSeq().map(::BuildAgentBridge)
 
     override fun compatibleWith(buildConfigurationId: BuildConfigurationId): BuildAgentLocator {
         delegate.compatibleWith(buildConfigurationId)
@@ -176,16 +176,16 @@ private class BuildAgentLocatorBridge(
 }
 
 private class BuildAgentPoolLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgentPoolLocator
+    private val delegate: BuildAgentPoolLocatorEx
 ) : BuildAgentPoolLocator {
     override fun all(): Sequence<BuildAgentPool> =
-        (delegate as BuildAgentPoolLocatorEx).allSeq().map(::BuildAgentPoolBridge)
+        delegate.allSeq().map(::BuildAgentPoolBridge)
 }
 
 private class TestRunsLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.TestRunsLocator
+    private val delegate: TestRunsLocatorEx
 ) : TestRunsLocator {
-    override fun all(): Sequence<TestRun> = (delegate as TestRunsLocatorEx).allSeq().map(::TestRunBridge)
+    override fun all(): Sequence<TestRun> = delegate.allSeq().map(::TestRunBridge)
 
     override fun limitResults(count: Int): TestRunsLocator {
         delegate.limitResults(count)
@@ -229,11 +229,11 @@ private class TestRunsLocatorBridge(
 }
 
 private class BuildLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildLocator
+    private val delegate: BuildLocatorEx
 ) : BuildLocator {
     override fun latest(): Build? = runBlocking { delegate.latest()?.let { BuildBridge(it) } }
 
-    override fun all(): Sequence<Build> = (delegate as BuildLocatorEx).allSeq().map(::BuildBridge)
+    override fun all(): Sequence<Build> = delegate.allSeq().map(::BuildBridge)
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun list(): List<Build> = all().toList()
@@ -363,10 +363,10 @@ private class BuildLocatorBridge(
 }
 
 private class InvestigationLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.InvestigationLocator
+    private val delegate: InvestigationLocatorEx
 ) : InvestigationLocator {
     override fun all(): Sequence<Investigation> =
-        (delegate as InvestigationLocatorEx).allSeq().map(::InvestigationBridge)
+        delegate.allSeq().map(::InvestigationBridge)
 
     override fun limitResults(count: Int): InvestigationLocator {
         delegate.limitResults(count)
@@ -385,9 +385,9 @@ private class InvestigationLocatorBridge(
 }
 
 private class MuteLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.MuteLocator
+    private val delegate: MuteLocatorEx
 ) : MuteLocator {
-    override fun all(): Sequence<Mute> = (delegate as MuteLocatorEx).allSeq().map(::MuteBridge)
+    override fun all(): Sequence<Mute> = delegate.allSeq().map(::MuteBridge)
 
     override fun limitResults(count: Int): MuteLocator {
         delegate.limitResults(count)
@@ -411,9 +411,9 @@ private class MuteLocatorBridge(
 }
 
 private class TestLocatorBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.TestLocator
+    private val delegate: TestLocatorEx
 ) : TestLocator {
-    override fun all(): Sequence<Test> = (delegate as TestLocatorEx).allSeq().map(::TestBridge)
+    override fun all(): Sequence<Test> = delegate.allSeq().map(::TestBridge)
 
     override fun limitResults(count: Int): TestLocator {
         delegate.limitResults(count)

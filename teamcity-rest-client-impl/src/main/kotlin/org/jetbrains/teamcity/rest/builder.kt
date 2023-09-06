@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import org.jetbrains.teamcity.rest.coroutines.TeamCityCoroutinesInstance
+import org.jetbrains.teamcity.rest.coroutines.TeamCityCoroutinesInstanceEx
 import org.jetbrains.teamcity.rest.coroutines.TeamCityCoroutinesInstanceImpl
 import java.util.Base64
 import java.util.concurrent.TimeUnit
@@ -99,7 +100,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         maxConcurrentRequestsPerHost
     )
     
-    fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(build())
+    fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(build() as TeamCityCoroutinesInstanceEx)
 
     internal fun setUrlBaseAndAuthHeader(urlBase: String, authHeader: String?): TeamCityInstanceBuilder {
         this.urlBase = UrlBase.values().first { it.value == urlBase }
