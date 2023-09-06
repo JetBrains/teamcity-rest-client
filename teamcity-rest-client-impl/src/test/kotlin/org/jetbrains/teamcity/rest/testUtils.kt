@@ -34,12 +34,12 @@ private fun customInstanceByConnectionFileBuilder(): TeamCityInstanceBuilder {
             .withHttpAuth(connectionConfig.username, connectionConfig.password)
             .setResponsesLoggingEnabled(true)
     } else {
-        testInstanceBuilder(publicInstanceUrl)
+        testInstanceBuilder(publicInstanceUrl).withGuestAuth()
     }
 }
 
-fun publicInstance() = testInstanceBuilder().buildBlockingInstance()
-fun publicCoroutinesInstance() = testInstanceBuilder().build()
+fun publicInstance() = testInstanceBuilder().withGuestAuth().buildBlockingInstance()
+fun publicCoroutinesInstance() = testInstanceBuilder().withGuestAuth().build()
 
 fun customInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().buildBlockingInstance()
 fun customCoroutinesInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().build()

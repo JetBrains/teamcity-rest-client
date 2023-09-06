@@ -3,7 +3,7 @@
 Client for TeamCity REST API written in Kotlin. The code snippet below will download `*.zip` artifacts from the latest successful build with tag `publish` of the specified build configuration to `out` directory using *coroutines non-blocking API*.
 ```kotlin
 val docs = BuildConfigurationId("Kotlin_StandardLibraryDocumentation")
-val build = TeamCityInstanceBuilder("https://teamcity.jetbrains.com").build()
+val build = TeamCityInstanceBuilder("https://teamcity.jetbrains.com").withGuestAuth().build()
     .builds()
     .fromConfiguration(docs)
     .withTag("publish")
@@ -31,6 +31,7 @@ val build = buildConfiguration.runBuild(
 ```kotlin
 val docs = BuildConfigurationId("Kotlin_StandardLibraryDocumentation")
 val build = TeamCityInstanceBuilder("https://teamcity.jetbrains.com")
+    .withGuestAuth()
     .buildBlockingInstance() 
     .builds()
     .fromConfiguration(docs)

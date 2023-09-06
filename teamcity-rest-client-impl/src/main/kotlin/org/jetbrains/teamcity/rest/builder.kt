@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
  */
 class TeamCityInstanceBuilder(serverUrl: String) {
     private val serverUrl: String = serverUrl.trimEnd('/')
-    private var urlBase: UrlBase = UrlBase.GUEST_AUTH
+    private var urlBase: UrlBase = UrlBase.MISSING
     private var authHeader: String? = null
     private var logResponses: Boolean = false
     private var timeout: Long = 2
@@ -138,10 +138,21 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         return result
     }
 
-    internal enum class UrlBase(val value: String) {
+    private enum class UrlBase(private val urlBaseValue: String) {
         GUEST_AUTH("/guestAuth/"),
         HTTP_AUTH("/httpAuth/"),
         ROOT("/"),
+        MISSING("_missing_");
+
+        val value: String
+            get() {
+                check(this != MISSING) {
+                    "Authentication settings are not specified. " +
+                            "Please specify authentication settings using .withGuestAuth(), " +
+                            ".withHttpAuth(username, password) or .withTokenAuth(token)"
+                }
+                return urlBaseValue
+            }
     }
 }
 
