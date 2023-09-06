@@ -39,10 +39,10 @@ private fun customInstanceByConnectionFileBuilder(): TeamCityInstanceBuilder {
 }
 
 fun publicInstance() = testInstanceBuilder().buildBlockingInstance()
-fun publicCoroutinesInstance() = testInstanceBuilder().buildCoroutinesInstance()
+fun publicCoroutinesInstance() = testInstanceBuilder().build()
 
 fun customInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().buildBlockingInstance()
-fun customCoroutinesInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().buildCoroutinesInstance()
+fun customCoroutinesInstanceByConnectionFile() = customInstanceByConnectionFileBuilder().build()
 
 
 val reportProject = ProjectId("ProjectForReports")

@@ -88,7 +88,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     /**
      * Build instance over coroutines
      */
-    fun buildCoroutinesInstance(): TeamCityCoroutinesInstance = TeamCityCoroutinesInstanceImpl(
+    fun build(): TeamCityCoroutinesInstance = TeamCityCoroutinesInstanceImpl(
         serverUrl,
         urlBase.value,
         authHeader, 
@@ -99,7 +99,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         maxConcurrentRequestsPerHost
     )
     
-    fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(buildCoroutinesInstance())
+    fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(build())
 
     internal fun setUrlBaseAndAuthHeader(urlBase: String, authHeader: String?): TeamCityInstanceBuilder {
         this.urlBase = UrlBase.values().first { it.value == urlBase }

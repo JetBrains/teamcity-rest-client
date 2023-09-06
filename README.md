@@ -15,7 +15,7 @@ Another snippet will run a build on your own server using *coroutines non-blocki
 ```kotlin
 val tc = TeamCityInstanceBuilder("https://myserver.local")
     .withHttpAuth("login", "password")
-    .buildCoroutinesInstance()
+    .build()
 
 // suspending call
 val buildConfiguration = tc.buildConfiguration(BuildConfigurationId("BuildConfId"))
