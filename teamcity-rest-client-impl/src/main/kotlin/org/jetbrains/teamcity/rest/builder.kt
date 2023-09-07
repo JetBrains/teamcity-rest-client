@@ -22,6 +22,9 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private var timeoutTimeUnit: TimeUnit = TimeUnit.MINUTES
     private var maxConcurrentRequests: Int = 64
     private var maxConcurrentRequestsPerHost: Int = 5
+    private var retryMaxAttempts: Int = 3
+    private var retryInitialDelayMs: Long = 1000
+    private var retryMaxDelayMs: Long = 1000
 
     /**
      * Creates guest authenticated accessor. Default setting.
@@ -87,6 +90,26 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 
     /**
+     * Setup failed requests retry with growing delaying with exponential backoff.
+     * Retry is enabled by default: Three attempts are performed with fixed 1000-millisecond delay.
+     */
+    fun withRetry(
+        maxAttempts: Int,
+        initialDelay: Long,
+        maxDelay: Long,
+        delayTimeUnit: TimeUnit
+    ): TeamCityInstanceBuilder {
+        require(maxAttempts > 0) { "At least one attempt must be configured" }
+        require(initialDelay >= 0) { "Retry delay cannot be negative" }
+        require(maxDelay >= initialDelay) { "Delay limit (maxDelay) bust be greater or equal to the initial delay" }
+
+        retryMaxAttempts = maxAttempts
+        retryInitialDelayMs = delayTimeUnit.toMillis(initialDelay)
+        retryMaxDelayMs = delayTimeUnit.toMillis(maxDelay)
+        return this
+    }
+
+    /**
      * Build instance over coroutines
      */
     fun build(): TeamCityCoroutinesInstance = TeamCityCoroutinesInstanceImpl(
@@ -97,7 +120,10 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         timeout,
         timeoutTimeUnit,
         maxConcurrentRequests,
-        maxConcurrentRequestsPerHost
+        maxConcurrentRequestsPerHost,
+        retryMaxAttempts,
+        retryInitialDelayMs,
+        retryMaxDelayMs
     )
     
     fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(build() as TeamCityCoroutinesInstanceEx)

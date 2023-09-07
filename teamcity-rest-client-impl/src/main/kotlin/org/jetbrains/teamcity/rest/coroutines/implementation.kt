@@ -39,12 +39,21 @@ import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
 import kotlin.concurrent.thread
 import kotlin.math.min
+import kotlin.math.roundToLong
 
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
 private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 
-private class RetryInterceptor : Interceptor {
+private class RetryInterceptor(
+    private val maxAttempts: Int,
+    private val initialDelayMs: Long,
+    private val maxDelayMs: Long,
+) : Interceptor {
+    private val random = Random()
+    private val expBackOffFactor: Int = 2
+    private val expBackOffJitter: Double = 0.1
+
     private fun okhttp3.Response.retryRequired(): Boolean {
         val code = code
         if (code < 400) return false
@@ -56,23 +65,49 @@ private class RetryInterceptor : Interceptor {
                 code == HttpURLConnection.HTTP_INTERNAL_ERROR ||
                 code == HttpURLConnection.HTTP_BAD_GATEWAY ||
                 code == HttpURLConnection.HTTP_UNAVAILABLE ||
-                code == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
+                code == HttpURLConnection.HTTP_GATEWAY_TIMEOUT ||
+                code == 429 // Too many requests == rate limited
     }
 
     override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
         val request = chain.request()
-        var response = chain.proceed(request)
 
-        var tryCount = 0
-        while (response.retryRequired() && tryCount < 3) {
-            tryCount++
-            LOG.warn("Request ${request.url} is not successful, $tryCount sec waiting [$tryCount retry]")
-            runCatching { response.close() }
-            Thread.sleep((tryCount * 1000).toLong())
-            response = chain.proceed(request)
+        var error: IOException? = null
+        var response: okhttp3.Response? = null
+
+        var nextDelay = initialDelayMs
+        for (attempt in 1..maxAttempts) {
+            error = null
+            response = try {
+                chain.proceed(request)
+            } catch (e: IOException) {
+                error = e
+                null
+            }
+
+            if (response != null && !response.retryRequired()) {
+                return response
+            }
+
+            if (response != null) {
+                LOG.warn("Request ${request.url} failed: HTTP code ${response.code}, attempt=$attempt, will retry " +
+                        "in $nextDelay ms")
+            } else {
+                LOG.warn("Request ${request.url} failed, attempt=$attempt, will retry in $nextDelay ms", error)
+            }
+            if (nextDelay != 0L) {
+                Thread.sleep(nextDelay)
+            }
+            val nextRawDelay = minOf(nextDelay * expBackOffFactor, maxDelayMs)
+            // (2 * random.nextDouble() - 1.0) -> between -1 and 1
+            val jitter = ((2 * random.nextDouble() - 1) * nextRawDelay * expBackOffJitter).roundToLong()
+            nextDelay = nextRawDelay + jitter
         }
 
-        return response
+        if (response != null) {
+            return response
+        }
+        throw TeamCityConversationException("Request ${request.url} failed, tried $maxAttempts times", error)
     }
 }
 
@@ -107,12 +142,17 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val unit: TimeUnit,
     private val maxConcurrentRequests: Int,
     private val maxConcurrentRequestsPerHost: Int,
+    private val retryMaxAttempts: Int,
+    private val retryInitialDelayMs: Long,
+    private val retryMaxDelayMs: Long,
+
 ) : TeamCityCoroutinesInstanceEx {
     override fun toBuilder(): TeamCityInstanceBuilder = TeamCityInstanceBuilder(serverUrl)
         .setUrlBaseAndAuthHeader(serverUrlBase, authHeader)
         .setResponsesLoggingEnabled(logResponses)
         .withTimeout(timeout, unit)
         .withMaxConcurrentRequests(maxConcurrentRequests)
+        .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
         .withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
@@ -136,7 +176,7 @@ internal class TeamCityCoroutinesInstanceImpl(
             chain.proceed(request)
         }
         .addInterceptor(loggingInterceptor)
-        .addInterceptor(RetryInterceptor())
+        .addInterceptor(RetryInterceptor(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs))
         .dispatcher(Dispatcher(
             //by default non-daemon threads are used, and it blocks JVM from exit
             ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
