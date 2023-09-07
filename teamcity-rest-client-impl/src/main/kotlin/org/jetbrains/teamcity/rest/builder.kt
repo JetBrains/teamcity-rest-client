@@ -74,17 +74,21 @@ class TeamCityInstanceBuilder(serverUrl: String) {
      * Sets read, write and connect timeouts to [timeout], [timeUnit]
      */
     fun withTimeout(timeout: Long, timeUnit: TimeUnit): TeamCityInstanceBuilder {
+        require(timeout > 0) { "Timeout must be positive" }
+
         this.timeout = timeout
         this.timeoutTimeUnit = timeUnit
         return this
     }
 
     fun withMaxConcurrentRequests(maxConcurrentRequests: Int): TeamCityInstanceBuilder {
+        require(maxConcurrentRequests > 0) { "Max concurrent requests number must be positive" }
         this.maxConcurrentRequests = maxConcurrentRequests
         return this
     }
 
     fun withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost: Int): TeamCityInstanceBuilder {
+        require(maxConcurrentRequestsPerHost > 0) { "Max concurrent requests per host number must be positive" }
         this.maxConcurrentRequestsPerHost = maxConcurrentRequestsPerHost
         return this
     }
