@@ -627,6 +627,7 @@ interface TestOccurrence {
     val firstFailedIn: BuildId?
     val testId: TestId
     val metadataValues: List<String>?
+    val logAnchor: String
 }
 
 @Suppress("DEPRECATION")

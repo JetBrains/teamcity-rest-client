@@ -456,6 +456,7 @@ interface TestRun {
     suspend fun getFirstFailedIn(): BuildId?
     suspend fun getTestId(): TestId
     suspend fun getMetadataValues(): List<String>?
+    suspend fun getLogAnchor(): String
 }
 
 interface TriggeredInfo {

@@ -758,7 +758,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         val testOccurrencesLocator = parameters.joinToString(",")
 
 
-        val fields = TestOccurrenceBean.getFieldsFilter(includeDetailsField)
+        val fields = TestOccurrenceBean.getFieldFilter(includeDetailsField, full = false, wrap = true)
         val isFullBean = fields == TestOccurrenceBean.fullFieldsFilter
         LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
         return Locator(testOccurrencesLocator, fields, isFullBean)
@@ -2134,8 +2134,9 @@ private open class TestRunImpl(
 
     override suspend fun getTestId(): TestId = TestId(notnull { it.test }.id!!)
 
-    override suspend fun fetchFullBean(): TestOccurrenceBean =
-        instance.service.testOccurrence(bean.id!!, TestOccurrenceBean.fullFieldsFilter)
+    override suspend fun getLogAnchor(): String = notnull { it.logAnchor }
+
+    override suspend fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notnull { it.id }, TestOccurrenceBean.fullFieldsFilterInner)
 
     override fun toString() =
         if (isFullBean) runBlocking { "Test(id=${bean.id},name=${getName()}, status=${getStatus()}, duration=${getDuration()}, details=${getDetails()})" }

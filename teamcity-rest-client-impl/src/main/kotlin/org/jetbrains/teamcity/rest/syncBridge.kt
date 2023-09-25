@@ -1099,5 +1099,7 @@ private class TestRunBridge(
     override val firstFailedIn: BuildId? by lazyBlocking { delegate.getFirstFailedIn() }
     override val testId: TestId by lazyBlocking { delegate.getTestId() }
     override val metadataValues: List<String>? by lazyBlocking { delegate.getMetadataValues() }
+    override val logAnchor: String by lazyBlocking { delegate.getLogAnchor() }
+
     override fun toString(): String = delegate.toString()
 }
