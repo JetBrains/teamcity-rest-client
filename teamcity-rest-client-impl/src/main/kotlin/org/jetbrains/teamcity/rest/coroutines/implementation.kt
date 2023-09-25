@@ -815,7 +815,11 @@ private abstract class BaseImpl<TBean : IdBean>(
 
     val fullBean = SuspendingLazy {
         if (!isFullBean) {
-            bean = fetchFullBean()
+            val full = fetchFullBean()
+            require(full.id == bean.id) {
+                "Incorrect full bean fetched for ${bean.id}: $full"
+            }
+            bean = full
             isFullBean = true
         }
         bean
