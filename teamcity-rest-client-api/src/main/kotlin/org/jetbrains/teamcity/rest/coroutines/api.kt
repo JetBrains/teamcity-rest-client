@@ -8,6 +8,20 @@ import java.io.OutputStream
 import java.time.Duration
 import java.time.ZonedDateTime
 
+/**
+ * Kotlin Coroutines-based REST client implementaiton.
+ *
+ * Please note that repeated getter call on entities will return the same value because the result is cached:
+ * ```kotlin
+ * val tc = TeamCityInstanceBuilder("https://myserver.local").withGuestAuth().build()
+ * val build = tc.builds().latest()!!
+ *
+ * val first = build.getState()  // suspending call
+ * delay(1000000L)
+ * val second = build.getState() // fast call; won't suspend, returns cached value
+ * assert(first == second)       // the check will always pass, even if the build state has changed
+ * ```
+ */
 interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<TeamCityCoroutinesInstance> {
     fun builds(): BuildLocator
     fun investigations(): InvestigationLocator

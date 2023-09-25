@@ -27,6 +27,17 @@ val build = buildConfiguration.runBuild(
 )
 ```
 
+Please note that repeated getter call on entities will return the same value because the result is cached:
+```kotlin
+val tc = TeamCityInstanceBuilder("https://myserver.local").withGuestAuth().build()
+val build = tc.builds().latest()!!
+
+val first = build.getState()  // suspending call
+delay(1000000L)
+val second = build.getState() // fast call; won't suspend, returns cached value 
+assert(first == second)       // the check will always pass, even if the build state has changed
+```
+
 *Blocking API* is also available for you.
 ```kotlin
 val docs = BuildConfigurationId("Kotlin_StandardLibraryDocumentation")
