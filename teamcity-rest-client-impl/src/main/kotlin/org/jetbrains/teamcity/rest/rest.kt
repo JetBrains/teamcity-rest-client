@@ -18,6 +18,10 @@ internal interface TeamCityService {
     fun builds(@Query("locator") buildLocator: String): BuildListBean
 
     @Headers("Accept: application/json")
+    @DELETE("/app/rest/builds")
+    fun deleteBuilds(@Query("locator") buildLocator: String): BuildListBean
+
+    @Headers("Accept: application/json")
     @GET("/app/rest/buildQueue")
     fun queuedBuilds(@Query("locator") locator: String?): BuildListBean
 

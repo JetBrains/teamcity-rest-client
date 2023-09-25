@@ -451,9 +451,12 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
         return limitResults(1).all().firstOrNull()
     }
 
-    override fun all(): Sequence<Build> {
-        val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
+    override fun deleteAll() {
+        instance.service.deleteBuilds(generateBuildLocatorParam())
+    }
 
+    private fun generateBuildLocatorParam(): String {
+        val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
         val parameters = listOfNotNull(
                 affectedProjectId?.stringId?.let { "affectedProject:(id:$it)" },
                 buildConfigurationId?.stringId?.let { "buildType:$it" },
@@ -469,8 +472,8 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
                 if (pinnedOnly) "pinned:true" else null,
                 count?.let { "count:$it" },
 
-                since?.let {"sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
-                until?.let {"untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}"},
+                since?.let { "sinceDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}" },
+                until?.let { "untilDate:${teamCityServiceDateFormat.withZone(ZoneOffset.UTC).format(it)}" },
 
                 if (!includeAllBranches)
                     branch?.let { "branch:$it" }
@@ -489,8 +492,13 @@ private class BuildLocatorImpl(private val instance: TeamCityInstanceImpl) : Bui
             throw IllegalArgumentException("At least one parameter should be specified")
         }
 
+        return parameters.joinToString(",")
+    }
+
+    override fun all(): Sequence<Build> {
+        val buildLocator = generateBuildLocatorParam()
+
         val sequence = lazyPaging(instance, {
-            val buildLocator = parameters.joinToString(",")
             LOG.debug("Retrieving builds from ${instance.serverUrl} using query '$buildLocator'")
             return@lazyPaging instance.service.builds(buildLocator = buildLocator)
         }) { buildsBean ->

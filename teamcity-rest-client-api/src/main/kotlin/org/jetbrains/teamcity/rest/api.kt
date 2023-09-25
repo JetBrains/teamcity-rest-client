@@ -167,6 +167,11 @@ interface BuildLocator {
     fun latest(): Build?
     fun all(): Sequence<Build>
 
+    @JvmDefault
+    fun deleteAll() {
+        throw NotImplementedError("Method `deleteAll` is not implemented for ${javaClass.canonicalName}")
+    }
+
     @Deprecated(message = "use all() which returns lazy sequence",
                 replaceWith = ReplaceWith("all().toList()"))
     fun list(): List<Build>
