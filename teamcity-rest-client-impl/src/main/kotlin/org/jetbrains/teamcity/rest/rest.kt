@@ -5,6 +5,7 @@ package org.jetbrains.teamcity.rest
 import retrofit.client.Response
 import retrofit.http.*
 import retrofit.mime.TypedString
+import kotlin.collections.ArrayList
 
 internal interface TeamCityService {
 
@@ -593,24 +594,18 @@ internal open class TestOccurrenceBean: IdBean() {
     var test: TestBean? = null
     var nextFixed: BuildBean? = null
     var firstFailed: BuildBean? = null
-    var logAnchor: String? = null
 
     companion object {
-        private const val MINIMAL_FIELDS = "name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,firstFailed(id),nextFixed(id),build(id),test(id),metadata"
-        val fullFieldsFilter = getFieldFilter(withDetails = true, full = true, wrap = true)
-        val fullFieldsFilterInner = getFieldFilter(withDetails = true, full = true, wrap = false)
+        private const val minimalFields = "name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,firstFailed(id),nextFixed(id),build(id),test(id),metadata"
+        val fullFieldsFilter = getFieldsFilter(true)
 
-        internal fun getFieldFilter(withDetails: Boolean, full: Boolean, wrap: Boolean = true): String {
-            val params = mutableListOf(MINIMAL_FIELDS)
-            if (withDetails || full) {
+        fun getFieldsFilter(withDetails: Boolean): String {
+            val params = mutableListOf(minimalFields)
+            if (withDetails) {
                 params.add("details")
             }
-            if (full) {
-                params.add("logAnchor")
-            }
 
-            val joined = params.joinToString(",")
-            return if (wrap) "testOccurrence($joined)" else joined
+            return "testOccurrence(${params.joinToString(",")})"
         }
     }
 }
