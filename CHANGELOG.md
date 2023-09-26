@@ -97,3 +97,10 @@ All notable changes to teamcity-rest-client library will be documented in this f
 - Additional methods to download artifacts in `BuildArtifact`
 - Additional properties in `TestOccurence` to check whether a test failure is new or not (`newFailure`), to get the build it is first failed (`firstFailedIn`) and fixed (`fixedIn`) 
 - Token-based authentication (`TeamCityInstanceFactory.tokenAuth`)
+
+## [1.22.0]
+
+### Added
+
+- Kotlin coroutines non-bloking API
+- `TeamCityInstanceBuilder` as rich replacement for now deprecated `TeamCityInstanceFactory`

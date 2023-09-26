@@ -1,5 +1,7 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -67,8 +69,13 @@ class MuteTest {
 
     @Test
     fun test_all() {
-        val mutes = publicInstance().mutes().all()
-        Assert.assertTrue("Zero mutes were found on the instance",mutes.count() > 0)
+        val mutes = publicInstance().mutes().all().toList()
+        Assert.assertTrue("Zero mutes were found on the instance", mutes.isNotEmpty())
+
+        val mutesAsync = runBlocking { publicCoroutinesInstance().mutes().all().toList() }
+        Assert.assertTrue("Zero mutes were found on the instance", mutesAsync.isNotEmpty())
+
+        assertEqualsAnyOrder(mutes.map { it.id.stringId }, mutesAsync.map { it.id.stringId })
     }
 
     @Test

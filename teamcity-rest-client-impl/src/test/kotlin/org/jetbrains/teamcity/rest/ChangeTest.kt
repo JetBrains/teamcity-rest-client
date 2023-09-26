@@ -47,10 +47,10 @@ class ChangeTest {
         val change = build.changes.first()
 
         assertEquals(
-                change.toString(),
-                publicInstance().change(changesBuildConfiguration, change.version).toString()
+                change.id,
+                publicInstance().change(changesBuildConfiguration, change.version).id
         )
-        assertTrue(change.firstBuilds().map { it.toString() }.contains(build.toString()))
+        assertTrue(change.firstBuilds().map { it.id }.contains(build.id))
     }
 
     @Test
@@ -66,7 +66,7 @@ class ChangeTest {
                 .fromConfiguration(changesBuildConfiguration)
                 .withVcsRevision(change.version)
                 .all()
-        assertTrue(builds.map { it.toString() }.contains(build.toString()))
+        assertTrue(builds.map { it.id }.contains(build.id))
     }
 
     @Test

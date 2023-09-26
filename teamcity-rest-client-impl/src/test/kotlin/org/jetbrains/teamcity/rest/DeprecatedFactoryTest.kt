@@ -3,19 +3,26 @@ package org.jetbrains.teamcity.rest
 import org.junit.Assert
 import org.junit.Test
 import java.lang.reflect.Modifier
+import kotlin.test.assertEquals
 
 
 class DeprecatedFactoryTest {
   @Test
   fun guestAuth() {
     @Suppress("DEPRECATION")
-    TeamCityInstance.guestAuth(publicInstanceUrl)
+    val instance = TeamCityInstance.guestAuth(publicInstanceUrl)
+    val expected = TeamCityInstanceBuilder(publicInstanceUrl).withGuestAuth()
+    val actual = (instance as TeamCityInstanceBlockingBridge).toBuilder()
+    assertEquals(expected, actual)
   }
 
   @Test
   fun httpAuth() {
     @Suppress("DEPRECATION")
-    TeamCityInstance.httpAuth(publicInstanceUrl, "jonnyzzz", "jonnyzzz")
+    val instance = TeamCityInstance.httpAuth(publicInstanceUrl, "jonnyzzz", "jonnyzzz")
+    val expected = TeamCityInstanceBuilder(publicInstanceUrl).withHttpAuth("jonnyzzz", "jonnyzzz")
+    val actual = (instance as TeamCityInstanceBlockingBridge).toBuilder()
+    assertEquals(expected, actual)
   }
 
 

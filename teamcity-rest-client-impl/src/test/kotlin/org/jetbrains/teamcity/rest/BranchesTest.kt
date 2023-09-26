@@ -48,7 +48,7 @@ class BranchesTest {
                     println(it)
                 }
 
-        assertThat(branches).containsOnly("master", "branch-1570634926")
+        assertThat(branches).containsOnly("main", "second-branch")
     }
 
     @Test
