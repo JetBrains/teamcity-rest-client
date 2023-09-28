@@ -10,6 +10,8 @@ import org.junit.Test
 import java.io.InputStream
 import java.nio.file.Files
 import java.security.MessageDigest
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.*
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.inputStream
@@ -160,6 +162,38 @@ class BuildTest {
                 // Default reasonableMaxPageSize=1024, but we have only 100 builds in test data
                 // Paging will never happen if we don't set page size explicitly
                 .pageSize(5)
+                .all()
+                .toList()
+        }
+        assertThat(buildsAsync.size).isGreaterThanOrEqualTo(100)
+        assertEquals(builds.size, buildsAsync.size)
+        assertEqualsAnyOrder(builds.map { it.id.stringId }, buildsAsync.map { it.id.stringId })
+    }
+
+    /**
+     * Test ensures that `nextHref` returned by TeamCity is correctly
+     * decoded and sent in next page request.
+     */
+    @Test
+    fun paginationWithLocator() {
+        val since = ZonedDateTime.of(2000, 10, 15, 12, 30, 15, 1042, ZoneOffset.UTC).toInstant()
+        val builds = publicInstance().builds()
+                .fromConfiguration(manyTestsBuildConfiguration)
+                // Default reasonableMaxPageSize=1024, but we have only 100 builds in test data
+                // Paging will never happen if we don't set page size explicitly
+                .pageSize(5)
+                .since(since)
+                .all()
+                .toList()
+        assertThat(builds.size).isGreaterThanOrEqualTo(100)
+
+        val buildsAsync = runBlocking {
+            publicCoroutinesInstance().builds()
+                .fromConfiguration(manyTestsBuildConfiguration)
+                // Default reasonableMaxPageSize=1024, but we have only 100 builds in test data
+                // Paging will never happen if we don't set page size explicitly
+                .pageSize(5)
+                .since(since)
                 .all()
                 .toList()
         }
