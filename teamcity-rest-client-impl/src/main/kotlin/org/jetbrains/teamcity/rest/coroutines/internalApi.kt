@@ -18,7 +18,12 @@ internal interface TeamCityCoroutinesInstanceEx : TeamCityCoroutinesInstance {
     fun toBuilder(): TeamCityInstanceBuilder
 }
 
+internal interface ProjectEx : Project {
+    fun getMutesSeq(): Sequence<Mute>
+}
+
 internal interface BuildEx : Build {
+    suspend fun getProjectId(): ProjectId
     fun getTestRunsSeq(status: TestStatus? = null): Sequence<TestRun>
     fun getBuildProblemsSeq(): Sequence<BuildProblemOccurrence>
 }
@@ -38,6 +43,7 @@ internal interface BuildAgentPoolLocatorEx : BuildAgentPoolLocator {
 internal interface BuildLocatorEx : BuildLocator {
     fun allSeq(): Sequence<Build>
 }
+
 
 internal interface InvestigationLocatorEx : InvestigationLocator {
     fun allSeq(): Sequence<Investigation>
@@ -63,4 +69,12 @@ internal interface UserLocatorEx : UserLocator {
 internal interface BuildQueueEx : BuildQueue {
     fun queuedBuildsSeq(projectId: ProjectId? = null): Sequence<Build>
     fun queuedBuildsSeq(buildConfigurationId: BuildConfigurationId): Sequence<Build>
+}
+
+internal interface IssueEx : Issue {
+    val tcInstance: TeamCityCoroutinesInstance
+}
+
+internal interface BuildAgentEx : BuildAgent {
+    val tcInstance: TeamCityCoroutinesInstance
 }

@@ -64,11 +64,23 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
 
     fun since(date: Instant): Self
     fun until(date: Instant): Self
+
+    fun withAgent(agentName: String): Self
+
+    /**
+     * If true, applies default filter which returns only "normal" builds
+     * (finished builds which are not canceled, not failed-to-start, not personal,
+     * and on default branch (in branched build configurations)).
+     * True by default.
+     */
+    fun defaultFilter(enable: Boolean) : Self
 }
 
 interface InvestigationLocatorSettings<Self : InvestigationLocatorSettings<Self>> {
     fun limitResults(count: Int): Self
     fun forProject(projectId: ProjectId): Self
+    fun forBuildConfiguration(buildConfigurationId: BuildConfigurationId): Self
+    fun forTest(testId: TestId): Self
     fun withTargetType(targetType: InvestigationTargetType): Self
 }
 
@@ -104,6 +116,8 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
      * of individual runs, and status will be SUCCESSFUL if and only if all runs are successful.
      */
     fun expandMultipleInvocations(): Self
+
+    fun muted(muted: Boolean): Self
 }
 
 data class ProjectId(val stringId: String) {
@@ -143,6 +157,10 @@ data class BuildAgentPoolId(val stringId: String) {
 }
 
 data class BuildAgentId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
+data class BuildAgentTypeId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
@@ -188,6 +206,14 @@ data class UserId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
+data class RoleScope(val descriptor: String) {
+    override fun toString(): String = descriptor
+}
+
+data class RoleId(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
 enum class BuildStatus {
     SUCCESS,
     FAILURE,
@@ -209,9 +235,10 @@ enum class InvestigationState {
     GIVEN_UP
 }
 
-enum class InvestigationResolveMethod {
-    MANUALLY,
-    WHEN_FIXED;
+enum class InvestigationResolveMethod(val value: String) {
+    MANUALLY("manually"),
+    WHEN_FIXED("whenFixed"),
+    AT_TIME("atTime")
 }
 
 enum class InvestigationTargetType(val value: String) {
@@ -225,4 +252,10 @@ enum class TestStatus {
     IGNORED,
     FAILED,
     UNKNOWN
+}
+
+enum class CompatibleBuildConfigurationsPolicy {
+    ANY,
+    SELECTED,
+    UNKNOWN,
 }

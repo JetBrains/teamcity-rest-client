@@ -44,6 +44,7 @@ import kotlin.math.roundToLong
 private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
 private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
+private const val reasonableMaxPageSize = 1024
 
 private class RetryInterceptor(
     private val maxAttempts: Int,
@@ -129,7 +130,6 @@ private fun XMLStreamWriter.element(name: String, init: XMLStreamWriter.() -> Un
 private fun XMLStreamWriter.attribute(name: String, value: String) = writeAttribute(name, value)
 
 private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int?): Int? {
-    val reasonableMaxPageSize = 1024
     return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
 }
 
@@ -221,9 +221,16 @@ internal class TeamCityCoroutinesInstanceImpl(
     override fun builds(): BuildLocator = BuildLocatorImpl(this)
 
     override fun investigations(): InvestigationLocator = InvestigationLocatorImpl(this)
+    override suspend fun createInvestigations(investigations: Collection<Investigation>) {
+        val bean = InvestigationListBean().apply {
+            investigation = investigations.map(Investigation::toInvestigationBean)
+        }
+        service.createInvestigations(bean)
+    }
 
     override fun mutes(): MuteLocator = MuteLocatorImpl(this)
 
+    override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, this)
     override fun tests(): TestLocator = TestLocatorImpl(this)
     override suspend fun build(id: BuildId): Build = BuildImpl(
         BuildBean().also { it.id = id.stringId }, false, this
@@ -253,6 +260,14 @@ internal class TeamCityCoroutinesInstanceImpl(
     }
 
     override fun users(): UserLocator = UserLocatorImpl(this)
+    override suspend fun buildAgent(id: BuildAgentId): BuildAgent {
+        return BuildAgentImpl(BuildAgentBean().also { it.id = id.stringId }, false, this)
+    }
+
+    override suspend fun buildAgent(typeId: BuildAgentTypeId): BuildAgent {
+        val bean = service.agent("typeId:${typeId.stringId}")
+        return BuildAgentImpl(bean, true, this)
+    }
 
     override suspend fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change =
         ChangeImpl(
@@ -352,6 +367,8 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
     private var personal: String? = null
     private var running: String? = null
     private var canceled: String? = null
+    private var agentName: String? = null
+    private var defaultFilter: Boolean = true
 
     override fun forProject(projectId: ProjectId): BuildLocator {
         this.affectedProjectId = projectId
@@ -428,6 +445,16 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
         return this
     }
 
+    override fun withAgent(agentName: String): BuildLocator {
+        this.agentName = agentName
+        return this
+    }
+
+    override fun defaultFilter(enable: Boolean): BuildLocator {
+        this.defaultFilter = enable
+        return this
+    }
+
     override fun withAllBranches(): BuildLocator {
         if (branch != null) {
             LOG.warn("Branch is ignored because of #withAllBranches")
@@ -478,6 +505,7 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
             canceled?.let { "canceled:$it" },
             vcsRevision?.let { "revision:$it" },
             status?.name?.let { "status:$it" },
+            agentName?.let { "agentName:$it" },
             if (tags.isNotEmpty())
                 tags.joinToString(",", prefix = "tags:(", postfix = ")")
             else null,
@@ -497,7 +525,7 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
             // Always use default filter since sometimes TC automatically switches between
             // defaultFilter:true and defaultFilter:false
             // See BuildPromotionFinder.java in rest-api, setLocatorDefaults method
-            "defaultFilter:true"
+            "defaultFilter:$defaultFilter"
         )
         check(parameters.isNotEmpty()) { "At least one parameter should be specified" }
         val locator = parameters.joinToString(",")
@@ -530,6 +558,8 @@ private class InvestigationLocatorImpl(private val instance: TeamCityCoroutinesI
     private var limitResults: Int? = null
     private var targetType: InvestigationTargetType? = null
     private var affectedProjectId: ProjectId? = null
+    private var buildConfigurationId: BuildConfigurationId? = null
+    private var testId: TestId? = null
 
     override fun limitResults(count: Int): InvestigationLocator {
         this.limitResults = count
@@ -546,13 +576,25 @@ private class InvestigationLocatorImpl(private val instance: TeamCityCoroutinesI
         return this
     }
 
+    override fun forBuildConfiguration(buildConfigurationId: BuildConfigurationId): InvestigationLocator {
+        this.buildConfigurationId = buildConfigurationId
+        return this
+    }
+
+    override fun forTest(testId: TestId): InvestigationLocator {
+        this.testId = testId
+        return this
+    }
+
     private suspend fun getInvestigations(): List<InvestigationImpl> {
         var locator: String? = null
 
         val parameters = listOfNotNull(
             limitResults?.let { "count:$it" },
             affectedProjectId?.let { "affectedProject:$it" },
-            targetType?.let { "type:${it.value}" }
+            targetType?.let { "type:${it.value}" },
+            testId?.let { "test:(id:${it.stringId})" },
+            buildConfigurationId?.let { "buildType:(id:${it.stringId})" }
         )
 
         if (parameters.isNotEmpty()) {
@@ -693,6 +735,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
     private var testStatus: TestStatus? = null
     private var expandMultipleInvocations = false
     private var includeDetailsField = true
+    private var muted: Boolean? = null
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -734,6 +777,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         return this
     }
 
+    override fun muted(muted: Boolean): TestRunsLocator {
+        this.muted = muted
+        return this
+    }
+
     private data class Locator(val testOccurrencesLocator: String, val fields: String, val isFullBean: Boolean)
 
     private fun getLocator(): Locator {
@@ -751,6 +799,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
             affectedProjectId?.let { "affectedProject:$it" },
             buildId?.let { "build:$it" },
             testId?.let { "test:$it" },
+            muted?.let { "muted:$it" },
+            muted?.let { "currentlyMuted:$it" },
             expandMultipleInvocations.let { "expandInvocations:$it" },
             statusLocator
         )
@@ -841,32 +891,23 @@ private abstract class BaseImpl<TBean : IdBean>(
 private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBean>(
     bean: TBean,
     isFullProjectBean: Boolean,
-    instance: TeamCityCoroutinesInstanceImpl
-) :
-    BaseImpl<TBean>(bean, isFullProjectBean, instance) {
+    override val tcInstance: TeamCityCoroutinesInstanceImpl
+) : BaseImpl<TBean>(bean, isFullProjectBean, tcInstance), IssueEx {
     val id: InvestigationId
         get() = InvestigationId(idString)
 
-    val reporter: User?
-        get() {
-            val assignment = bean.assignment ?: return null
-            val userBean = assignment.user ?: return null
-            return UserImpl(userBean, false, instance)
-        }
-    val comment: String
-        get() = bean.assignment?.text ?: ""
-    val resolveMethod: InvestigationResolveMethod
-        get() {
-            val asString = bean.resolution?.type
-            if (asString == "whenFixed") {
-                return InvestigationResolveMethod.WHEN_FIXED
-            } else if (asString == "manually") {
-                return InvestigationResolveMethod.MANUALLY
-            }
+    val reporter: UserId? by lazy { bean.assignment?.user?.id?.let(::UserId) }
 
-            throw IllegalStateException("Properties are invalid")
+    override val comment: String
+        get() = bean.assignment?.text ?: ""
+    override val resolveMethod: InvestigationResolveMethod
+        get() {
+            val asString = bean.resolution?.type ?: error("Unexpected null investigation resolve method")
+            return InvestigationResolveMethod.values().firstOrNull {
+                it.value == asString
+            } ?: error("Unexpected resolve method type: $asString")
         }
-    val targetType: InvestigationTargetType
+    override val targetType: InvestigationTargetType
         get() {
             val target = bean.target!!
             if (target.tests != null) return InvestigationTargetType.TEST
@@ -874,32 +915,35 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
             return InvestigationTargetType.BUILD_CONFIGURATION
         }
 
-    val testIds: List<TestId>?
+    override val testIds: List<TestId>?
         get() = bean.target?.tests?.test?.map { x -> TestId(x.id!!) }
 
-    val problemIds: List<BuildProblemId>?
+    override val problemIds: List<BuildProblemId>?
         get() = bean.target?.problems?.problem?.map { x -> BuildProblemId(x.id!!) }
 
-    val scope: InvestigationScope
+    override val scope: InvestigationScope
         get() {
             val scope = bean.scope!!
-            val project = scope.project?.let { bean -> ProjectImpl(bean, false, instance) }
-            if (project != null) {
-                return InvestigationScope.InProject(project)
+            val projectId = scope.project?.id
+            if (projectId != null) {
+                return InvestigationScope.InProject(ProjectId(projectId))
             }
 
-            /* neither teamcity.jetbrains nor buildserver contain more then one assignment build type */
-            if (scope.buildTypes?.buildType != null && scope.buildTypes.buildType.size > 1) {
-                throw IllegalStateException("more then one buildType")
-            }
-            val buildConfiguration =
-                scope.buildTypes?.let { bean -> BuildConfigurationImpl(bean.buildType[0], false, instance) }
-            if (buildConfiguration != null) {
-                return InvestigationScope.InBuildConfiguration(buildConfiguration)
-            }
+            if (!scope.buildTypes?.buildType.isNullOrEmpty()) {
+                val buildConfigurationIds = scope.buildTypes!!.buildType
+                    .mapNotNull(BuildTypeBean::id)
+                    .map(::BuildConfigurationId)
 
-            throw IllegalStateException("scope is missed in the bean")
+                return if (buildConfigurationIds.count() == 1) {
+                    InvestigationScope.InBuildConfiguration(buildConfigurationIds.single())
+                } else {
+                    InvestigationScope.InBuildConfigurations(buildConfigurationIds)
+                }
+            }
+            error("scope is missed in the bean")
         }
+    override val resolutionTime: ZonedDateTime?
+        get() = bean.resolution?.time?.let { time -> ZonedDateTime.parse(time, teamCityServiceDateFormat) }
 }
 
 private class InvestigationImpl(
@@ -912,8 +956,7 @@ private class InvestigationImpl(
 
     override fun toString(): String = "Investigation(id=$idString,state=$state)"
 
-    override val assignee: User
-        get() = UserImpl(bean.assignee!!, false, instance)
+    override val assignee: UserId by lazy { UserId(bean.assignee!!.id!!) }
 
     override val state: InvestigationState
         get() = bean.state!!
@@ -927,15 +970,7 @@ private class MuteImpl(
 ) :
     InvestigationMuteBaseImpl<MuteBean>(bean, isFullProjectBean, instance), Mute {
 
-    override val tests: List<Test>?
-        get() = bean.target?.tests?.test?.map { testBean -> TestImpl(testBean, false, instance) }
-
-    override val assignee: User?
-        get() {
-            val assignment = bean.assignment ?: return null
-            val userBean = assignment.user ?: return null
-            return UserImpl(userBean, false, instance)
-        }
+    override val assignee: UserId? by lazy { bean.assignment?.user?.id?.let(::UserId) }
 
     override suspend fun fetchFullBean(): MuteBean = instance.service.mute(id.stringId)
 
@@ -947,7 +982,7 @@ private class ProjectImpl(
     isFullProjectBean: Boolean,
     instance: TeamCityCoroutinesInstanceImpl
 ) :
-    BaseImpl<ProjectBean>(bean, isFullProjectBean, instance), Project {
+    BaseImpl<ProjectBean>(bean, isFullProjectBean, instance), ProjectEx {
     override suspend fun fetchFullBean(): ProjectBean = instance.service.project(id.stringId)
 
     override fun toString(): String =
@@ -962,6 +997,32 @@ private class ProjectImpl(
         testNameId = testId,
         tab = "testDetails"
     )
+
+    override fun getMutes(): Flow<Mute> = lazyPagingFlow(
+        instance = instance,
+        getFirstBean = {
+            instance.service.mutes("project:(id:${this@ProjectImpl.id.stringId}),count:$reasonableMaxPageSize")
+        },
+        convertToPage = { bean ->
+            Page(bean.mute.map { MuteImpl(it, true, instance) }, bean.nextHref)
+        }
+    )
+
+    override fun getMutesSeq(): Sequence<Mute> = lazyPagingSequence(
+        instance = instance,
+        getFirstBean = {
+            instance.service.mutes("project:(id:${this@ProjectImpl.id.stringId}),count:$reasonableMaxPageSize")
+        },
+        convertToPage = { bean ->
+            Page(bean.mute.map { MuteImpl(it, true, instance) }, bean.nextHref)
+        }
+    )
+
+    override suspend fun assignToAgentPool(agentPoolId: BuildAgentPoolId) {
+        instance.service.assignProjectToAgentPool(
+            agentPoolId.stringId,
+            ProjectBean().apply { id = this@ProjectImpl.id.stringId })
+    }
 
     override val id: ProjectId
         get() = ProjectId(idString)
@@ -1038,6 +1099,13 @@ private class ProjectImpl(
     override suspend fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration {
         val bean = instance.service.createBuildType(buildConfigurationDescriptionXml.toRequestBody())
         return BuildConfigurationImpl(bean, false, instance)
+    }
+
+    override suspend fun createMutes(mutes: List<Mute>) {
+        val bean = MuteListBean().apply {
+            mute = mutes.map(Mute::toMuteBean)
+        }
+        instance.service.createMutes(bean)
     }
 }
 
@@ -1218,6 +1286,9 @@ private class ChangeImpl(
     override suspend fun getDateTime(): ZonedDateTime =
         ZonedDateTime.parse(notnull { it.date }, teamCityServiceDateFormat)
 
+    override suspend fun getRegistrationDate(): ZonedDateTime =
+        ZonedDateTime.parse(notnull { it.registrationDate }, teamCityServiceDateFormat)
+
     override suspend fun getComment(): String = notnull { it.comment }
 
     override suspend fun getVcsRootInstance(): VcsRootInstance? =
@@ -1265,10 +1336,22 @@ private class UserImpl(
     instance: TeamCityCoroutinesInstanceImpl
 ) :
     BaseImpl<UserBean>(bean, isFullBuildBean, instance), User {
+    private val locator = "id:${id.stringId}"
 
-    override suspend fun fetchFullBean(): UserBean = instance.service.users("id:${id.stringId}")
+    override suspend fun fetchFullBean(): UserBean {
+        return instance.service.users(locator)
+    }
 
     override suspend fun getEmail(): String? = nullable { it.email }
+    override suspend fun getRoles(): List<AssignedRole> = fullBean.getValue().roles?.role?.map(::AssignedRoleImpl) ?: emptyList()
+
+    override suspend fun addRole(roleId: RoleId, roleScope: RoleScope) {
+        instance.service.addUserRole(locator, roleId.stringId, roleScope.descriptor)
+    }
+
+    override suspend fun deleteRole(roleId: RoleId, roleScope: RoleScope) {
+        instance.service.deleteUserRole(locator, roleId.stringId, roleScope.descriptor)
+    }
 
     override val id: UserId
         get() = UserId(idString)
@@ -1286,6 +1369,12 @@ private class UserImpl(
         if (isFullBean) runBlocking { "User(id=${id.stringId}, username=${getUsername()})" } else "User(id=${id.stringId})"
 }
 
+private class AssignedRoleImpl(roleBean: RoleBean) : AssignedRole {
+    override val id = RoleId(roleBean.roleId!!)
+    override val scope = RoleScope(roleBean.scope!!)
+    override fun toString() = "RoleImpl(id=$id,scope=$scope)"
+}
+
 private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityCoroutinesInstanceImpl) : PinInfo {
     override val user = UserImpl(bean.user!!, false, instance)
     override val dateTime: ZonedDateTime = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
@@ -1299,6 +1388,7 @@ private class TriggeredImpl(
         get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val build: Build?
         get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
+    override val type: String by lazy { bean.type!! }
 }
 
 private class BuildCanceledInfoImpl(
@@ -1623,6 +1713,9 @@ private class BuildImpl(
         .let { if (status == null) it else it.withStatus(status) }
         .all()
 
+    override suspend fun getProjectId(): ProjectId =
+        instance.buildConfiguration(getBuildConfigurationId()).getProjectId()
+
 
     override fun getTestRunsSeq(status: TestStatus?): Sequence<TestRun> = (instance
             .testRuns()
@@ -1797,6 +1890,40 @@ private class BuildImpl(
     override suspend fun finish() {
         instance.service.finishBuild(id.stringId)
     }
+
+    override suspend fun getStatistics(): List<Property> =
+        instance.service.buildStatistics(id.stringId).property?.map(::PropertyImpl) ?: emptyList()
+
+    override suspend fun getQueuedWaitReasons(): List<Property> =
+        instance.service.buildQueuedWaitReasons(id.stringId).queuedWaitReasons?.property?.map(::PropertyImpl)
+            ?: emptyList()
+
+    override fun testRunsLocator(status: TestStatus?) = instance.testRuns()
+        .forBuild(id)
+        .let { if (status == null) it else it.withStatus(status) }
+
+    override suspend fun markAsSuccessful(comment: String) {
+        markAs(BuildStatus.SUCCESS, comment)
+    }
+
+    override suspend fun markAsFailed(comment: String) {
+        markAs(BuildStatus.FAILURE, comment)
+    }
+
+    private suspend fun markAs(status: BuildStatus, comment: String) {
+        val update = BuildStatusUpdateBean()
+        update.status = "$status"
+        update.comment = comment
+        instance.service.updateBuildStatus("id:$idString", update)
+    }
+}
+
+private class PropertyImpl(private val bean: PropertyBean) : Property {
+    override val name: String
+        get() = bean.name!!
+
+    override val value: String
+        get() = bean.value!!
 }
 
 private class TestImpl(
@@ -1906,7 +2033,9 @@ private class BuildAgentImpl(
     isFullBean: Boolean,
     instance: TeamCityCoroutinesInstanceImpl
 ) :
-    BaseImpl<BuildAgentBean>(bean, isFullBean, instance), BuildAgent {
+    BaseImpl<BuildAgentBean>(bean, isFullBean, instance), BuildAgentEx {
+
+    override val tcInstance = instance
 
     override suspend fun fetchFullBean(): BuildAgentBean = instance.service.agent("id:$idString")
 
@@ -1916,6 +2045,8 @@ private class BuildAgentImpl(
 
     override val id: BuildAgentId
         get() = BuildAgentId(idString)
+
+    override suspend fun getTypeId(): BuildAgentTypeId = BuildAgentTypeId(notnull { it.typeId })
 
     override suspend fun getName(): String = notnull { it.name }
 
@@ -1966,6 +2097,28 @@ private class BuildAgentImpl(
 
     override fun getHomeUrl(): String = "${instance.serverUrl}/agentDetails.html?id=${id.stringId}"
 
+    override suspend fun getCompatibleBuildConfigurations(): CompatibleBuildConfigurations {
+        val bean = instance.service.agentCompatibilityPolicy("id:${id.stringId}")
+        return CompatibleBuildConfigurationsImpl(
+            buildConfigurationIds = bean.buildTypes?.buildType?.map { buildTypeBean ->
+                BuildConfigurationId(buildTypeBean.id!!)
+            } ?: emptyList(),
+            policy = CompatibleBuildConfigurationsPolicy.values().firstOrNull {
+                it.name.equals(bean.policy, ignoreCase = true)
+            } ?: CompatibleBuildConfigurationsPolicy.UNKNOWN)
+    }
+
+    override suspend fun setCompatibleBuildConfigurations(value: CompatibleBuildConfigurations) {
+        val bean = CompatibilityPolicyBean()
+        bean.policy = value.policy.toString()
+        bean.buildTypes = BuildTypesBean().apply {
+            buildType = value.buildConfigurationIds.map {
+                BuildTypeBean().apply { id = it.stringId }
+            }
+        }
+        instance.service.updateAgentCompatibilityPolicy("id:${id.stringId}", bean)
+    }
+
     private class BuildAgentAuthorizedInfoImpl(
         override val user: User?,
         override val timestamp: ZonedDateTime,
@@ -1977,6 +2130,11 @@ private class BuildAgentImpl(
         override val timestamp: ZonedDateTime,
         override val text: String
     ) : BuildAgentEnabledInfo
+
+    private class CompatibleBuildConfigurationsImpl(
+        override val buildConfigurationIds: List<BuildConfigurationId>,
+        override val policy: CompatibleBuildConfigurationsPolicy
+    ) : CompatibleBuildConfigurations
 }
 
 private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRootInstance {
@@ -1989,8 +2147,6 @@ private class VcsRootInstanceImpl(private val bean: VcsRootInstanceBean) : VcsRo
     override fun toString(): String {
         return "VcsRootInstanceImpl(id=$vcsRootId, name=$name)"
     }
-
-
 }
 
 private class NameValueProperty(private val bean: NameValuePropertyBean) {
@@ -2207,4 +2363,65 @@ private class SuspendingLazy<T>(private val producer: suspend () -> T) {
         }
         return checkNotNull(value)
     }
+}
+
+internal fun Issue.toInvestigationMuteBaseBean(assignmentBean: AssignmentBean) = InvestigationMuteBaseBean(
+    assignment = assignmentBean,
+    resolution = InvestigationResolutionBean(
+        type = resolveMethod.value,
+        time = resolutionTime?.format(teamCityServiceDateFormat)
+    ),
+    scope = when (val scope = scope) {
+        is InvestigationScope.InBuildConfiguration -> InvestigationScopeBean(buildTypes = BuildTypesBean().apply {
+            buildType = listOf(BuildTypeBean().apply { id = scope.configurationId.stringId })
+        })
+
+        is InvestigationScope.InBuildConfigurations -> InvestigationScopeBean(buildTypes = BuildTypesBean().apply {
+            buildType = scope.configurationIds.map { configurationId ->
+                BuildTypeBean().apply { id = configurationId.stringId }
+            }
+        })
+
+        is InvestigationScope.InProject -> InvestigationScopeBean(project = ProjectBean().apply {
+            id = scope.projectId.stringId
+        })
+    },
+    target = when (targetType) {
+        InvestigationTargetType.TEST -> InvestigationTargetBean(
+            tests = TestUnderInvestigationListBean().apply {
+                test = testIds?.map { TestBean().apply { id = it.stringId } } ?: emptyList()
+            }
+        )
+
+        InvestigationTargetType.BUILD_PROBLEM -> InvestigationTargetBean(
+            problems = ProblemUnderInvestigationListBean().apply {
+                problem = problemIds?.map {
+                    BuildProblemBean().apply {
+                        id = it.stringId
+                    }
+                } ?: emptyList()
+            }
+        )
+
+        InvestigationTargetType.BUILD_CONFIGURATION -> InvestigationTargetBean(anyProblem = true)
+    }
+)
+
+internal fun Mute.toMuteBean(): MuteBean {
+    val assignmentBean = AssignmentBean(
+        text = this@toMuteBean.comment,
+        user = reporter?.let { userId -> UserBean().apply { id = userId.stringId } }
+    )
+    val baseBean = toInvestigationMuteBaseBean(assignmentBean)
+    return MuteBean(baseBean)
+}
+
+internal fun Investigation.toInvestigationBean(): InvestigationBean {
+    val assignee = UserBean().apply { id = assignee.stringId }
+    val assignmentBean = AssignmentBean(
+        text = this@toInvestigationBean.comment,
+        user = reporter?.let { userId -> UserBean().apply { id = userId.stringId } }
+    )
+    val baseBean = toInvestigationMuteBaseBean(assignmentBean)
+    return InvestigationBean(baseBean, assignee, state)
 }

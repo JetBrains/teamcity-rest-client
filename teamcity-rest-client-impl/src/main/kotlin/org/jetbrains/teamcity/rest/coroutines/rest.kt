@@ -36,6 +36,14 @@ internal interface TeamCityService {
     suspend fun investigations(@Query("locator") investigationLocator: String?): Response<InvestigationListBean>
 
     @Headers("Accept: application/json")
+    @POST("app/rest/investigations/multiple")
+    suspend fun createInvestigations(@Body investigations: InvestigationListBean): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @POST("app/rest/mutes/multiple")
+    suspend fun createMutes(@Body mutes: MuteListBean): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
     @GET("app/rest/tests")
     suspend fun tests(@Query("locator") locator: String?): Response<TestListBean>
 
@@ -214,6 +222,41 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("app/rest/changes/{id}/firstBuilds")
     suspend fun changeFirstBuilds(@Path("id") id: String): Response<BuildListBean>
+
+    @Headers("Accept: application/json")
+    @POST("app/rest/agentPools/id:{id}/projects")
+    suspend fun assignProjectToAgentPool(@Path("id") id: String, @Body project: ProjectBean): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @POST("app/rest/users/{userLocator}/roles/{roleId}/{scope}")
+    suspend fun addUserRole(@Path("userLocator") userLocator: String, @Path("roleId") roleId: String, @Path("scope") scope: String): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @DELETE("app/rest/users/{userLocator}/roles/{roleId}/{scope}")
+    suspend fun deleteUserRole(@Path("userLocator") userLocator: String, @Path("roleId") roleId: String, @Path("scope") scope: String): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @GET("app/rest/builds/id:{id}/statistics")
+    suspend fun buildStatistics(@Path("id") buildId: String): Response<StatisticsBean>
+
+    @Headers("Accept: application/json")
+    @GET("app/rest/builds/id:{id}?fields=queuedWaitReasons(*)")
+    suspend fun buildQueuedWaitReasons(@Path("id") buildId: String): Response<QueuedWaitReasonsBean>
+
+    @Headers("Accept: application/json")
+    @POST("app/rest/builds/{buildLocator}/status")
+    suspend fun updateBuildStatus(@Path("buildLocator") buildLocator: String, @Body value: BuildStatusUpdateBean): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @GET("app/rest/agents/{locator}/compatibilityPolicy?fields=policy,count,buildTypes(buildType(id))")
+    suspend fun agentCompatibilityPolicy(@Path("locator") agentLocator: String): Response<CompatibilityPolicyBean>
+
+    @Headers("Accept: application/json")
+    @PUT("app/rest/agents/{locator}/compatibilityPolicy")
+    suspend fun updateAgentCompatibilityPolicy(
+        @Path("locator") agentLocator: String,
+        @Body policy: CompatibilityPolicyBean
+    ): Response<ResponseBody>
 }
 
 internal fun TeamCityService.errorCatchingBridge() = TeamCityServiceErrorCatchingBridge(this)
@@ -243,6 +286,8 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun queuedBuilds(locator: String?): BuildListBean = runErrorWrappingBridgeCall { service.queuedBuilds(locator) }
     suspend fun build(id: String): BuildBean = runErrorWrappingBridgeCall { service.build(id) }
     suspend fun investigations(investigationLocator: String?): InvestigationListBean = runErrorWrappingBridgeCall { service.investigations(investigationLocator) }
+    suspend fun createInvestigations(investigations: InvestigationListBean) = runErrorWrappingBridgeCall { service.createInvestigations(investigations) }
+    suspend fun createMutes(mutes: MuteListBean) = runErrorWrappingBridgeCall { service.createMutes(mutes) }
     suspend fun tests(locator: String?): TestListBean = runErrorWrappingBridgeCall { service.tests(locator) }
     suspend fun test(id: String): TestBean = runErrorWrappingBridgeCall { service.test(id) }
     suspend fun investigation(id: String): InvestigationBean = runErrorWrappingBridgeCall { service.investigation(id) }
@@ -306,6 +351,19 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun change(changeId: String): ChangeBean = runErrorWrappingBridgeCall { service.change(changeId) }
     suspend fun changeFiles(changeId: String): ChangeFilesBean = runErrorWrappingBridgeCall { service.changeFiles(changeId) }
     suspend fun changeFirstBuilds(id: String): BuildListBean = runErrorWrappingBridgeCall { service.changeFirstBuilds(id) }
+    suspend fun assignProjectToAgentPool(poolId: String, project: ProjectBean): ResponseBody = runErrorWrappingBridgeCall { service.assignProjectToAgentPool(poolId, project) }
+    suspend fun addUserRole(userLocator: String, roleId: String, scope: String): ResponseBody = runErrorWrappingBridgeCall { service.addUserRole(userLocator, roleId, scope) }
+    suspend fun deleteUserRole(userLocator: String, roleId: String, scope: String): ResponseBody = runErrorWrappingBridgeCall { service.deleteUserRole(userLocator, roleId, scope) }
+    suspend fun buildStatistics(buildId: String): StatisticsBean = runErrorWrappingBridgeCall { service.buildStatistics(buildId) }
+    suspend fun buildQueuedWaitReasons(buildId: String): QueuedWaitReasonsBean = runErrorWrappingBridgeCall { service.buildQueuedWaitReasons(buildId) }
+    suspend fun updateBuildStatus(buildLocator: String, value: BuildStatusUpdateBean): ResponseBody = runErrorWrappingBridgeCall { service.updateBuildStatus(buildLocator, value) }
+
+    suspend fun agentCompatibilityPolicy(agentLocator: String): CompatibilityPolicyBean =
+        runErrorWrappingBridgeCall { service.agentCompatibilityPolicy(agentLocator) }
+
+    suspend fun updateAgentCompatibilityPolicy(agentLocator: String, policy: CompatibilityPolicyBean): ResponseBody =
+        runErrorWrappingBridgeCall { service.updateAgentCompatibilityPolicy(agentLocator, policy) }
+
 }
 
 internal class ProjectsBean {
@@ -507,6 +565,7 @@ internal class ProjectBean: IdBean() {
 }
 
 internal class BuildAgentBean: IdBean() {
+    var typeId: String? = null
     var name: String? = null
     var connected: Boolean? = null
     var enabled: Boolean? = null
@@ -546,6 +605,7 @@ internal class ChangeBean: IdBean() {
     var version: String? = null
     var user: UserBean? = null
     var date: String? = null
+    val registrationDate: String? = null
     var comment: String? = null
     var username: String? = null
     var vcsRootInstance: VcsRootInstanceBean? = null
@@ -572,6 +632,16 @@ internal class UserBean: IdBean() {
     var username: String? = null
     var name: String? = null
     var email: String? = null
+    var roles: RolesBean? = null
+}
+
+internal class RolesBean {
+    var role: List<RoleBean>? = ArrayList()
+}
+
+internal class RoleBean {
+    var roleId: String? = null
+    var scope: String? = null
 }
 
 internal class ParametersBean() {
@@ -601,6 +671,7 @@ internal class PinInfoBean {
 internal class TriggeredBean {
     var user: UserBean? = null
     val build: BuildBean? = null
+    var type: String? = null
 }
 
 internal class BuildCommentBean {
@@ -715,40 +786,58 @@ internal open class TestOccurrenceBean: IdBean() {
 
 internal class MuteListBean {
     var mute: List<MuteBean> = ArrayList()
+    var nextHref: String? = null
 }
 
-internal open class InvestigationMuteBaseBean: IdBean() {
-    val assignment: AssignmentBean? = null
-    val resolution: InvestigationResolutionBean? = null
-    val scope: InvestigationScopeBean? = null
-    val target: InvestigationTargetBean? = null
+
+internal open class InvestigationMuteBaseBean(
+    val assignment: AssignmentBean? = null,
+    val resolution: InvestigationResolutionBean? = null,
+    val scope: InvestigationScopeBean? = null,
+    val target: InvestigationTargetBean? = null,
+): IdBean()
+
+internal class MuteBean(
+    assignment: AssignmentBean? = null,
+    resolution: InvestigationResolutionBean? = null,
+    scope: InvestigationScopeBean? = null,
+    target: InvestigationTargetBean? = null,
+) : InvestigationMuteBaseBean(assignment, resolution, scope, target) {
+    constructor(other: InvestigationMuteBaseBean) : this(other.assignment, other.resolution, other.scope, other.target)
 }
-internal class MuteBean : InvestigationMuteBaseBean()
 
 internal class InvestigationListBean {
     var investigation: List<InvestigationBean> = ArrayList()
 }
 
-internal class InvestigationBean : InvestigationMuteBaseBean() {
-    val assignee: UserBean? = null
-    val state: InvestigationState? = null
+internal class InvestigationBean(
+    assignment: AssignmentBean? = null,
+    resolution: InvestigationResolutionBean? = null,
+    scope: InvestigationScopeBean? = null,
+    target: InvestigationTargetBean? = null,
+    val assignee: UserBean? = null,
+    val state: InvestigationState? = null,
+) : InvestigationMuteBaseBean(assignment, resolution, scope, target) {
+    constructor(base: InvestigationMuteBaseBean, assignee: UserBean?, state: InvestigationState?) : this(
+        base.assignment, base.resolution, base.scope, base.target, assignee, state
+    )
 }
 
-class InvestigationResolutionBean {
-    val type: String? = null
-}
+class InvestigationResolutionBean(
+    val type: String? = null,
+    val time: String? = null,
+)
 
-internal class AssignmentBean {
-    val user: UserBean? = null
-    val text: String? = null
-    val timestamp: String? = null
-}
-
-internal open class InvestigationTargetBean {
-    val tests : TestUnderInvestigationListBean? = null
-    val problems: ProblemUnderInvestigationListBean? = null
-    val anyProblem: Boolean? = null
-}
+internal class AssignmentBean(
+    val user: UserBean? = null,
+    val text: String? = null,
+    val timestamp: String? = null,
+)
+internal open class InvestigationTargetBean(
+    val tests : TestUnderInvestigationListBean? = null,
+    val problems: ProblemUnderInvestigationListBean? = null,
+    val anyProblem: Boolean? = null,
+)
 
 internal class TestUnderInvestigationListBean {
     val count : Int? = null
@@ -761,10 +850,10 @@ internal class ProblemUnderInvestigationListBean {
     var problem : List<BuildProblemBean> = ArrayList()
 }
 
-internal class InvestigationScopeBean {
-    val buildTypes : BuildTypesBean? = null
-    val project : ProjectBean? = null
-}
+internal class InvestigationScopeBean(
+    val buildTypes : BuildTypesBean? = null,
+    val project : ProjectBean? = null,
+)
 
 internal class MetadataBean {
     val count: Int? = null
@@ -775,4 +864,31 @@ internal class TypedValuesBean {
     val name: String? = null
     val type: String? = null
     val value: String? = null
+}
+
+internal class StatisticsBean {
+    var property: List<PropertyBean>? = null
+}
+
+internal class QueuedWaitReasonsBean {
+    var queuedWaitReasons: QueueWaitReasonsPropertiesBean? = null
+}
+
+internal class QueueWaitReasonsPropertiesBean {
+    var property: List<PropertyBean>? = null
+}
+
+internal class PropertyBean {
+    var name: String? = null
+    var value: String? = null
+}
+
+internal class BuildStatusUpdateBean {
+    var status: String? = null
+    var comment: String? = null
+}
+
+internal class CompatibilityPolicyBean {
+    var buildTypes: BuildTypesBean? = BuildTypesBean()
+    var policy: String? = null
 }
