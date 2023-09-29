@@ -2019,6 +2019,10 @@ private class BuildArtifactImpl(
     override suspend fun openArtifactInputStream(): InputStream {
         return build.openArtifactInputStream(fullName)
     }
+
+    override fun toString(): String {
+        return "BuildArtifact(build=$build, name='$name', fullName='$fullName', size=$size, modificationDateTime=$modificationDateTime)"
+    }
 }
 
 private class BuildQueueImpl(private val instance: TeamCityCoroutinesInstanceImpl) : BuildQueueEx {
