@@ -17,7 +17,7 @@ internal interface TeamCityService {
     @Streaming
     @Headers("Accept: application/json")
     @GET("{path}")
-    suspend fun root(@Path("path", encoded = true) path: String, @QueryMap(encoded = true) encodedParams: Map<String, String>): Response<ResponseBody>
+    suspend fun root(@Path("path", encoded = true) path: String, @QueryMap(encoded = false) encodedParams: Map<String, String>): Response<ResponseBody>
 
     @Headers("Accept: application/json")
     @GET("app/rest/builds")
