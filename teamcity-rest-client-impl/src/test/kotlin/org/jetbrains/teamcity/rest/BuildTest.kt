@@ -223,6 +223,21 @@ class BuildTest {
     }
 
     @Test
+    fun test_download_build_log() {
+        val build = customInstanceByConnectionFile().build(BuildId("422"))
+        Files.createTempFile("test_download_artifact_", ".txt").apply {
+            try {
+                build.downloadBuildLog(toFile())
+                val expectedSha256 = "36287e73417e20ef998c96feed26e003e46f100275ac4e85a9811a2ba1a04a9b"
+                val actualDownloadFileSha256 = calculateSha256Hash(inputStream())
+                assertEquals(expectedSha256, actualDownloadFileSha256)
+            } finally {
+                deleteIfExists() // cleanup
+            }
+        }
+    }
+
+    @Test
     fun test_download_artifact() {
         val build = customInstanceByConnectionFile().build(BuildId("422"))
         val nonHiddenArtifacts = build.getArtifacts()
