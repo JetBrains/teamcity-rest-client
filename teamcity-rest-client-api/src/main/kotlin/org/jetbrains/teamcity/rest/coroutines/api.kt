@@ -106,6 +106,7 @@ interface Project {
     suspend fun getParameters(): List<Parameter>
 
     suspend fun setParameter(name: String, value: String)
+    suspend fun removeParameter(name: String)
 
     /**
      * See properties example from existing VCS roots via inspection of the following url:

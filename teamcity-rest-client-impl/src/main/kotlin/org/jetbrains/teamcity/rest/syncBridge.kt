@@ -526,6 +526,7 @@ private class ProjectBridge(
     override fun getHomeUrl(branch: String?): String = delegate.getHomeUrl(branch)
     override fun getTestHomeUrl(testId: TestId): String = delegate.getTestHomeUrl(testId)
     override fun setParameter(name: String, value: String) = runBlocking { delegate.setParameter(name, value) }
+    override fun removeParameter(name: String) = runBlocking { delegate.removeParameter(name) }
 
     override fun createVcsRoot(
         id: VcsRootId,

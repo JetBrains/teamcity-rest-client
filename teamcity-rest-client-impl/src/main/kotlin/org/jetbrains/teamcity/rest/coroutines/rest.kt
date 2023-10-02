@@ -136,8 +136,11 @@ internal interface TeamCityService {
     @GET("app/rest/buildTypes/id:{id}/artifact-dependencies")
     suspend fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): Response<ArtifactDependenciesBean>
 
-    @PUT("app/rest/projects/id:{id}/parameters/{name}")
+    @PUT("app/rest/projects/id:{id}/parameters/{name}/value")
     suspend fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
+
+    @DELETE("app/rest/projects/id:{id}/parameters/{name}")
+    suspend fun removeProjectParameter(@Path("id") projectId: String, @Path("name") name: String): Response<ResponseBody>
 
     @PUT("app/rest/buildTypes/id:{id}/parameters/{name}")
     suspend fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
@@ -263,11 +266,11 @@ internal interface TeamCityService {
 internal fun TeamCityService.errorCatchingBridge() = TeamCityServiceErrorCatchingBridge(this)
 
 internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityService) {
-    private suspend fun <T> runErrorWrappingBridgeCall(provider: suspend () -> Response<T>): T {
+    private suspend fun <T> runErrorWrappingBridgeCallNullable(provider: suspend () -> Response<T>): T? {
         try {
             val response = provider()
             if (response.isSuccessful) {
-                return checkNotNull(response.body())
+                return response.body()
             }
 
             val errorBodyString = response.errorBody()?.string()
@@ -284,6 +287,9 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
             throw TeamCityRestException("Connect failed: ${t.message}", t)
         }
     }
+
+    private suspend fun <T> runErrorWrappingBridgeCall(provider: suspend () -> Response<T>): T =
+        checkNotNull(runErrorWrappingBridgeCallNullable(provider))
 
     suspend fun root(path: String, encodedParams: Map<String, String>): ResponseBody = runErrorWrappingBridgeCall { service.root(path, encodedParams) }
     suspend fun builds(buildLocator: String): BuildListBean = runErrorWrappingBridgeCall { service.builds(buildLocator) }
@@ -302,11 +308,16 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun testOccurrence(id: String, fields: String?): TestOccurrenceBean = runErrorWrappingBridgeCall { service.testOccurrence(id, fields) }
     suspend fun vcsRoots(locator: String? = null): VcsRootListBean = runErrorWrappingBridgeCall { service.vcsRoots(locator) }
     suspend fun vcsRoot(id: String): VcsRootBean = runErrorWrappingBridgeCall { service.vcsRoot(id) }
-    suspend fun addTag(buildId: String, tag: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.addTag(buildId, tag) }
-    suspend fun setComment(buildId: String, comment: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.setComment(buildId, comment) }
-    suspend fun replaceTags(buildId: String, tags: TagsBean): ResponseBody = runErrorWrappingBridgeCall { service.replaceTags(buildId, tags) }
-    suspend fun pin(buildId: String, comment: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.pin(buildId, comment) }
-    suspend fun unpin(buildId: String, comment: RequestBody): ResponseBody = runErrorWrappingBridgeCall { service.unpin(buildId, comment) }
+    suspend fun addTag(buildId: String, tag: RequestBody): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.addTag(buildId, tag) }
+    suspend fun setComment(buildId: String, comment: RequestBody): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.setComment(buildId, comment) }
+    suspend fun replaceTags(buildId: String, tags: TagsBean): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.replaceTags(buildId, tags) }
+    suspend fun pin(buildId: String, comment: RequestBody): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.pin(buildId, comment) }
+    suspend fun unpin(buildId: String, comment: RequestBody): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.unpin(buildId, comment) }
     suspend fun artifactContent(buildId: String, artifactPath: String): ResponseBody = runErrorWrappingBridgeCall { service.artifactContent(buildId, artifactPath) }
     suspend fun artifactChildren(
         buildId: String,
@@ -324,21 +335,28 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
         projectId: String,
         name: String,
         value: RequestBody
-    ): ResponseBody = runErrorWrappingBridgeCall { service.setProjectParameter(projectId, name, value) }
+    ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.setProjectParameter(projectId, name, value) }
+    suspend fun removeProjectParameter(
+        projectId: String,
+        name: String,
+    ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.removeProjectParameter(projectId, name) }
     suspend fun setBuildTypeParameter(
         buildTypeId: String,
         name: String,
         value: RequestBody
-    ): ResponseBody = runErrorWrappingBridgeCall { service.setBuildTypeParameter(buildTypeId, name, value) }
+    ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.setBuildTypeParameter(buildTypeId, name, value) }
     suspend fun setBuildTypeSettings(
         buildTypeId: String,
         name: String,
         value: RequestBody
-    ): ResponseBody = runErrorWrappingBridgeCall { service.setBuildTypeSettings(buildTypeId, name, value) }
+    ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.setBuildTypeSettings(buildTypeId, name, value) }
     suspend fun triggerBuild(value: TriggerBuildRequestBean): TriggeredBuildBean = runErrorWrappingBridgeCall { service.triggerBuild(value) }
-    suspend fun cancelBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runErrorWrappingBridgeCall { service.cancelBuild(buildId, value) }
-    suspend fun finishBuild(buildId: String): ResponseBody = runErrorWrappingBridgeCall { service.finishBuild(buildId) }
-    suspend fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody = runErrorWrappingBridgeCall { service.removeQueuedBuild(buildId, value) }
+    suspend fun cancelBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.cancelBuild(buildId, value) }
+    suspend fun finishBuild(buildId: String): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.finishBuild(buildId) }
+    suspend fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.removeQueuedBuild(buildId, value) }
     suspend fun users(): UserListBean = runErrorWrappingBridgeCall { service.users() }
     suspend fun users(userLocator: String): UserBean = runErrorWrappingBridgeCall { service.users(userLocator) }
     suspend fun agents(): BuildAgentsBean = runErrorWrappingBridgeCall { service.agents() }
@@ -355,18 +373,22 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun change(changeId: String): ChangeBean = runErrorWrappingBridgeCall { service.change(changeId) }
     suspend fun changeFiles(changeId: String): ChangeFilesBean = runErrorWrappingBridgeCall { service.changeFiles(changeId) }
     suspend fun changeFirstBuilds(id: String): BuildListBean = runErrorWrappingBridgeCall { service.changeFirstBuilds(id) }
-    suspend fun assignProjectToAgentPool(poolId: String, project: ProjectBean): ResponseBody = runErrorWrappingBridgeCall { service.assignProjectToAgentPool(poolId, project) }
-    suspend fun addUserRole(userLocator: String, roleId: String, scope: String): ResponseBody = runErrorWrappingBridgeCall { service.addUserRole(userLocator, roleId, scope) }
-    suspend fun deleteUserRole(userLocator: String, roleId: String, scope: String): ResponseBody = runErrorWrappingBridgeCall { service.deleteUserRole(userLocator, roleId, scope) }
+    suspend fun assignProjectToAgentPool(poolId: String, project: ProjectBean): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.assignProjectToAgentPool(poolId, project) }
+    suspend fun addUserRole(userLocator: String, roleId: String, scope: String): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.addUserRole(userLocator, roleId, scope) }
+    suspend fun deleteUserRole(userLocator: String, roleId: String, scope: String): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.deleteUserRole(userLocator, roleId, scope) }
     suspend fun buildStatistics(buildId: String): StatisticsBean = runErrorWrappingBridgeCall { service.buildStatistics(buildId) }
     suspend fun buildQueuedWaitReasons(buildId: String): QueuedWaitReasonsBean = runErrorWrappingBridgeCall { service.buildQueuedWaitReasons(buildId) }
-    suspend fun updateBuildStatus(buildLocator: String, value: BuildStatusUpdateBean): ResponseBody = runErrorWrappingBridgeCall { service.updateBuildStatus(buildLocator, value) }
+    suspend fun updateBuildStatus(buildLocator: String, value: BuildStatusUpdateBean): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.updateBuildStatus(buildLocator, value) }
 
     suspend fun agentCompatibilityPolicy(agentLocator: String): CompatibilityPolicyBean =
         runErrorWrappingBridgeCall { service.agentCompatibilityPolicy(agentLocator) }
 
-    suspend fun updateAgentCompatibilityPolicy(agentLocator: String, policy: CompatibilityPolicyBean): ResponseBody =
-        runErrorWrappingBridgeCall { service.updateAgentCompatibilityPolicy(agentLocator, policy) }
+    suspend fun updateAgentCompatibilityPolicy(agentLocator: String, policy: CompatibilityPolicyBean): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.updateAgentCompatibilityPolicy(agentLocator, policy) }
 
 }
 

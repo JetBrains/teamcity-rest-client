@@ -42,4 +42,24 @@ class ProjectTest {
                 "$publicInstanceUrl/project.html?projectId=${reportProject.stringId}&branch=%3Cdefault%3E",
                 proj.getHomeUrl(branch = "<default>"))
     }
+
+    @Test
+    fun `project parameter test`() {
+        val testParamName = "rest-client-test-project-parameter"
+        val testParamValue = "rest-client-test-project-parameter-value"
+
+        publicInstance().project(reportProject).removeParameter(testParamName)
+        val project = publicInstance().project(reportProject)
+
+        val paramsBefore = project.parameters.associate { it.name to it.value }
+        assertFalse(paramsBefore.containsKey(testParamName))
+
+        project.setParameter(testParamName, testParamValue)
+        val paramsAfter = publicInstance().project(reportProject).parameters.associate { it.name to it.value }
+        assertEquals(testParamValue, paramsAfter[testParamName])
+
+        project.removeParameter(testParamName)
+        val paramsAfterRemoval = publicInstance().project(reportProject).parameters.associate { it.name to it.value }
+        assertFalse(paramsAfterRemoval.containsKey(testParamName))
+    }
 }

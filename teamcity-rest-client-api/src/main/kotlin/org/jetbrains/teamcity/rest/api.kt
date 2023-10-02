@@ -167,6 +167,7 @@ interface Project {
     val mutes: Sequence<Mute>
 
     fun setParameter(name: String, value: String)
+    fun removeParameter(name: String)
 
     /**
      * See properties example from existing VCS roots via inspection of the following url:

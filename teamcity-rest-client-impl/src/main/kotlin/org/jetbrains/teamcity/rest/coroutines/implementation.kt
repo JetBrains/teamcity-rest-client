@@ -1061,6 +1061,11 @@ private class ProjectImpl(
         instance.service.setProjectParameter(id.stringId, name, value.toRequestBody())
     }
 
+    override suspend fun removeParameter(name: String) {
+        LOG.info("Unsetting parameter $name in ProjectId=$idString")
+        instance.service.removeProjectParameter(id.stringId, name)
+    }
+
     override suspend fun createProject(id: ProjectId, name: String): Project {
         val projectXmlDescription = xml {
             element("newProjectDescription") {
