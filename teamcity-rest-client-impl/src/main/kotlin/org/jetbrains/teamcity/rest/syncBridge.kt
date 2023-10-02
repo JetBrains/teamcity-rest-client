@@ -248,7 +248,9 @@ private class TestRunsLocatorBridge(
         return this
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun withoutDetailsField(): TestRunsLocator {
+        @Suppress("DEPRECATION")
         delegate.withoutDetailsField()
         return this
     }
@@ -260,6 +262,16 @@ private class TestRunsLocatorBridge(
 
     override fun muted(muted: Boolean): TestRunsLocator {
         delegate.muted(muted)
+        return this
+    }
+
+    override fun prefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+        delegate.prefetchFields(*fields)
+        return this
+    }
+
+    override fun excludePrefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+        delegate.excludePrefetchFields(*fields)
         return this
     }
 }

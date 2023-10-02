@@ -8,6 +8,7 @@ import org.jetbrains.teamcity.rest.BuildStatus
 import org.jetbrains.teamcity.rest.InvestigationState
 import org.jetbrains.teamcity.rest.TeamCityConversationException
 import org.jetbrains.teamcity.rest.TeamCityRestException
+import org.jetbrains.teamcity.rest.TestRunsLocatorSettings
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -765,21 +766,28 @@ internal open class TestOccurrenceBean: IdBean() {
     var logAnchor: String? = null
 
     companion object {
-        private const val MINIMAL_FIELDS = "name,id,status,ignored,muted,currentlyMuted,newFailure,duration,ignoreDetails,firstFailed(id),nextFixed(id),build(id),test(id),metadata"
-        val fullFieldsFilter = getFieldFilter(withDetails = true, full = true, wrap = true)
-        val fullFieldsFilterInner = getFieldFilter(withDetails = true, full = true, wrap = false)
+        val fullFieldsFilter: String = buildCustomFieldsFilter(TestRunsLocatorSettings.TestRunField.values().toList())
 
-        internal fun getFieldFilter(withDetails: Boolean, full: Boolean, wrap: Boolean = true): String {
-            val params = mutableListOf(MINIMAL_FIELDS)
-            if (withDetails || full) {
-                params.add("details")
-            }
-            if (full) {
-                params.add("logAnchor")
-            }
+        fun buildCustomFieldsFilter(fields: Collection<TestRunsLocatorSettings.TestRunField>): String {
+            val allFields = fields.distinct().map(::remapField) + "id" // always fetch id field
+            return allFields.joinToString(prefix = "testOccurrence(", separator = ",", postfix = ")")
+        }
 
-            val joined = params.joinToString(",")
-            return if (wrap) "testOccurrence($joined)" else joined
+        private fun remapField(field: TestRunsLocatorSettings.TestRunField): String = when (field) {
+            TestRunsLocatorSettings.TestRunField.NAME -> "name"
+            TestRunsLocatorSettings.TestRunField.STATUS -> "status"
+            TestRunsLocatorSettings.TestRunField.DURATION -> "duration"
+            TestRunsLocatorSettings.TestRunField.DETAILS -> "ignoreDetails,details"
+            TestRunsLocatorSettings.TestRunField.IGNORED -> "ignored"
+            TestRunsLocatorSettings.TestRunField.IS_CURRENTLY_MUTED -> "currentlyMuted"
+            TestRunsLocatorSettings.TestRunField.IS_MUTED -> "muted"
+            TestRunsLocatorSettings.TestRunField.IS_NEW_FAILURE -> "newFailure"
+            TestRunsLocatorSettings.TestRunField.BUILD_ID -> "build(id)"
+            TestRunsLocatorSettings.TestRunField.FIXED_IN_BUILD_ID -> "nextFixed(id)"
+            TestRunsLocatorSettings.TestRunField.FIRST_FAILED_IN_BUILD_ID -> "firstFailed(id)"
+            TestRunsLocatorSettings.TestRunField.TEST_ID -> "test(id)"
+            TestRunsLocatorSettings.TestRunField.METADATA_VALUES -> "metadata"
+            TestRunsLocatorSettings.TestRunField.LOG_ANCHOR -> "logAnchor"
         }
     }
 }

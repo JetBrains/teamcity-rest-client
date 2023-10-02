@@ -734,8 +734,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
     private var affectedProjectId: ProjectId? = null
     private var testStatus: TestStatus? = null
     private var expandMultipleInvocations = false
-    private var includeDetailsField = true
     private var muted: Boolean? = null
+    private val testRunFields: MutableSet<TestRunsLocatorSettings.TestRunField> = TestRunsLocatorSettings.TestRunField.values().toMutableSet()
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -767,8 +767,9 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         return this
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun withoutDetailsField(): TestRunsLocator {
-        this.includeDetailsField = false
+        this.testRunFields.remove(TestRunsLocatorSettings.TestRunField.DETAILS)
         return this
     }
 
@@ -779,6 +780,17 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
 
     override fun muted(muted: Boolean): TestRunsLocator {
         this.muted = muted
+        return this
+    }
+
+    override fun prefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+        this.testRunFields.clear()
+        this.testRunFields.addAll(fields)
+        return this
+    }
+
+    override fun excludePrefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+        this.testRunFields.removeAll(fields.toSet())
         return this
     }
 
@@ -807,9 +819,8 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         require(parameters.isNotEmpty()) { "At least one parameter should be specified" }
         val testOccurrencesLocator = parameters.joinToString(",")
 
-
-        val fields = TestOccurrenceBean.getFieldFilter(includeDetailsField, full = false, wrap = true)
-        val isFullBean = fields == TestOccurrenceBean.fullFieldsFilter
+        val isFullBean = testRunFields.containsAll(TestRunsLocatorSettings.TestRunField.values().toList())
+        val fields = TestOccurrenceBean.buildCustomFieldsFilter(testRunFields)
         LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
         return Locator(testOccurrencesLocator, fields, isFullBean)
     }
@@ -2296,7 +2307,7 @@ private open class TestRunImpl(
 
     override suspend fun getLogAnchor(): String = notnull { it.logAnchor }
 
-    override suspend fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notnull { it.id }, TestOccurrenceBean.fullFieldsFilterInner)
+    override suspend fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notnull { it.id }, TestOccurrenceBean.fullFieldsFilter)
 
     override fun toString() =
         if (isFullBean) runBlocking { "Test(id=${bean.id},name=${getName()}, status=${getStatus()}, duration=${getDuration()}, details=${getDetails()})" }

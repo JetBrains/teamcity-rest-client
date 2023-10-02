@@ -107,6 +107,11 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
     fun forTest(testId: TestId): Self
     fun forProject(projectId: ProjectId): Self
     fun withStatus(testStatus: TestStatus): Self
+
+    @Deprecated(
+        message = "Deprecated, please use withoutFields instead",
+        replaceWith = ReplaceWith("excludePrefetchFields(TestRunsLocatorSettings.Fields.DETAILS)")
+    )
     fun withoutDetailsField(): Self
 
     /**
@@ -118,6 +123,35 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
     fun expandMultipleInvocations(): Self
 
     fun muted(muted: Boolean): Self
+
+
+    /**
+     * Use this method to manually select TestRun fields to prefetch.
+     */
+    fun prefetchFields(vararg fields: TestRunField): Self
+
+    /**
+     * By default, REST client will fetch all TestRun fields listed in [TestRunField].
+     * You can unselect some of them using this method.
+     */
+    fun excludePrefetchFields(vararg fields: TestRunField): Self
+
+    enum class TestRunField {
+        NAME,
+        STATUS,
+        DURATION,
+        DETAILS ,
+        IGNORED,
+        IS_CURRENTLY_MUTED,
+        IS_MUTED,
+        IS_NEW_FAILURE,
+        BUILD_ID,
+        FIXED_IN_BUILD_ID,
+        FIRST_FAILED_IN_BUILD_ID,
+        TEST_ID,
+        METADATA_VALUES,
+        LOG_ANCHOR
+    }
 }
 
 data class ProjectId(val stringId: String) {
