@@ -270,10 +270,13 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
                 return checkNotNull(response.body())
             }
 
-            val errorMessageSuffix = response.errorBody()?.string()?.let { error -> ", error: $error" } ?: ""
+            val errorBodyString = response.errorBody()?.string()
+            val errorMessageSuffix = errorBodyString?.let { error -> ", error: $error" } ?: ""
             throw TeamCityConversationException(
-                "Failed to connect to ${response.raw().request.url}, code ${response.code()}$errorMessageSuffix",
-                null
+                message = "Failed to connect to ${response.raw().request.url}, code ${response.code()}$errorMessageSuffix",
+                cause = null,
+                httpCode = response.code(),
+                responseErrorBody = errorBodyString
             )
         } catch (e: TeamCityRestException) {
             throw e
