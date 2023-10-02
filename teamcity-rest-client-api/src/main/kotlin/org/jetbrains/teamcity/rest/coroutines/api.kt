@@ -143,7 +143,9 @@ interface BuildConfiguration {
     suspend fun getFinishBuildTriggers(): List<FinishBuildTrigger>
     suspend fun getArtifactDependencies(): List<ArtifactDependency>
 
+    suspend fun getParameters(): List<Parameter>
     suspend fun setParameter(name: String, value: String)
+    suspend fun removeParameter(name: String)
 
     suspend fun getBuildCounter(): Int
     suspend fun setBuildCounter(value: Int)

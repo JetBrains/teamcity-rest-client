@@ -1199,6 +1199,13 @@ private class BuildConfigurationImpl(
         LOG.info("Setting parameter $name=$value in BuildConfigurationId=$idString")
         instance.service.setBuildTypeParameter(idString, name, value.toTextPlainBody())
     }
+    override suspend fun removeParameter(name: String) {
+        LOG.info("Remove parameter $name in BuildConfigurationId=$idString")
+        instance.service.removeBuildTypeParameter(idString, name)
+    }
+
+    override suspend fun getParameters(): List<Parameter> =
+        instance.service.getBuildTypeParameters(idString).property.map(::ParameterImpl)
 
     private suspend fun getSetting(settingName: String) =
         nullable { it.settings }?.property?.firstOrNull { it.name == settingName }?.value
@@ -1426,18 +1433,13 @@ private class BuildCanceledInfoImpl(
         get() = bean.text ?: ""
 }
 
-private class ParameterImpl(private val bean: ParameterBean) : Parameter {
-    init {
-        println("Creating bean")
-    }
-    override val name: String
-        get() = bean.name!!
-
-    override val value: String
-        get() = bean.value!!
-
-    override val own: Boolean
-        get() = bean.own!!
+private class ParameterImpl(
+    override val name: String,
+    override val value: String,
+    override val own: Boolean,
+) : Parameter {
+    constructor(bean: ParameterBean) : this(bean.name!!, bean.value!!, bean.own == true)
+    constructor(bean: BuildTypeParameterBean) : this(bean.name!!, bean.value!!, bean.inherited == false)
 }
 
 private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuildTrigger {

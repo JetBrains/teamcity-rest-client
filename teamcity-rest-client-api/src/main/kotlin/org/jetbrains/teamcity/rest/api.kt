@@ -218,7 +218,9 @@ interface BuildConfiguration {
     val finishBuildTriggers: List<FinishBuildTrigger>
     val artifactDependencies: List<ArtifactDependency>
 
+    fun getParameters(): List<Parameter>
     fun setParameter(name: String, value: String)
+    fun removeParameter(name: String)
 
     var buildCounter: Int
     var buildNumberFormat: String

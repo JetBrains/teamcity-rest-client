@@ -621,7 +621,9 @@ private class BuildConfigurationBridge(
 
     override fun getHomeUrl(branch: String?): String = delegate.getHomeUrl(branch)
 
+    override fun getParameters() = runBlocking { delegate.getParameters().map(::ParameterBridge) }
     override fun setParameter(name: String, value: String) = runBlocking { delegate.setParameter(name, value) }
+    override fun removeParameter(name: String) = runBlocking { delegate.removeParameter(name) }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun runBuild(

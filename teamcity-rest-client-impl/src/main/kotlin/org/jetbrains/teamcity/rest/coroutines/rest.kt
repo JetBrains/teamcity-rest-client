@@ -142,8 +142,15 @@ internal interface TeamCityService {
     @DELETE("app/rest/projects/id:{id}/parameters/{name}")
     suspend fun removeProjectParameter(@Path("id") projectId: String, @Path("name") name: String): Response<ResponseBody>
 
-    @PUT("app/rest/buildTypes/id:{id}/parameters/{name}")
+    @PUT("app/rest/buildTypes/id:{id}/parameters/{name}/value")
     suspend fun setBuildTypeParameter(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @GET("app/rest/buildTypes/id:{id}/parameters")
+    suspend fun getBuildTypeParameters(@Path("id") buildTypeId: String): Response<BuildTypeParametersBean>
+
+    @DELETE("app/rest/buildTypes/id:{id}/parameters/{name}")
+    suspend fun removeBuildTypeParameter(@Path("id") projectId: String, @Path("name") name: String): Response<ResponseBody>
 
     @PUT("app/rest/buildTypes/id:{id}/settings/{name}")
     suspend fun setBuildTypeSettings(@Path("id") buildTypeId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
@@ -340,11 +347,21 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
         projectId: String,
         name: String,
     ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.removeProjectParameter(projectId, name) }
+
     suspend fun setBuildTypeParameter(
         buildTypeId: String,
         name: String,
         value: RequestBody
     ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.setBuildTypeParameter(buildTypeId, name, value) }
+
+    suspend fun getBuildTypeParameters(buildTypeId: String): BuildTypeParametersBean =
+        runErrorWrappingBridgeCall { service.getBuildTypeParameters(buildTypeId) }
+
+    suspend fun removeBuildTypeParameter(
+        buildTypeId: String,
+        name: String,
+    ): ResponseBody? = runErrorWrappingBridgeCallNullable { service.removeBuildTypeParameter(buildTypeId, name) }
+
     suspend fun setBuildTypeSettings(
         buildTypeId: String,
         name: String,
@@ -498,6 +515,16 @@ internal class BuildTypeBean: IdBean() {
 
 internal class BuildTypeSettingsBean {
     var property: List<NameValuePropertyBean> = ArrayList()
+}
+
+internal class BuildTypeParametersBean {
+    var property: List<BuildTypeParameterBean> = ArrayList()
+}
+
+internal class BuildTypeParameterBean {
+    var name: String? = null
+    var value: String? = null
+    var inherited: Boolean? = null
 }
 
 internal class BuildProblemBean {
