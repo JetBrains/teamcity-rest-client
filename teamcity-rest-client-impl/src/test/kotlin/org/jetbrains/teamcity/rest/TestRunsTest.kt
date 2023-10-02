@@ -1,5 +1,7 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -61,5 +63,28 @@ class TestRunsTest {
             .toList()
         assertEquals(2, successful.size)
         assertTrue(successful.all { it.name.contains("successful_") })
+    }
+
+
+    @Test
+    fun test_equals_hashcode() {
+        val buildBlocking = publicInstance().builds()
+            .fromConfiguration(runTestsBuildConfiguration)
+            .limitResults(3)
+            .all()
+            .first()
+
+        val id = buildBlocking.testRuns().first().testOccurrenceId
+
+        val firstBlocking = buildBlocking.testRuns().first { it.testOccurrenceId == id }
+        val secondBlocking = buildBlocking.testRuns().first { it.testOccurrenceId == id }
+        assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val build = publicCoroutinesInstance().build(buildBlocking.id)
+            val first = build.getTestRuns().first { it.testOccurrenceId == id }
+            val second = build.getTestRuns().first { it.testOccurrenceId == id }
+            assertEquals(first, second)
+        }
     }
 }

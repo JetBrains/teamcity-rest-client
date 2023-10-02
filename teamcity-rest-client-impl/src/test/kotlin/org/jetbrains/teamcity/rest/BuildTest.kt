@@ -40,6 +40,21 @@ class BuildTest {
     }
 
     @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().builds().all().first().id
+
+        val firstBlocking = publicInstance().build(id)
+        val secondBlocking = publicInstance().build(id)
+        assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().build(id)
+            val second = publicCoroutinesInstance().build(id)
+            assertEquals(first, second)
+        }
+    }
+
+    @Test
     fun since_date_and_until_date() {
         val monthAgo = GregorianCalendar()
         monthAgo.add(Calendar.MONTH, -1)

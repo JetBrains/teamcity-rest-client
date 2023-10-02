@@ -1,6 +1,7 @@
 package org.jetbrains.teamcity.rest
 
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
@@ -12,6 +13,25 @@ class TestsTest {
     @Before
     fun setupLog4j() {
         setupLog4jDebug()
+    }
+
+    @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().builds()
+            .fromConfiguration(runTestsBuildConfiguration)
+            .limitResults(3)
+            .all()
+            .first().testRuns().first().testId
+
+        val firstBlocking = publicInstance().tests().byId(id).all().single()
+        val secondBlocking = publicInstance().tests().byId(id).all().single()
+        assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().tests().byId(id).all().single()
+            val second = publicCoroutinesInstance().tests().byId(id).all().single()
+            assertEquals(first, second)
+        }
     }
 
     @Test

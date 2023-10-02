@@ -900,7 +900,7 @@ private abstract class BaseImpl<TBean : IdBean>(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        return idString == (other as BaseImpl<*>).idString && instance === other.instance
+        return idString == (other as BaseImpl<*>).idString && instance.serverUrl === other.instance.serverUrl
     }
 
     override fun hashCode(): Int = idString.hashCode()

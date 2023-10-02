@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Before
@@ -61,5 +62,20 @@ class ProjectTest {
         project.removeParameter(testParamName)
         val paramsAfterRemoval = publicInstance().project(reportProject).parameters.associate { it.name to it.value }
         assertFalse(paramsAfterRemoval.containsKey(testParamName))
+    }
+
+    @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().rootProject().id
+
+        val firstBlocking = publicInstance().project(id)
+        val secondBlocking = publicInstance().project(id)
+        kotlin.test.assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().project(id)
+            val second = publicCoroutinesInstance().project(id)
+            kotlin.test.assertEquals(first, second)
+        }
     }
 }

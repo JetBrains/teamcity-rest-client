@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -10,6 +11,20 @@ class ChangeTest {
     @Before
     fun setupLog4j() {
         setupLog4jDebug()
+    }
+    @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().builds().all().first { it.changes.isNotEmpty() }.changes.first().id
+
+        val firstBlocking = publicInstance().change(id)
+        val secondBlocking = publicInstance().change(id)
+        assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().change(id)
+            val second = publicCoroutinesInstance().change(id)
+            assertEquals(first, second)
+        }
     }
 
     @Test

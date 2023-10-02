@@ -9,7 +9,6 @@ import java.io.OutputStream
 import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 import org.jetbrains.teamcity.rest.coroutines.InvestigationScope as InvestigationScopeCoroutines
@@ -593,6 +592,8 @@ private class ProjectBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchParameters(): List<Parameter> = parameters
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class ParameterBridge(
@@ -718,6 +719,8 @@ private class BuildConfigurationBridge(
     override fun fetchArtifactDependencies(): List<ArtifactDependency> = artifactDependencies
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class FinishBuildTriggerBridge(
@@ -774,6 +777,8 @@ private class UserBridge(private val delegate: org.jetbrains.teamcity.rest.corou
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class AssignedRoleBridge(
@@ -940,6 +945,8 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 
@@ -1011,6 +1018,8 @@ private class ChangeBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override val date: Date by lazy { Date.from(dateTime.toInstant()) }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class ChangeFileBridge(
@@ -1104,6 +1113,8 @@ private class BuildAgentPoolBridge(
     override val projects: List<Project> by lazyBlocking { delegate.getProjects().map(::ProjectBridge) }
     override val agents: List<BuildAgent> by lazyBlocking { delegate.getAgents().map(::BuildAgentBridge) }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class BuildAgentBridge(
@@ -1141,6 +1152,8 @@ private class BuildAgentBridge(
         }
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class CompatibleBuildConfigurationsBridge(
@@ -1176,6 +1189,8 @@ private class VcsRootBridge(
     override val url: String? by lazyBlocking { delegate.getUrl() }
     override val defaultBranch: String? by lazyBlocking { delegate.getDefaultBranch() }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private suspend fun bridgeInvestigationScope(
@@ -1224,6 +1239,8 @@ private class InvestigationBridge(
     override val state: InvestigationState by lazy { delegate.state }
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class MuteBridge(
@@ -1248,6 +1265,8 @@ private class MuteBridge(
     }
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class TestBridge(
@@ -1256,6 +1275,8 @@ private class TestBridge(
     override val id: TestId by lazy { delegate.id }
     override val name: String by lazyBlocking { delegate.getName() }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class TestRunBridge(
@@ -1279,4 +1300,6 @@ private class TestRunBridge(
     override val logAnchor: String by lazyBlocking { delegate.getLogAnchor() }
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { testOccurrenceId }
+    override fun hashCode(): Int = testOccurrenceId.hashCode()
 }

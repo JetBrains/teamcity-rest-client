@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class BuildAgentTest {
@@ -20,6 +21,21 @@ class BuildAgentTest {
         runBlocking {
             val buildAgentsAsync = publicCoroutinesInstance().buildAgents().all().toList()
             assertEqualsAnyOrder(buildAgents.map { it.id.stringId }, buildAgentsAsync.map { it.id.stringId })
+        }
+    }
+
+    @Test
+    fun test_equals_hashcode() {
+        val buildAgentId = publicInstance().buildAgents().all().first().id
+
+        val firstBlocking = publicInstance().buildAgent(buildAgentId)
+        val secondBlocking = publicInstance().buildAgent(buildAgentId)
+        assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().buildAgent(buildAgentId)
+            val second = publicCoroutinesInstance().buildAgent(buildAgentId)
+            assertEquals(first, second)
         }
     }
 

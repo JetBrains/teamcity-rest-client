@@ -58,4 +58,19 @@ class VcsRootTest {
         val url = vcsRoot.defaultBranch
         assertNotNull("Vcs root default branch should be loaded", url)
     }
+
+    @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().vcsRoots().all().first().id
+
+        val firstBlocking = publicInstance().vcsRoot(id)
+        val secondBlocking = publicInstance().vcsRoot(id)
+        kotlin.test.assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().vcsRoot(id)
+            val second = publicCoroutinesInstance().vcsRoot(id)
+            kotlin.test.assertEquals(first, second)
+        }
+    }
 }
