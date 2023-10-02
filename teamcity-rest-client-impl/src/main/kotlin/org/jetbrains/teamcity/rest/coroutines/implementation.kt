@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
@@ -45,6 +46,12 @@ private val LOG = LoggerFactory.getLogger("teamcity-rest-client")
 
 private val teamCityServiceDateFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH)
 private const val reasonableMaxPageSize = 1024
+
+private val textPlainMediaType = "text/plain".toMediaType()
+private val applicationXmlMediaType = "application/xml".toMediaType()
+
+private fun String.toTextPlainBody() = toRequestBody(textPlainMediaType)
+private fun String.toApplicationXmlBody() = toRequestBody(applicationXmlMediaType)
 
 private class RetryInterceptor(
     private val maxAttempts: Int,
@@ -1058,7 +1065,7 @@ private class ProjectImpl(
 
     override suspend fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ProjectId=$idString")
-        instance.service.setProjectParameter(id.stringId, name, value.toRequestBody())
+        instance.service.setProjectParameter(id.stringId, name, value.toTextPlainBody())
     }
 
     override suspend fun removeParameter(name: String) {
@@ -1077,7 +1084,7 @@ private class ProjectImpl(
             }
         }
 
-        val projectBean = instance.service.createProject(projectXmlDescription.toRequestBody())
+        val projectBean = instance.service.createProject(projectXmlDescription.toApplicationXmlBody())
         return ProjectImpl(projectBean, true, instance)
     }
 
@@ -1108,12 +1115,12 @@ private class ProjectImpl(
             }
         }
 
-        val vcsRootBean = instance.service.createVcsRoot(vcsRootDescriptionXml.toRequestBody())
+        val vcsRootBean = instance.service.createVcsRoot(vcsRootDescriptionXml.toApplicationXmlBody())
         return VcsRootImpl(vcsRootBean, true, instance)
     }
 
     override suspend fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration {
-        val bean = instance.service.createBuildType(buildConfigurationDescriptionXml.toRequestBody())
+        val bean = instance.service.createBuildType(buildConfigurationDescriptionXml.toApplicationXmlBody())
         return BuildConfigurationImpl(bean, false, instance)
     }
 
@@ -1175,7 +1182,7 @@ private class BuildConfigurationImpl(
 
     override suspend fun setBuildCounter(value: Int) {
         LOG.info("Setting build counter to '$value' in BuildConfigurationId=$idString")
-        instance.service.setBuildTypeSettings(idString, "buildNumberCounter", value.toString().toRequestBody())
+        instance.service.setBuildTypeSettings(idString, "buildNumberCounter", value.toString().toTextPlainBody())
     }
 
     override suspend fun getBuildNumberFormat(): String {
@@ -1185,12 +1192,12 @@ private class BuildConfigurationImpl(
 
     override suspend fun setBuildNumberFormat(format: String) {
         LOG.info("Setting build number format to '$format' in BuildConfigurationId=$idString")
-        instance.service.setBuildTypeSettings(idString, "buildNumberPattern", format.toRequestBody())
+        instance.service.setBuildTypeSettings(idString, "buildNumberPattern", format.toTextPlainBody())
     }
 
     override suspend fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in BuildConfigurationId=$idString")
-        instance.service.setBuildTypeParameter(idString, name, value.toRequestBody())
+        instance.service.setBuildTypeParameter(idString, name, value.toTextPlainBody())
     }
 
     private suspend fun getSetting(settingName: String) =
@@ -1767,12 +1774,12 @@ private class BuildImpl(
 
     override suspend fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build ${getHomeUrl()}")
-        instance.service.addTag(idString, tag.toRequestBody())
+        instance.service.addTag(idString, tag.toTextPlainBody())
     }
 
     override suspend fun setComment(comment: String) {
         LOG.info("Adding comment $comment to build ${getHomeUrl()}")
-        instance.service.setComment(idString, comment.toRequestBody())
+        instance.service.setComment(idString, comment.toTextPlainBody())
     }
 
     override suspend fun replaceTags(tags: List<String>) {
@@ -1783,12 +1790,12 @@ private class BuildImpl(
 
     override suspend fun pin(comment: String) {
         LOG.info("Pinning build ${getHomeUrl()}")
-        instance.service.pin(idString, comment.toRequestBody())
+        instance.service.pin(idString, comment.toTextPlainBody())
     }
 
     override suspend fun unpin(comment: String) {
         LOG.info("Unpinning build ${getHomeUrl()}")
-        instance.service.unpin(idString, comment.toRequestBody())
+        instance.service.unpin(idString, comment.toTextPlainBody())
     }
 
     override suspend fun getArtifacts(parentPath: String, recursive: Boolean, hidden: Boolean): List<BuildArtifact> {
