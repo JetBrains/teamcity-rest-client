@@ -680,6 +680,7 @@ interface FinishBuildTrigger {
 }
 
 interface ArtifactDependency {
+    val id: ArtifactDependencyId
     val dependsOnBuildConfiguration: BuildConfiguration
     val branch: String?
     val artifactRules: List<ArtifactRule>

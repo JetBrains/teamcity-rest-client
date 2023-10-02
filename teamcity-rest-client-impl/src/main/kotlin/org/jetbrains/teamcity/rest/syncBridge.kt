@@ -16,6 +16,15 @@ import org.jetbrains.teamcity.rest.coroutines.InvestigationScope as Investigatio
 
 private fun <T> lazyBlocking(block: suspend () -> T): Lazy<T> = lazy { runBlocking { block() } }
 
+private inline fun <reified SelfT : Any, reified IdT, reified OtherT : Any> SelfT.equalsById(
+    other: OtherT?,
+    idMapper: (SelfT) -> IdT
+): Boolean {
+    if (this === other) return true
+    if (this.javaClass != other?.javaClass) return false
+    return idMapper(this) == idMapper(other as SelfT)
+}
+
 internal class TeamCityInstanceBlockingBridge(
     private val delegate: TeamCityCoroutinesInstanceEx
 ) : TeamCityInstance() {
@@ -724,8 +733,10 @@ private class FinishBuildTriggerBridge(
 private class ArtifactDependencyBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.ArtifactDependency
 ) : ArtifactDependency {
-    override val dependsOnBuildConfiguration: BuildConfiguration =
-        BuildConfigurationBridge(delegate.dependsOnBuildConfiguration)
+    override val id: ArtifactDependencyId = delegate.id
+    override val dependsOnBuildConfiguration: BuildConfiguration by lazyBlocking {
+        BuildConfigurationBridge(delegate.getDependsOnBuildConfiguration())
+    }
 
     override val branch: String? by lazyBlocking { delegate.getBranch() }
     override val artifactRules: List<ArtifactRule> by lazyBlocking {
@@ -733,6 +744,8 @@ private class ArtifactDependencyBridge(
     }
     override val cleanDestinationDirectory: Boolean by lazyBlocking { delegate.isCleanDestinationDirectory() }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class ArtifactRuleBridge(

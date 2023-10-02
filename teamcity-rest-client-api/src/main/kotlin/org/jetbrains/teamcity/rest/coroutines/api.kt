@@ -514,7 +514,8 @@ interface FinishBuildTrigger {
 }
 
 interface ArtifactDependency {
-    val dependsOnBuildConfiguration: BuildConfiguration
+    val id: ArtifactDependencyId
+    suspend fun getDependsOnBuildConfiguration(): BuildConfiguration
     suspend fun getBranch(): String?
     suspend fun getArtifactRules(): List<ArtifactRule>
     suspend fun isCleanDestinationDirectory(): Boolean

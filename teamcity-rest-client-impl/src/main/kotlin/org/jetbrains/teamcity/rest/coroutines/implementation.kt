@@ -1470,14 +1470,20 @@ private class ArtifactDependencyImpl(
 ) :
     BaseImpl<ArtifactDependencyBean>(bean, isFullBean, instance), ArtifactDependency {
 
+    override val id = ArtifactDependencyId(bean.id!!)
     override suspend fun fetchFullBean(): ArtifactDependencyBean {
         error("Not supported, ArtifactDependencyImpl should be created with full bean")
     }
 
-    override fun toString(): String = "ArtifactDependency(buildConf=${dependsOnBuildConfiguration.id.stringId})"
+    override fun toString(): String = if (isFullBean) {
+        "ArtifactDependency(buildConf=${runBlocking { getDependsOnBuildConfiguration() }.id.stringId})"
+    } else {
+        "ArtifactDependency(id=$id)"
+    }
 
-    override val dependsOnBuildConfiguration: BuildConfiguration
-        get() = BuildConfigurationImpl(bean.`source-buildType`, false, instance)
+    override suspend fun getDependsOnBuildConfiguration(): BuildConfiguration {
+        return BuildConfigurationImpl(bean.`source-buildType`, false, instance)
+    }
 
     override suspend fun getBranch(): String? {
         return findPropertyByName("revisionBranch")
