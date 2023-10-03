@@ -1042,26 +1042,26 @@ private class ProjectImpl(
             ProjectBean().apply { id = this@ProjectImpl.id.stringId })
     }
 
-    override val id: ProjectId
-        get() = ProjectId(idString)
+    override val id = ProjectId(idString)
+    private val name = SuspendingLazy { notnull { it.name } }
+    private val archived = SuspendingLazy { nullable { it.archived } ?: false }
+    private val parentProjectId = SuspendingLazy { nullable { it.parentProjectId }?.let { ProjectId(it) } }
+    private val parameters = SuspendingLazy { fullBean.getValue().parameters!!.property!!.map { ParameterImpl(it) } }
 
-    override suspend fun getName(): String = notnull { it.name }
-
-    override suspend fun isArchived(): Boolean = nullable { it.archived } ?: false
-
-    override suspend fun getParentProjectId(): ProjectId? = nullable { it.parentProjectId }?.let { ProjectId(it) }
-
-    override suspend fun getChildProjects(): List<Project> {
-        return fullBean.getValue().projects!!.project.map { ProjectImpl(it, false, instance) }
+    private val childProjects = SuspendingLazy {
+        fullBean.getValue().projects!!.project.map { ProjectImpl(it, false, instance) }
     }
 
-    override suspend fun getBuildConfigurations(): List<BuildConfiguration> {
-        return fullBean.getValue().buildTypes!!.buildType.map { BuildConfigurationImpl(it, false, instance) }
+    private val buildConfigurations = SuspendingLazy {
+        fullBean.getValue().buildTypes!!.buildType.map { BuildConfigurationImpl(it, false, instance) }
     }
 
-    override suspend fun getParameters(): List<Parameter> {
-        return fullBean.getValue().parameters!!.property!!.map { ParameterImpl(it) }
-    }
+    override suspend fun getName(): String = name.getValue()
+    override suspend fun isArchived(): Boolean = archived.getValue()
+    override suspend fun getParentProjectId(): ProjectId? = parentProjectId.getValue()
+    override suspend fun getChildProjects(): List<Project> = childProjects.getValue()
+    override suspend fun getBuildConfigurations(): List<BuildConfiguration> = buildConfigurations.getValue()
+    override suspend fun getParameters(): List<Parameter> = parameters.getValue()
 
     override suspend fun setParameter(name: String, value: String) {
         LOG.info("Setting parameter $name=$value in ProjectId=$idString")
@@ -1147,14 +1147,25 @@ private class BuildConfigurationImpl(
         instance.serverUrl, "viewType.html", buildTypeId = id, branch = branch
     )
 
-    override suspend fun getName(): String = notnull { it.name }
+    override val id = BuildConfigurationId(idString)
+    private val name = SuspendingLazy { notnull { it.name } }
+    private val projectId = SuspendingLazy { ProjectId(notnull { it.projectId }) }
+    private val paused = SuspendingLazy { nullable { it.paused } ?: false } // TC won't return paused:false field
 
-    override suspend fun getProjectId(): ProjectId = ProjectId(notnull { it.projectId })
+    private val buildCounter = SuspendingLazy {
+        getSetting("buildNumberCounter")?.toIntOrNull()
+            ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
+    }
 
-    override val id: BuildConfigurationId
-        get() = BuildConfigurationId(idString)
+    private val buildNumberFormat = SuspendingLazy {
+        getSetting("buildNumberPattern")
+            ?: throw TeamCityQueryException("Cannot get 'buildNumberPattern' setting for $idString")
+    }
 
-    override suspend fun isPaused(): Boolean = nullable { it.paused } ?: false // TC won't return paused:false field
+    override suspend fun getName(): String = name.getValue()
+    override suspend fun getProjectId(): ProjectId = projectId.getValue()
+
+    override suspend fun isPaused(): Boolean = paused.getValue()
 
     override suspend fun getBuildTags(): List<String> {
         return instance.service.buildTypeTags(idString).tag!!.map { it.name!! }
@@ -1175,20 +1186,14 @@ private class BuildConfigurationImpl(
             ?.map { ArtifactDependencyImpl(it, true, instance) }.orEmpty()
     }
 
-    override suspend fun getBuildCounter(): Int {
-        return getSetting("buildNumberCounter")?.toIntOrNull()
-            ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
-    }
+    override suspend fun getBuildCounter(): Int = buildCounter.getValue()
 
     override suspend fun setBuildCounter(value: Int) {
         LOG.info("Setting build counter to '$value' in BuildConfigurationId=$idString")
         instance.service.setBuildTypeSettings(idString, "buildNumberCounter", value.toString().toTextPlainBody())
     }
 
-    override suspend fun getBuildNumberFormat(): String {
-        return getSetting("buildNumberPattern")
-            ?: throw TeamCityQueryException("Cannot get 'buildNumberPattern' setting for $idString")
-    }
+    override suspend fun getBuildNumberFormat(): String = buildNumberFormat.getValue()
 
     override suspend fun setBuildNumberFormat(format: String) {
         LOG.info("Setting build number format to '$format' in BuildConfigurationId=$idString")
@@ -1304,25 +1309,26 @@ private class ChangeImpl(
             .build
             .map { BuildImpl(it, false, instance) }
 
-    override val id: ChangeId
-        get() = ChangeId(idString)
+    override val id: ChangeId = ChangeId(idString)
+    private val version = SuspendingLazy { notnull { it.version } }
+    private val username = SuspendingLazy { notnull { it.username } }
+    private val user = SuspendingLazy { nullable { it.user }?.let { UserImpl(it, false, instance) } }
+    private val dateTime = SuspendingLazy { ZonedDateTime.parse(notnull { it.date }, teamCityServiceDateFormat) }
+    private val comment = SuspendingLazy { notnull { it.comment } }
+    private val vcsRootInstance = SuspendingLazy { nullable { it.vcsRootInstance }?.let { VcsRootInstanceImpl(it) } }
 
-    override suspend fun getVersion(): String = notnull { it.version }
-
-    override suspend fun getUsername(): String = notnull { it.username }
-
-    override suspend fun getUser(): User? = nullable { it.user }?.let { UserImpl(it, false, instance) }
-
-    override suspend fun getDateTime(): ZonedDateTime =
-        ZonedDateTime.parse(notnull { it.date }, teamCityServiceDateFormat)
-
-    override suspend fun getRegistrationDate(): ZonedDateTime =
+    private val registrationDate = SuspendingLazy {
         ZonedDateTime.parse(notnull { it.registrationDate }, teamCityServiceDateFormat)
+    }
 
-    override suspend fun getComment(): String = notnull { it.comment }
+    override suspend fun getVersion(): String = version.getValue()
+    override suspend fun getUsername(): String = username.getValue()
+    override suspend fun getUser(): User? = user.getValue()
+    override suspend fun getDateTime(): ZonedDateTime = dateTime.getValue()
+    override suspend fun getRegistrationDate(): ZonedDateTime = registrationDate.getValue()
+    override suspend fun getComment(): String = comment.getValue()
+    override suspend fun getVcsRootInstance(): VcsRootInstance? = vcsRootInstance.getValue()
 
-    override suspend fun getVcsRootInstance(): VcsRootInstance? =
-        nullable { it.vcsRootInstance }?.let { VcsRootInstanceImpl(it) }
 
     override suspend fun getFiles(): List<ChangeFile> {
         return instance.service.changeFiles(id.stringId).files?.file?.map { ChangeFileImpl(it) } ?: emptyList()
@@ -1344,12 +1350,13 @@ private class ChangeFileImpl(private val bean: ChangeFileBean) : ChangeFile {
         get() = bean.`before-revision`
     override val fileRevisionAfterChange: String?
         get() = bean.`after-revision`
-    override val changeType: ChangeType
-        get() = try {
+    override val changeType: ChangeType by lazy {
+        try {
             bean.changeType?.let { ChangeType.valueOf(it.uppercase()) } ?: ChangeType.UNKNOWN
         } catch (e: IllegalArgumentException) {
             ChangeType.UNKNOWN
         }
+    }
     override val filePath: String?
         get() = bean.file
     override val relativeFilePath: String?
@@ -1366,14 +1373,20 @@ private class UserImpl(
     instance: TeamCityCoroutinesInstanceImpl
 ) :
     BaseImpl<UserBean>(bean, isFullBuildBean, instance), User {
-    private val locator = "id:${id.stringId}"
 
     override suspend fun fetchFullBean(): UserBean {
         return instance.service.users(locator)
     }
 
-    override suspend fun getEmail(): String? = nullable { it.email }
-    override suspend fun getRoles(): List<AssignedRole> = fullBean.getValue().roles?.role?.map(::AssignedRoleImpl) ?: emptyList()
+    override val id = UserId(idString)
+    private val locator = "id:${id.stringId}"
+    private val email = SuspendingLazy { nullable { it.email } }
+    private val name = SuspendingLazy { nullable { it.name } }
+    private val username = SuspendingLazy { notnull { it.username } }
+    private val roles = SuspendingLazy { fullBean.getValue().roles?.role?.map(::AssignedRoleImpl) ?: emptyList() }
+
+    override suspend fun getEmail(): String? = email.getValue()
+    override suspend fun getRoles(): List<AssignedRole> = roles.getValue()
 
     override suspend fun addRole(roleId: RoleId, roleScope: RoleScope) {
         instance.service.addUserRole(locator, roleId.stringId, roleScope.descriptor)
@@ -1383,12 +1396,9 @@ private class UserImpl(
         instance.service.deleteUserRole(locator, roleId.stringId, roleScope.descriptor)
     }
 
-    override val id: UserId
-        get() = UserId(idString)
+    override suspend fun getUsername(): String = username.getValue()
 
-    override suspend fun getUsername(): String = notnull { it.username }
-
-    override suspend fun getName(): String? = nullable { it.name }
+    override suspend fun getName(): String? = name.getValue()
 
     override fun getHomeUrl(): String = getUserUrlPage(
         instance.serverUrl, "admin/editUser.html",
@@ -1471,6 +1481,17 @@ private class ArtifactDependencyImpl(
     BaseImpl<ArtifactDependencyBean>(bean, isFullBean, instance), ArtifactDependency {
 
     override val id = ArtifactDependencyId(bean.id!!)
+    private val branch = SuspendingLazy { findPropertyByName("revisionBranch") }
+    private val isClearDestDir = SuspendingLazy { findPropertyByName("cleanDestinationDirectory")!!.toBoolean() }
+
+    private val dependsOnBuildConfiguration = SuspendingLazy {
+        BuildConfigurationImpl(bean.`source-buildType`, false, instance)
+    }
+
+    private val artifactRules = SuspendingLazy {
+        findPropertyByName("pathRules")!!.split(' ').map { ArtifactRuleImpl(it) }
+    }
+
     override suspend fun fetchFullBean(): ArtifactDependencyBean {
         error("Not supported, ArtifactDependencyImpl should be created with full bean")
     }
@@ -1481,21 +1502,13 @@ private class ArtifactDependencyImpl(
         "ArtifactDependency(id=$id)"
     }
 
-    override suspend fun getDependsOnBuildConfiguration(): BuildConfiguration {
-        return BuildConfigurationImpl(bean.`source-buildType`, false, instance)
-    }
+    override suspend fun getDependsOnBuildConfiguration(): BuildConfiguration = dependsOnBuildConfiguration.getValue()
 
-    override suspend fun getBranch(): String? {
-        return findPropertyByName("revisionBranch")
-    }
+    override suspend fun getBranch(): String? = branch.getValue()
 
-    override suspend fun getArtifactRules(): List<ArtifactRule> {
-        return findPropertyByName("pathRules")!!.split(' ').map { ArtifactRuleImpl(it) }
-    }
+    override suspend fun getArtifactRules(): List<ArtifactRule> = artifactRules.getValue()
 
-    override suspend fun isCleanDestinationDirectory(): Boolean {
-        return findPropertyByName("cleanDestinationDirectory")!!.toBoolean()
-    }
+    override suspend fun isCleanDestinationDirectory(): Boolean = isClearDestDir.getValue()
 
     private suspend fun findPropertyByName(name: String): String? {
         return fullBean.getValue().properties?.property?.find { it.name == name }?.value
@@ -1619,124 +1632,139 @@ private class BuildImpl(
     isFullBean: Boolean,
     instance: TeamCityCoroutinesInstanceImpl
 ) : BaseImpl<BuildBean>(bean, isFullBean, instance), BuildEx {
+    override val id: BuildId = BuildId(idString)
+
     override suspend fun fetchFullBean(): BuildBean = instance.service.build(id.stringId)
+
+    private val statusText = SuspendingLazy { fullBean.getValue().statusText }
+    private val runningInfo = SuspendingLazy { fullBean.getValue().`running-info`?.let { BuildRunningInfoImpl(it) } }
+    private val parameters = SuspendingLazy { fullBean.getValue().properties!!.property!!.map { ParameterImpl(it) } }
+    private val tags = SuspendingLazy { fullBean.getValue().tags?.tag?.map { it.name!! } ?: emptyList() }
+    private val revisions = SuspendingLazy { fullBean.getValue().revisions!!.revision!!.map { RevisionImpl(it) } }
+    private val pinInfo = SuspendingLazy { fullBean.getValue().pinInfo?.let { PinInfoImpl(it, instance) } }
+    private val triggeredInfo = SuspendingLazy { fullBean.getValue().triggered?.let { TriggeredImpl(it, instance) } }
+    private val buildConfigurationId = SuspendingLazy { BuildConfigurationId(notnull { it.buildTypeId }) }
+    private val buildNumber = SuspendingLazy { nullable { it.number } }
+    private val status = SuspendingLazy { nullable { it.status } }
+    private val personal = SuspendingLazy { nullable { it.personal } ?: false }
+    private val comment = SuspendingLazy { fullBean.getValue().comment?.let { BuildCommentInfoImpl(it, instance) } }
+    private val composite = SuspendingLazy { fullBean.getValue().composite }
+
+    private val queuedDateTime = SuspendingLazy {
+        fullBean.getValue().queuedDate!!.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+    }
+
+    private val startDateTime = SuspendingLazy {
+        fullBean.getValue().startDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+    }
+
+    private val finishDateTime = SuspendingLazy {
+        fullBean.getValue().finishDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+    }
+
+    private val changes = SuspendingLazy {
+        instance.service.changes(
+            "build:$idString",
+            "change(id,version,username,user,date,comment,vcsRootInstance)"
+        ).change!!.map { ChangeImpl(it, true, instance) }
+    }
+
+    private val snapshotDependencies = SuspendingLazy {
+        fullBean.getValue().`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) }
+            ?: emptyList()
+    }
+
+    private val agent = SuspendingLazy {
+        val agentBean = fullBean.getValue().agent
+        if (agentBean?.id == null) null else BuildAgentImpl(agentBean, false, instance)
+    }
+
+    private val state = SuspendingLazy {
+        try {
+            val state = notnull { it.state }
+            BuildState.valueOf(state.uppercase())
+        } catch (e: IllegalArgumentException) {
+            BuildState.UNKNOWN
+        }
+    }
+
+    private val name = SuspendingLazy {
+        bean.buildType?.name ?: instance.buildConfiguration(getBuildConfigurationId()).getName()
+    }
+
+    private val canceledInfo = SuspendingLazy {
+        fullBean.getValue().canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
+    }
+
+    private val branch = SuspendingLazy {
+        val branchName = nullable { it.branchName }
+        val isDefaultBranch = nullable { it.defaultBranch }
+        BranchImpl(
+            name = branchName,
+            isDefault = isDefaultBranch ?: (branchName == null)
+        )
+    }
+
+    private val detachedFromAgent = SuspendingLazy { nullable { it.detachedFromAgent } ?: false }
+    private val projectId = SuspendingLazy { instance.buildConfiguration(getBuildConfigurationId()).getProjectId() }
 
     override fun getHomeUrl(): String = getUserUrlPage(
         instance.serverUrl, "viewLog.html",
         buildId = id
     )
 
-    override suspend fun getStatusText(): String? {
-        return fullBean.getValue().statusText
-    }
+    override suspend fun getStatusText(): String? = statusText.getValue()
 
-    override suspend fun getQueuedDateTime(): ZonedDateTime {
-        return fullBean.getValue().queuedDate!!.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
-    }
+    override suspend fun getQueuedDateTime(): ZonedDateTime = queuedDateTime.getValue()
 
-    override suspend fun getStartDateTime(): ZonedDateTime? {
-        return fullBean.getValue().startDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
-    }
+    override suspend fun getStartDateTime(): ZonedDateTime? = startDateTime.getValue()
 
-    override suspend fun getFinishDateTime(): ZonedDateTime? {
-        return fullBean.getValue().finishDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
-    }
+    override suspend fun getFinishDateTime(): ZonedDateTime? = finishDateTime.getValue()
 
-    override suspend fun getRunningInfo(): BuildRunningInfo? {
-        return fullBean.getValue().`running-info`?.let { BuildRunningInfoImpl(it) }
-    }
+    override suspend fun getRunningInfo(): BuildRunningInfo? = runningInfo.getValue()
 
-    override suspend fun getParameters(): List<Parameter> {
-        return fullBean.getValue().properties!!.property!!.map { ParameterImpl(it) }
-    }
+    override suspend fun getParameters(): List<Parameter> = parameters.getValue()
 
-    override suspend fun getTags(): List<String> {
-        return fullBean.getValue().tags?.tag?.map { it.name!! } ?: emptyList()
-    }
+    override suspend fun getTags(): List<String> = tags.getValue()
 
-    override suspend fun getRevisions(): List<Revision> {
-        return fullBean.getValue().revisions!!.revision!!.map { RevisionImpl(it) }
-    }
+    override suspend fun getRevisions(): List<Revision> = revisions.getValue()
 
-    override suspend fun getChanges(): List<Change> {
-        return instance.service.changes(
-            "build:$idString",
-            "change(id,version,username,user,date,comment,vcsRootInstance)"
-        )
-            .change!!.map { ChangeImpl(it, true, instance) }
-    }
+    override suspend fun getChanges(): List<Change> = changes.getValue()
 
-    override suspend fun getSnapshotDependencies(): List<Build> {
-        return fullBean.getValue().`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) } ?: emptyList()
-    }
+    override suspend fun getSnapshotDependencies(): List<Build> = snapshotDependencies.getValue()
 
-    override suspend fun getPinInfo(): PinInfo? {
-        return fullBean.getValue().pinInfo?.let { PinInfoImpl(it, instance) }
-    }
+    override suspend fun getPinInfo(): PinInfo? = pinInfo.getValue()
 
-    override suspend fun getTriggeredInfo(): TriggeredInfo? {
-        return fullBean.getValue().triggered?.let { TriggeredImpl(it, instance) }
-    }
+    override suspend fun getTriggeredInfo(): TriggeredInfo? = triggeredInfo.getValue()
 
-    override suspend fun getAgent(): BuildAgent? {
-        val agentBean = fullBean.getValue().agent
-        if (agentBean?.id == null) {
-            return null
-        }
-        return BuildAgentImpl(agentBean, false, instance)
-    }
+    override suspend fun getAgent(): BuildAgent? = agent.getValue()
 
-    override val id: BuildId
-        get() = BuildId(idString)
 
-    override suspend fun getBuildConfigurationId(): BuildConfigurationId =
-        BuildConfigurationId(notnull { it.buildTypeId })
+    override suspend fun getBuildConfigurationId(): BuildConfigurationId = buildConfigurationId.getValue()
 
-    override suspend fun getBuildNumber(): String? = nullable { it.number }
+    override suspend fun getBuildNumber(): String? = buildNumber.getValue()
 
-    override suspend fun getStatus(): BuildStatus? = nullable { it.status }
+    override suspend fun getStatus(): BuildStatus? = status.getValue()
 
-    override suspend fun getState(): BuildState = try {
-        val state = notnull { it.state }
-        BuildState.valueOf(state.uppercase())
-    } catch (e: IllegalArgumentException) {
-        BuildState.UNKNOWN
-    }
+    override suspend fun getState(): BuildState = state.getValue()
 
-    override suspend fun isPersonal(): Boolean = nullable { it.personal } ?: false
+    override suspend fun isPersonal(): Boolean = personal.getValue()
 
-    private val thisName = bean.buildType?.name
+    override suspend fun getName(): String = name.getValue()
 
-    override suspend fun getName(): String {
-        return thisName ?: instance.buildConfiguration(getBuildConfigurationId()).getName()
-    }
+    override suspend fun getCanceledInfo(): BuildCanceledInfo? = canceledInfo.getValue()
 
-    override suspend fun getCanceledInfo(): BuildCanceledInfo? {
-        return fullBean.getValue().canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
-    }
+    override suspend fun getComment(): BuildCommentInfo? = comment.getValue()
 
-    override suspend fun getComment(): BuildCommentInfo? {
-        return fullBean.getValue().comment?.let { BuildCommentInfoImpl(it, instance) }
-    }
+    override suspend fun isComposite(): Boolean? = composite.getValue()
 
-    override suspend fun isComposite(): Boolean? {
-        return fullBean.getValue().composite
-    }
-
-    override suspend fun getBranch(): Branch {
-        val branchName = nullable { it.branchName }
-        val isDefaultBranch = nullable { it.defaultBranch }
-        return BranchImpl(
-            name = branchName,
-            isDefault = isDefaultBranch ?: (branchName == null)
-        )
-    }
+    override suspend fun getBranch(): Branch = branch.getValue()
 
     override fun toString(): String =
         if (isFullBean) runBlocking { "Build{id=$id, buildConfigurationId=${getBuildConfigurationId()}, buildNumber=${getBuildNumber()}, status=${getStatus()}, branch=${getBranch()}}" }
         else "Build{id=$id}"
 
-    override suspend fun isDetachedFromAgent(): Boolean = nullable { it.detachedFromAgent } ?: false
+    override suspend fun isDetachedFromAgent(): Boolean = detachedFromAgent.getValue()
 
     override fun getTestRuns(status: TestStatus?): Flow<TestRun> = instance
         .testRuns()
@@ -1744,9 +1772,7 @@ private class BuildImpl(
         .let { if (status == null) it else it.withStatus(status) }
         .all()
 
-    override suspend fun getProjectId(): ProjectId =
-        instance.buildConfiguration(getBuildConfigurationId()).getProjectId()
-
+    override suspend fun getProjectId(): ProjectId = projectId.getValue()
 
     override fun getTestRunsSeq(status: TestStatus?): Sequence<TestRun> = (instance
             .testRuns()
@@ -1966,8 +1992,7 @@ private class TestImpl(
 
     override suspend fun fetchFullBean(): TestBean = instance.service.test(idString)
 
-    override val id: TestId
-        get() = TestId(idString)
+    override val id = TestId(idString)
 
     override suspend fun getName(): String = notnull { it.name }
 
@@ -1993,12 +2018,11 @@ private class BuildCommentInfoImpl(
     private val bean: BuildCommentBean,
     private val instance: TeamCityCoroutinesInstanceImpl
 ) : BuildCommentInfo {
-    override val timestamp: ZonedDateTime
-        get() = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
-    override val user: User?
-        get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
-    override val text: String
-        get() = bean.text ?: ""
+    override val timestamp: ZonedDateTime by lazy { ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat) }
+    override val user: User? by lazy {
+        if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
+    }
+    override val text: String = bean.text ?: ""
 
     override fun toString(): String {
         return "BuildCommentInfo(timestamp=$timestamp,userId=${user?.id},text=$text)"
@@ -2018,18 +2042,20 @@ private class VcsRootImpl(
         if (isFullBean) runBlocking { "VcsRoot(id=$id, name=${getName()})" }
         else "VcsRoot(id=$id)"
 
-    override val id: VcsRootId
-        get() = VcsRootId(idString)
+    override val id = VcsRootId(idString)
+    private val name = SuspendingLazy { notnull { it.name } }
+    private val url = SuspendingLazy { getNameValueProperty(properties.getValue(), "url") }
+    private val defaultBranch = SuspendingLazy { getNameValueProperty(properties.getValue(), "branch") }
 
-    override suspend fun getName(): String = notnull { it.name }
-
-    override suspend fun getUrl(): String? = getNameValueProperty(properties.getValue(), "url")
-
-    override suspend fun getDefaultBranch(): String? = getNameValueProperty(properties.getValue(), "branch")
-
-    val properties: SuspendingLazy<List<NameValueProperty>> = SuspendingLazy {
+    private val properties: SuspendingLazy<List<NameValueProperty>> = SuspendingLazy {
         fullBean.getValue().properties!!.property!!.map { NameValueProperty(it) }
     }
+
+    override suspend fun getName(): String = name.getValue()
+
+    override suspend fun getUrl(): String? = url.getValue()
+
+    override suspend fun getDefaultBranch(): String? = defaultBranch.getValue()
 }
 
 private class BuildAgentPoolImpl(
@@ -2045,18 +2071,22 @@ private class BuildAgentPoolImpl(
         if (isFullBean) runBlocking { "BuildAgentPool(id=$id, name=${getName()})" }
         else "BuildAgentPool(id=$id)"
 
-    override val id: BuildAgentPoolId
-        get() = BuildAgentPoolId(idString)
+    override val id = BuildAgentPoolId(idString)
+    private val name = SuspendingLazy { notnull { it.name } }
 
-    override suspend fun getName(): String = notnull { it.name }
-
-    override suspend fun getProjects(): List<Project> {
-        return fullBean.getValue().projects?.project?.map { ProjectImpl(it, false, instance) } ?: emptyList()
+    private val projects = SuspendingLazy {
+        fullBean.getValue().projects?.project?.map { ProjectImpl(it, false, instance) } ?: emptyList()
     }
 
-    override suspend fun getAgents(): List<BuildAgent> {
-        return fullBean.getValue().agents?.agent?.map { BuildAgentImpl(it, false, instance) } ?: emptyList()
+    private val agents = SuspendingLazy {
+        fullBean.getValue().agents?.agent?.map { BuildAgentImpl(it, false, instance) } ?: emptyList()
     }
+
+    override suspend fun getName(): String = name.getValue()
+
+    override suspend fun getProjects(): List<Project> = projects.getValue()
+
+    override suspend fun getAgents(): List<BuildAgent> = agents.getValue()
 }
 
 private class BuildAgentImpl(
@@ -2074,28 +2104,19 @@ private class BuildAgentImpl(
         if (isFullBean) runBlocking { "BuildAgent(id=$id, name=${getName()})" }
         else "BuildAgent(id=$id)"
 
-    override val id: BuildAgentId
-        get() = BuildAgentId(idString)
+    override val id = BuildAgentId(idString)
+    private val typeId = SuspendingLazy { BuildAgentTypeId(notnull { it.typeId }) }
+    private val name = SuspendingLazy { notnull { it.name } }
+    private val pool = SuspendingLazy { BuildAgentPoolImpl(fullBean.getValue().pool!!, false, instance) }
+    private val connected = SuspendingLazy { notnull { it.connected } }
+    private val enabled = SuspendingLazy { notnull { it.enabled } }
+    private val authorized = SuspendingLazy { notnull { it.authorized } }
+    private val outdated = SuspendingLazy { !notnull { it.uptodate } }
+    private val ip = SuspendingLazy { notnull { it.ip } }
+    private val parameters = SuspendingLazy { fullBean.getValue().properties!!.property!!.map { ParameterImpl(it) } }
 
-    override suspend fun getTypeId(): BuildAgentTypeId = BuildAgentTypeId(notnull { it.typeId })
-
-    override suspend fun getName(): String = notnull { it.name }
-
-    override suspend fun getPool(): BuildAgentPool = BuildAgentPoolImpl(fullBean.getValue().pool!!, false, instance)
-
-    override suspend fun isConnected(): Boolean = notnull { it.connected }
-
-    override suspend fun isEnabled(): Boolean = notnull { it.enabled }
-    override suspend fun isAuthorized(): Boolean = notnull { it.authorized }
-    override suspend fun isOutdated(): Boolean = !notnull { it.uptodate }
-    override suspend fun getIpAddress(): String = notnull { it.ip }
-
-    override suspend fun getParameters(): List<Parameter> {
-        return fullBean.getValue().properties!!.property!!.map { ParameterImpl(it) }
-    }
-
-    override suspend fun getEnabledInfo(): BuildAgentEnabledInfo? {
-        return fullBean.getValue().enabledInfo?.let { info ->
+    private val enabledInfo = SuspendingLazy {
+        fullBean.getValue().enabledInfo?.let { info ->
             info.comment?.let { comment ->
                 BuildAgentEnabledInfoImpl(
                     user = comment.user?.let { UserImpl(it, false, instance) },
@@ -2106,8 +2127,8 @@ private class BuildAgentImpl(
         }
     }
 
-    override suspend fun getAuthorizedInfo(): BuildAgentAuthorizedInfo? {
-        return fullBean.getValue().authorizedInfo?.let { info ->
+    private val authorizedInfo = SuspendingLazy {
+        fullBean.getValue().authorizedInfo?.let { info ->
             info.comment?.let { comment ->
                 BuildAgentAuthorizedInfoImpl(
                     user = comment.user?.let { UserImpl(it, false, instance) },
@@ -2118,12 +2139,34 @@ private class BuildAgentImpl(
         }
     }
 
-    override suspend fun getCurrentBuild(): Build? {
-        return fullBean.getValue().build?.let {
+    private val currentBuild = SuspendingLazy {
+        fullBean.getValue().build?.let {
             // API may return an empty build bean, pass it as null
             if (it.id == null) null else BuildImpl(it, false, instance)
         }
     }
+
+    override suspend fun getTypeId(): BuildAgentTypeId = typeId.getValue()
+
+    override suspend fun getName(): String = name.getValue()
+
+    override suspend fun getPool(): BuildAgentPool = pool.getValue()
+
+    override suspend fun isConnected(): Boolean = connected.getValue()
+
+    override suspend fun isEnabled(): Boolean = enabled.getValue()
+
+    override suspend fun isAuthorized(): Boolean = authorized.getValue()
+    override suspend fun isOutdated(): Boolean = outdated.getValue()
+    override suspend fun getIpAddress(): String = ip.getValue()
+
+    override suspend fun getParameters(): List<Parameter> = parameters.getValue()
+
+    override suspend fun getEnabledInfo(): BuildAgentEnabledInfo? = enabledInfo.getValue()
+
+    override suspend fun getAuthorizedInfo(): BuildAgentAuthorizedInfo? = authorizedInfo.getValue()
+
+    override suspend fun getCurrentBuild(): Build? = currentBuild.getValue()
 
 
     override fun getHomeUrl(): String = "${instance.serverUrl}/agentDetails.html?id=${id.stringId}"
@@ -2275,57 +2318,73 @@ private open class TestRunImpl(
     isFullBean: Boolean,
     instance: TeamCityCoroutinesInstanceImpl
 ) : TestRun, BaseImpl<TestOccurrenceBean>(bean, isFullBean, instance) {
-    override suspend fun getName(): String = notnull { it.name }
 
-    override val testOccurrenceId: TestOccurrenceId
-        get() = TestOccurrenceId(bean.id!!)
+    override val testOccurrenceId = TestOccurrenceId(bean.id!!)
+    private val name = SuspendingLazy { notnull { it.name } }
+    private val duration = SuspendingLazy { Duration.ofMillis(nullable { it.duration } ?: 0L)!! }
+    private val ignored = SuspendingLazy { nullable { it.ignored } ?: false }
+    private val currentlyMuted = SuspendingLazy { nullable { it.currentlyMuted } ?: false }
+    private val mutedAtRunningTime = SuspendingLazy { nullable { it.muted } ?: false }
+    private val newFailure = SuspendingLazy { nullable { it.newFailure } ?: false }
+    private val buildId = SuspendingLazy { BuildId(notnull { it.build }.id!!) }
+    private val metadataValues = SuspendingLazy { nullable { it.metadata }?.typedValues?.map { it.value.toString() } }
+    private val testId = SuspendingLazy { TestId(notnull { it.test }.id!!) }
+    private val logAnchor = SuspendingLazy { notnull { it.logAnchor } }
 
-    final override suspend fun getStatus() = when {
-        nullable { it.ignored } == true -> TestStatus.IGNORED
-        nullable { it.status } == "FAILURE" -> TestStatus.FAILED
-        nullable { it.status } == "SUCCESS" -> TestStatus.SUCCESSFUL
-        else -> TestStatus.UNKNOWN
+    private val fixedIn = SuspendingLazy {
+        if (nullable { it.nextFixed }?.id == null) null
+        else BuildId(notnull { it.nextFixed }.id!!)
     }
 
-    override suspend fun getDuration() = Duration.ofMillis(nullable { it.duration } ?: 0L)!!
-
-    override suspend fun getDetails(): String = when (getStatus()) {
-        TestStatus.IGNORED -> nullable { it.ignoreDetails }
-        TestStatus.FAILED -> nullable { it.details }
-        else -> null
-    } ?: ""
-
-    override suspend fun isIgnored(): Boolean = nullable { it.ignored } ?: false
-
-    override suspend fun isCurrentlyMuted(): Boolean = nullable { it.currentlyMuted } ?: false
-
-    override suspend fun isMutedAtRunningTime(): Boolean = nullable { it.muted } ?: false
-
-    override suspend fun isNewFailure(): Boolean = nullable { it.newFailure } ?: false
-
-    override suspend fun getBuildId(): BuildId = BuildId(notnull { it.build }.id!!)
-
-    override suspend fun getFixedIn(): BuildId? {
-        if (nullable { it.nextFixed }?.id == null)
-            return null
-
-        return BuildId(notnull { it.nextFixed }.id!!)
+    private val firstFailedIn = SuspendingLazy {
+        if (nullable { it.firstFailed }?.id == null) null
+        else BuildId(notnull { it.firstFailed }.id!!)
     }
 
-    override suspend fun getFirstFailedIn(): BuildId? {
-        if (nullable { it.firstFailed }?.id == null)
-            return null
-
-        return BuildId(notnull { it.firstFailed }.id!!)
+    private val status = SuspendingLazy {
+        when {
+            nullable { it.ignored } == true -> TestStatus.IGNORED
+            nullable { it.status } == "FAILURE" -> TestStatus.FAILED
+            nullable { it.status } == "SUCCESS" -> TestStatus.SUCCESSFUL
+            else -> TestStatus.UNKNOWN
+        }
     }
 
-    override suspend fun getMetadataValues(): List<String>? {
-        return nullable { it.metadata }?.typedValues?.map { it.value.toString() }
+    private val details = SuspendingLazy {
+        when (getStatus()) {
+            TestStatus.IGNORED -> nullable { it.ignoreDetails }
+            TestStatus.FAILED -> nullable { it.details }
+            else -> null
+        } ?: ""
     }
 
-    override suspend fun getTestId(): TestId = TestId(notnull { it.test }.id!!)
+    override suspend fun getName(): String = name.getValue()
 
-    override suspend fun getLogAnchor(): String = notnull { it.logAnchor }
+    final override suspend fun getStatus() = status.getValue()
+
+    override suspend fun getDuration() = duration.getValue()
+
+    override suspend fun getDetails(): String = details.getValue()
+
+    override suspend fun isIgnored(): Boolean = ignored.getValue()
+
+    override suspend fun isCurrentlyMuted(): Boolean = currentlyMuted.getValue()
+
+    override suspend fun isMutedAtRunningTime(): Boolean = mutedAtRunningTime.getValue()
+
+    override suspend fun isNewFailure(): Boolean = newFailure.getValue()
+
+    override suspend fun getBuildId(): BuildId = buildId.getValue()
+
+    override suspend fun getFixedIn(): BuildId? = fixedIn.getValue()
+
+    override suspend fun getFirstFailedIn(): BuildId? = firstFailedIn.getValue()
+
+    override suspend fun getMetadataValues(): List<String>? = metadataValues.getValue()
+
+    override suspend fun getTestId(): TestId = testId.getValue()
+
+    override suspend fun getLogAnchor(): String = logAnchor.getValue()
 
     override suspend fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(notnull { it.id }, TestOccurrenceBean.fullFieldsFilter)
 
@@ -2381,19 +2440,22 @@ private fun saveToFile(body: ResponseBody, file: File) {
 
 private class SuspendingLazy<T>(private val producer: suspend () -> T) {
     @Volatile
-    private var value: T? = null
+    private var value: Any? = NotInitialized
     private val mutex = Mutex()
 
     suspend fun getValue(): T {
-        if (value == null) {
+        if (value === NotInitialized) {
             mutex.withLock {
-                if (value == null) {
+                if (value === NotInitialized) {
                     value = producer()
                 }
             }
         }
-        return checkNotNull(value)
+        @Suppress("UNCHECKED_CAST")
+        return value as T
     }
+
+    private object NotInitialized
 }
 
 internal fun Issue.toInvestigationMuteBaseBean(assignmentBean: AssignmentBean) = InvestigationMuteBaseBean(
