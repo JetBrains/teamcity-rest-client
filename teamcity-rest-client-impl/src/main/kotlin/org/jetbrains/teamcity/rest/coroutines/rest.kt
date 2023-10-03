@@ -818,11 +818,21 @@ internal open class TestOccurrenceBean: IdBean() {
     var logAnchor: String? = null
 
     companion object {
-        val fullFieldsFilter: String = buildCustomFieldsFilter(TestRunsLocatorSettings.TestRunField.values().toList())
+        val fullFieldsFilter: String = buildCustomFieldsFilter(
+            fields = TestRunsLocatorSettings.TestRunField.values().toList(),
+            wrap = false
+        )
 
-        fun buildCustomFieldsFilter(fields: Collection<TestRunsLocatorSettings.TestRunField>): String {
+        fun buildCustomFieldsFilter(
+            fields: Collection<TestRunsLocatorSettings.TestRunField>,
+            wrap: Boolean
+        ): String {
             val allFields = fields.distinct().map(::remapField) + "id" // always fetch id field
-            return allFields.joinToString(prefix = "testOccurrence(", separator = ",", postfix = ")")
+            return if (wrap) {
+                allFields.joinToString(prefix = "testOccurrence(", separator = ",", postfix = ")")
+            } else {
+                allFields.joinToString(separator = ",")
+            }
         }
 
         private fun remapField(field: TestRunsLocatorSettings.TestRunField): String = when (field) {

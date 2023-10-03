@@ -17,9 +17,9 @@ class TestRunsTest {
     @Test
     fun test_limit() {
         val testBuild: Build = publicInstance()
-                .builds()
-                .fromConfiguration(testsBuildConfiguration)
-                .latest() ?: throw IllegalArgumentException("At least one build should be found")
+            .builds()
+            .fromConfiguration(testsBuildConfiguration)
+            .latest() ?: throw IllegalArgumentException("At least one build should be found")
 
         val testRuns = publicInstance().testRuns().forBuild(testBuild.id).limitResults(3).all()
         Assert.assertEquals(testRuns.count(), 2)
@@ -31,9 +31,9 @@ class TestRunsTest {
     @Test
     fun test_forBuild() {
         val testBuild: Build = publicInstance()
-                .builds()
-                .fromConfiguration(testsBuildConfiguration)
-                .latest() ?: throw IllegalArgumentException("At least one build should be found")
+            .builds()
+            .fromConfiguration(testsBuildConfiguration)
+            .latest() ?: throw IllegalArgumentException("At least one build should be found")
 
         val testRuns = publicInstance().testRuns().forBuild(testBuild.id).limitResults(3).all()
         Assert.assertTrue(testRuns.any())
@@ -86,5 +86,25 @@ class TestRunsTest {
             val second = build.getTestRuns().first { it.testOccurrenceId == id }
             assertEquals(first, second)
         }
+    }
+
+    @Test
+    fun prefetch_fields_test() {
+        val testBuild: Build = publicInstance()
+            .builds()
+            .fromConfiguration(testsBuildConfiguration)
+            .withBranch("branch-1571048951")
+            .latest() ?: throw IllegalArgumentException("At least one build should be found")
+
+        val testRuns = publicInstance()
+            .testRuns()
+            .forBuild(testBuild.id)
+            .prefetchFields(fields = emptyArray())
+            .limitResults(3)
+            .all()
+            .map { it.name } // will fetch full bean
+            .toList()
+
+        assertEqualsAnyOrder(testRuns, listOf("NumbersTest.testNumsNotEqual", "NumbersTest.testNumsAreEqual"))
     }
 }
