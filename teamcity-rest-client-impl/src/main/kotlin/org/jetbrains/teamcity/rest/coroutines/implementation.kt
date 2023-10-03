@@ -885,7 +885,7 @@ private abstract class BaseImpl<TBean : IdBean>(
         if (!isFullBean) {
             val full = fetchFullBean()
             require(full.id == bean.id) {
-                "Incorrect full bean fetched for ${bean.id}: $full"
+                "Incorrect full bean fetched: current '${bean.id}' != fetched '${full.id}'"
             }
             bean = full
             isFullBean = true
