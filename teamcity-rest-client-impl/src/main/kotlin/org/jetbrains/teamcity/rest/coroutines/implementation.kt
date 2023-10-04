@@ -80,29 +80,43 @@ private class RetryInterceptor(
     override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
         val request = chain.request()
 
-        var error: IOException? = null
-        var response: okhttp3.Response? = null
-
         var nextDelay = initialDelayMs
-        for (attempt in 1..maxAttempts) {
-            error = null
-            response = try {
+        var attempt = 1
+        while (true) {
+            var error: IOException? = null
+            val response: okhttp3.Response? = try {
                 chain.proceed(request)
             } catch (e: IOException) {
                 error = e
                 null
             }
 
+            // response is OK
             if (response != null && !response.retryRequired()) {
                 return response
             }
 
-            if (response != null) {
-                LOG.warn("Request ${request.url} failed: HTTP code ${response.code}, attempt=$attempt, will retry " +
-                        "in $nextDelay ms")
-            } else {
-                LOG.warn("Request ${request.url} failed, attempt=$attempt, will retry in $nextDelay ms", error)
+            // attempt limit exceeded
+            if (attempt == maxAttempts) {
+                if (response != null) {
+                    return response
+                }
+                throw TeamCityConversationException("Request ${request.url} failed, tried $maxAttempts times", error)
             }
+
+            // log error end retry
+            if (response != null) {
+                LOG.warn(
+                    "Request ${request.method} ${request.url} failed: HTTP code ${response.code}, " +
+                            "attempt=$attempt, will retry in $nextDelay ms"
+                )
+            } else {
+                LOG.warn(
+                    "Request ${request.method} ${request.url} failed, attempt=$attempt, will retry in $nextDelay ms",
+                    error
+                )
+            }
+
             if (nextDelay != 0L) {
                 Thread.sleep(nextDelay)
             }
@@ -110,12 +124,13 @@ private class RetryInterceptor(
             // (2 * random.nextDouble() - 1.0) -> between -1 and 1
             val jitter = ((2 * random.nextDouble() - 1) * nextRawDelay * expBackOffJitter).roundToLong()
             nextDelay = nextRawDelay + jitter
-        }
 
-        if (response != null) {
-            return response
+            // if not closed, next `chain.proceed(request)` will fail with error:
+            // `cannot make a new request because the previous response is still open: please call response.close()`
+            response?.close()
+
+            attempt++
         }
-        throw TeamCityConversationException("Request ${request.url} failed, tried $maxAttempts times", error)
     }
 }
 
