@@ -49,30 +49,59 @@ project {
 
         steps {
             script {
-                name = "Deploy test data"
+                name = "Fix env variables"
+                scriptContent = """
+                #!/bin/bash
+                    
+                if [[ "{'${'$'}'}LOGS_DIR" = /* ]]; then
+                F_LOGS_DIR=${'$'}LOGS_DIR
+                else
+                F_LOGS_DIR=${'$'}PWD/${'$'}LOGS_DIR
+                fi                            
+                
+                if [[ "{'${'$'}'}DATA_DIR" = /* ]]; then
+                F_DATA_DIR=${'$'}DATA_DIR
+                else
+                F_DATA_DIR=${'$'}PWD/${'$'}DATA_DIR
+                fi
+                
+                echo "##teamcity[setParameter name='env.LOGS_DIR' value='${'$'}F_LOGS_DIR']"
+                echo "##teamcity[setParameter name='env.DATA_DIR' value='${'$'}F_DATA_DIR']"
+                """.trimIndent()
+            }
+
+            script {
+                name = "Deploy test data and clean old test data"
                 scriptContent = """
                 #!/bin/bash                
+                
+                rm -rf ${'$'}DATA_DIR 
                 mkdir -p ${'$'}DATA_DIR
+
+                rm -rf ${'$'}LOGS_DIR 
+                mkdir -p ${'$'}LOGS_DIR
+                
                 curl -f -L \
                   -H "Authorization: Bearer %space_test_files_token%" \
-                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.3.0-20230816.tar.gz | tar xvz -C ${'$'}DATA_DIR                
+                  https://packages.jetbrains.team/files/p/teamcity-rest-client/test-files/tests/tc-rest-client-tests-db-1.3.0-20230816.tar.gz | tar xvz -C ${'$'}DATA_DIR
                 """.trimIndent()
             }
 
             script {
                 name = "Start server"
                 scriptContent = """
-                #!/bin/bash
-                mkdir -p ${'$'}LOGS_DIR
+                #!/bin/bash 
                 docker run -d --name teamcity-server \
                            -v ${'$'}DATA_DIR:/data/teamcity_server/datadir \
                            -v ${'$'}LOGS_DIR:/opt/teamcity/logs \
                            -p 8111:8111 \
-                           jetbrains/teamcity-server:2023.05.2
+                           --privileged \
+                           -u 0 \
+                           jetbrains/teamcity-server:2023.05.4
                            
                 COUNTER=120 # 10 min
-                until [ ${'$'}COUNTER -eq 0 ] || [[ ${'$'}(curl --output /dev/null --silent --head --fail http://localhost:8111/login.html) -ne 0 ]]; do
-                echo "Waiting for teamcity server startup completion..."
+                until [ ${'$'}COUNTER -eq 0 ] || [[ ${'$'}(curl --output /dev/null --silent --head --fail http://localhost:8111/login.html) -eq 0 ]]; do
+                echo "(${'$'}COUNTER) Waiting for teamcity server startup completion..."
                 sleep 5
                 let COUNTER-=1
                 done
