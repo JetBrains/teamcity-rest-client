@@ -25,7 +25,7 @@ internal interface TeamCityService {
     suspend fun builds(@Query("locator") buildLocator: String): Response<BuildListBean>
 
     @Headers("Accept: application/json")
-    @GET("app/rest/buildQueue")
+    @GET("app/rest/buildQueue?fields=build(id,buildTypeId,state,personal,queuedDate,branchName,buildType(id,projectId),revisions)")
     suspend fun queuedBuilds(@Query("locator") locator: String?): Response<BuildListBean>
 
     @Headers("Accept: application/json")
