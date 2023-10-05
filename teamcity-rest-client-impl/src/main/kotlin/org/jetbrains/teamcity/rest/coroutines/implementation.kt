@@ -1721,7 +1721,10 @@ private class BuildImpl(
     }
 
     private val detachedFromAgent = SuspendingLazy { nullable { it.detachedFromAgent } ?: false }
-    private val projectId = SuspendingLazy { instance.buildConfiguration(getBuildConfigurationId()).getProjectId() }
+    private val projectId = SuspendingLazy {
+        val id = bean.buildType?.projectId ?: fullBean.getValue().buildType?.projectId
+        ProjectId(checkNotNull(id))
+    }
 
     override fun getHomeUrl(): String = getUserUrlPage(
         instance.serverUrl, "viewLog.html",
