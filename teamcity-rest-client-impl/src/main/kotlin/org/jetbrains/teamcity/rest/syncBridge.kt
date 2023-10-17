@@ -982,7 +982,7 @@ private class RevisionBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Revision,
 ) : Revision {
     override val version: String by lazy { delegate.version }
-    override val vcsBranchName: String by lazy { delegate.vcsBranchName }
+    override val vcsBranchName: String? by lazy { delegate.vcsBranchName }
     override val vcsRootInstance: VcsRootInstance = VcsRootInstanceBridge(delegate.vcsRootInstance)
     override fun toString(): String = delegate.toString()
 }

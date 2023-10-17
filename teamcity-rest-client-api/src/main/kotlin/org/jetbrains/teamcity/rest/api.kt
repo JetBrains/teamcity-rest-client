@@ -622,7 +622,7 @@ interface PinInfo {
 
 interface Revision {
     val version: String
-    val vcsBranchName: String
+    val vcsBranchName: String?
     val vcsRootInstance: VcsRootInstance
 }
 

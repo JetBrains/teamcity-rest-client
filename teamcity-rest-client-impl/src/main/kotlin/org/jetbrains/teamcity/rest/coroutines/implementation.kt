@@ -1577,8 +1577,8 @@ private class RevisionImpl(private val bean: RevisionBean) : Revision {
     override val version: String
         get() = bean.version!!
 
-    override val vcsBranchName: String
-        get() = bean.vcsBranchName!!
+    override val vcsBranchName: String?
+        get() = bean.vcsBranchName
 
     override val vcsRootInstance: VcsRootInstance
         get() = VcsRootInstanceImpl(bean.`vcs-root-instance`!!)
