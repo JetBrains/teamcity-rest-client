@@ -1651,30 +1651,34 @@ private class BuildImpl(
 
     override suspend fun fetchFullBean(): BuildBean = instance.service.build(id.stringId)
 
-    private val statusText = SuspendingLazy { fullBean.getValue().statusText }
-    private val runningInfo = SuspendingLazy { fullBean.getValue().`running-info`?.let { BuildRunningInfoImpl(it) } }
-    private val parameters = SuspendingLazy { fullBean.getValue().properties!!.property!!.map { ParameterImpl(it) } }
-    private val tags = SuspendingLazy { fullBean.getValue().tags?.tag?.map { it.name!! } ?: emptyList() }
-    private val revisions = SuspendingLazy { fullBean.getValue().revisions!!.revision!!.map { RevisionImpl(it) } }
-    private val pinInfo = SuspendingLazy { fullBean.getValue().pinInfo?.let { PinInfoImpl(it, instance) } }
-    private val triggeredInfo = SuspendingLazy { fullBean.getValue().triggered?.let { TriggeredImpl(it, instance) } }
+    private val statusText = SuspendingLazy { nullable { it.statusText } }
+    private val runningInfo = SuspendingLazy { nullable { it.`running-info` }?.let { BuildRunningInfoImpl(it) } }
+
+    private val parameters = SuspendingLazy {
+        nullable { it.properties?.property }?.map(::ParameterImpl) ?: emptyList()
+    }
+
+    private val tags = SuspendingLazy { nullable { it.tags?.tag }?.map { it.name!! } ?: emptyList() }
+    private val revisions = SuspendingLazy { notnull { it.revisions?.revision }.map { RevisionImpl(it) } }
+    private val pinInfo = SuspendingLazy { nullable { it.pinInfo }?.let { PinInfoImpl(it, instance) } }
+    private val triggeredInfo = SuspendingLazy { nullable { it.triggered }?.let { TriggeredImpl(it, instance) } }
     private val buildConfigurationId = SuspendingLazy { BuildConfigurationId(notnull { it.buildTypeId }) }
     private val buildNumber = SuspendingLazy { nullable { it.number } }
     private val status = SuspendingLazy { nullable { it.status } }
     private val personal = SuspendingLazy { nullable { it.personal } ?: false }
-    private val comment = SuspendingLazy { fullBean.getValue().comment?.let { BuildCommentInfoImpl(it, instance) } }
-    private val composite = SuspendingLazy { fullBean.getValue().composite }
+    private val comment = SuspendingLazy { nullable { it.comment }?.let { BuildCommentInfoImpl(it, instance) } }
+    private val composite = SuspendingLazy { nullable { it.composite } }
 
     private val queuedDateTime = SuspendingLazy {
-        fullBean.getValue().queuedDate!!.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        notnull { it.queuedDate }.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val startDateTime = SuspendingLazy {
-        fullBean.getValue().startDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        nullable { it.startDate }?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val finishDateTime = SuspendingLazy {
-        fullBean.getValue().finishDate?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        nullable { it.finishDate }?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val changes = SuspendingLazy {
@@ -1685,13 +1689,14 @@ private class BuildImpl(
     }
 
     private val snapshotDependencies = SuspendingLazy {
-        fullBean.getValue().`snapshot-dependencies`?.build?.map { BuildImpl(it, false, instance) }
+        nullable { it.`snapshot-dependencies`?.build }?.map { BuildImpl(it, false, instance) }
             ?: emptyList()
     }
 
     private val agent = SuspendingLazy {
-        val agentBean = fullBean.getValue().agent
-        if (agentBean?.id == null) null else BuildAgentImpl(agentBean, false, instance)
+        nullable { it.agent }
+            ?.takeIf { it.id != null }
+            ?.let { BuildAgentImpl(it, false, instance) }
     }
 
     private val state = SuspendingLazy {
@@ -1704,11 +1709,11 @@ private class BuildImpl(
     }
 
     private val name = SuspendingLazy {
-        bean.buildType?.name ?: instance.buildConfiguration(getBuildConfigurationId()).getName()
+        nullable { it.buildType?.name } ?: instance.buildConfiguration(getBuildConfigurationId()).getName()
     }
 
     private val canceledInfo = SuspendingLazy {
-        fullBean.getValue().canceledInfo?.let { BuildCanceledInfoImpl(it, instance) }
+        nullable { it.canceledInfo }?.let { BuildCanceledInfoImpl(it, instance) }
     }
 
     private val branch = SuspendingLazy {
@@ -1722,8 +1727,7 @@ private class BuildImpl(
 
     private val detachedFromAgent = SuspendingLazy { nullable { it.detachedFromAgent } ?: false }
     private val projectId = SuspendingLazy {
-        val id = bean.buildType?.projectId ?: fullBean.getValue().buildType?.projectId
-        ProjectId(checkNotNull(id))
+        ProjectId(notnull { it.buildType?.projectId })
     }
 
     override fun getHomeUrl(): String = getUserUrlPage(

@@ -491,8 +491,8 @@ internal open class BuildBean: IdBean() {
     var comment: BuildCommentBean? = null
     var agent: BuildAgentBean? = null
 
-    var properties: ParametersBean? = ParametersBean()
-    var buildType: BuildTypeBean? = BuildTypeBean()
+    var properties: ParametersBean? = null
+    var buildType: BuildTypeBean? = null
 
     var `snapshot-dependencies`: BuildListBean? = null
     var detachedFromAgent: Boolean? = null
@@ -698,7 +698,7 @@ internal class RoleBean {
 }
 
 internal class ParametersBean() {
-    var property: List<ParameterBean>? = ArrayList()
+    var property: List<ParameterBean>? = null
 
     constructor(properties: List<ParameterBean>) : this() {
         property = properties
