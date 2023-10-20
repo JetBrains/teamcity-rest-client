@@ -868,9 +868,9 @@ internal open class TestOccurrenceBean: IdBean() {
             fields: Collection<TestRunsLocatorSettings.TestRunField>,
             wrap: Boolean
         ): String {
-            val allFields = fields.distinct().map(::remapField) + "id" // always fetch id field
+            val allFields = (fields.asSequence().map(::remapField) + "id").distinct()
             return if (wrap) {
-                allFields.joinToString(prefix = "testOccurrence(", separator = ",", postfix = ")")
+                allFields.joinToString(prefix = "nextHref,testOccurrence(", separator = ",", postfix = ")")
             } else {
                 allFields.joinToString(separator = ",")
             }
