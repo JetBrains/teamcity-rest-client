@@ -2,6 +2,7 @@ package org.jetbrains.teamcity.rest.coroutines
 
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.teamcity.rest.*
+import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -218,6 +219,7 @@ interface BuildCanceledInfo {
 interface Build {
     val id: BuildId
     suspend fun getBuildConfigurationId(): BuildConfigurationId
+    suspend fun getProjectId(): ProjectId
     suspend fun getBuildNumber(): String?
     suspend fun getStatus(): BuildStatus?
     suspend fun getBranch(): Branch
@@ -539,8 +541,24 @@ interface ArtifactRule {
 
 interface BuildQueue {
     suspend fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
-    fun queuedBuilds(projectId: ProjectId? = null): Flow<Build>
-    fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Flow<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        projectId: ProjectId? = null,
+        prefetchFields: Set<BuildField> = BuildField.essentialFields
+    ): Flow<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildField> = BuildField.essentialFields
+    ): Flow<Build>
 }
 
 sealed class InvestigationScope {

@@ -151,11 +151,17 @@ private class BuildQueueBridge(
         delegate.removeBuild(id, comment, reAddIntoQueue)
     }
 
-    override fun queuedBuilds(projectId: ProjectId?): Sequence<Build> =
-        delegate.queuedBuildsSeq(projectId).map(::BuildBridge)
+    override fun queuedBuilds(
+        projectId: ProjectId?,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Sequence<Build> =
+        delegate.queuedBuildsSeq(projectId, prefetchFields).map(::BuildBridge)
 
-    override fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Sequence<Build> =
-        delegate.queuedBuildsSeq(buildConfigurationId).map(::BuildBridge)
+    override fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Sequence<Build> =
+        delegate.queuedBuildsSeq(buildConfigurationId, prefetchFields).map(::BuildBridge)
 }
 
 private class VcsRootLocatorBridge(
@@ -406,6 +412,11 @@ private class BuildLocatorBridge(
 
     override fun defaultFilter(enable: Boolean): BuildLocator {
         delegate.defaultFilter(enable)
+        return this
+    }
+
+    override fun prefetchFields(vararg fields: BuildLocatorSettings.BuildField): BuildLocator {
+        delegate.prefetchFields(*fields)
         return this
     }
 

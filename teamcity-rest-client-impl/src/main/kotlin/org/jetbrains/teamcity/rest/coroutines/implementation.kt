@@ -18,6 +18,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.teamcity.rest.*
+import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -52,6 +53,9 @@ private val applicationXmlMediaType = "application/xml".toMediaType()
 
 private fun String.toTextPlainBody() = toRequestBody(textPlainMediaType)
 private fun String.toApplicationXmlBody() = toRequestBody(applicationXmlMediaType)
+
+private inline fun <reified T : Enum<T>> Set<T>.copyToEnumSet(): EnumSet<T> =
+    if (isEmpty()) EnumSet.noneOf(T::class.java) else EnumSet.copyOf(this)
 
 private class RetryInterceptor(
     private val maxAttempts: Int,
@@ -255,7 +259,7 @@ internal class TeamCityCoroutinesInstanceImpl(
     override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, this)
     override fun tests(): TestLocator = TestLocatorImpl(this)
     override suspend fun build(id: BuildId): Build = BuildImpl(
-        BuildBean().also { it.id = id.stringId }, false, this
+        BuildBean().also { it.id = id.stringId }, emptySet(), this
     )
 
     override suspend fun build(buildConfigurationId: BuildConfigurationId, number: String): Build? =
@@ -391,6 +395,8 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
     private var canceled: String? = null
     private var agentName: String? = null
     private var defaultFilter: Boolean = true
+    private val buildFields: MutableSet<BuildField> = BuildField.defaultFields.copyToEnumSet()
+
 
     override fun forProject(projectId: ProjectId): BuildLocator {
         this.affectedProjectId = projectId
@@ -477,6 +483,12 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
         return this
     }
 
+    override fun prefetchFields(vararg fields: BuildField): BuildLocator {
+        buildFields.clear()
+        buildFields.addAll(fields)
+        return this
+    }
+
     override fun withAllBranches(): BuildLocator {
         if (branch != null) {
             LOG.warn("Branch is ignored because of #withAllBranches")
@@ -557,20 +569,24 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
 
     override fun all(): Flow<Build> {
         val buildLocator = getLocator()
+        val buildFieldsCopy = buildFields.copyToEnumSet()
+        val fields = BuildBean.buildCustomFieldsFilter(buildFieldsCopy, wrap = true)
         val flow = lazyPagingFlow(instance,
-            getFirstBean = { instance.service.builds(buildLocator = buildLocator) },
+            getFirstBean = { instance.service.builds(buildLocator = buildLocator, fields = fields) },
             convertToPage = { buildsBean ->
-                Page(data = buildsBean.build.map { BuildImpl(it, false, instance) }, nextHref = buildsBean.nextHref)
+                Page(data = buildsBean.build.map { BuildImpl(it, buildFieldsCopy, instance) }, nextHref = buildsBean.nextHref)
             })
         return limitResults?.let(flow::take) ?: flow
     }
 
     override fun allSeq(): Sequence<Build> {
         val buildLocator = getLocator()
+        val buildFieldsCopy = buildFields.copyToEnumSet()
+        val fields = BuildBean.buildCustomFieldsFilter(buildFieldsCopy, wrap = true)
         val sequence = lazyPagingSequence(instance,
-            getFirstBean = { instance.service.builds(buildLocator = buildLocator) },
+            getFirstBean = { instance.service.builds(buildLocator = buildLocator, fields = fields) },
             convertToPage = { buildsBean ->
-                Page(data = buildsBean.build.map { BuildImpl(it, false, instance) }, nextHref = buildsBean.nextHref)
+                Page(data = buildsBean.build.map { BuildImpl(it, buildFieldsCopy, instance) }, nextHref = buildsBean.nextHref)
             })
         return limitResults?.let(sequence::take) ?: sequence
     }
@@ -1322,7 +1338,7 @@ private class ChangeImpl(
         instance.service
             .changeFirstBuilds(id.stringId)
             .build
-            .map { BuildImpl(it, false, instance) }
+            .map { BuildImpl(it, emptySet(), instance) }
 
     override val id: ChangeId = ChangeId(idString)
     private val version = SuspendingLazy { notnull { it.version } }
@@ -1442,7 +1458,7 @@ private class TriggeredImpl(
     override val user: User?
         get() = if (bean.user != null) UserImpl(bean.user!!, false, instance) else null
     override val build: Build?
-        get() = if (bean.build != null) BuildImpl(bean.build, false, instance) else null
+        get() = if (bean.build != null) BuildImpl(bean.build, emptySet(), instance) else null
     override val type: String by lazy { bean.type!! }
 }
 
@@ -1549,7 +1565,7 @@ private class BuildProblemOccurrenceImpl(
     override val buildProblem: BuildProblem
         get() = BuildProblemImpl(bean.problem!!)
     override val build: Build
-        get() = BuildImpl(bean.build!!, false, instance)
+        get() = BuildImpl(bean.build!!, emptySet(), instance)
     override val details: String
         get() = bean.details ?: ""
     override val additionalData: String?
@@ -1644,41 +1660,91 @@ private inline fun <reified Bean, T> lazyPagingSequence(
 
 private class BuildImpl(
     bean: BuildBean,
-    isFullBean: Boolean,
+    private val prefetchedFields: Set<BuildField>,
     instance: TeamCityCoroutinesInstanceImpl
-) : BaseImpl<BuildBean>(bean, isFullBean, instance), BuildEx {
+) : BaseImpl<BuildBean>(bean, isFullBean = prefetchedFields.size == BuildField.size, instance),
+    BuildEx {
     override val id: BuildId = BuildId(idString)
 
-    override suspend fun fetchFullBean(): BuildBean = instance.service.build(id.stringId)
+    override suspend fun fetchFullBean(): BuildBean = instance.service.build(id.stringId, BuildBean.fullFieldsFilter)
 
-    private val statusText = SuspendingLazy { nullable { it.statusText } }
-    private val runningInfo = SuspendingLazy { nullable { it.`running-info` }?.let { BuildRunningInfoImpl(it) } }
-
-    private val parameters = SuspendingLazy {
-        nullable { it.properties?.property }?.map(::ParameterImpl) ?: emptyList()
+    private suspend fun <T> fromFullBeanIf(check: Boolean, getter: (BuildBean) -> T): T = if (check) {
+        getter(fullBean.getValue())
+    } else {
+        getter(bean)
     }
 
-    private val tags = SuspendingLazy { nullable { it.tags?.tag }?.map { it.name!! } ?: emptyList() }
-    private val revisions = SuspendingLazy { notnull { it.revisions?.revision }.map { RevisionImpl(it) } }
-    private val pinInfo = SuspendingLazy { nullable { it.pinInfo }?.let { PinInfoImpl(it, instance) } }
-    private val triggeredInfo = SuspendingLazy { nullable { it.triggered }?.let { TriggeredImpl(it, instance) } }
-    private val buildConfigurationId = SuspendingLazy { BuildConfigurationId(notnull { it.buildTypeId }) }
-    private val buildNumber = SuspendingLazy { nullable { it.number } }
-    private val status = SuspendingLazy { nullable { it.status } }
-    private val personal = SuspendingLazy { nullable { it.personal } ?: false }
-    private val comment = SuspendingLazy { nullable { it.comment }?.let { BuildCommentInfoImpl(it, instance) } }
-    private val composite = SuspendingLazy { nullable { it.composite } }
+    private val statusText = SuspendingLazy {
+        fromFullBeanIf(BuildField.STATUS_TEXT !in prefetchedFields, BuildBean::statusText)
+    }
+
+    private val runningInfo = SuspendingLazy {
+        val info = fromFullBeanIf(BuildField.RUNNING_INFO !in prefetchedFields, BuildBean::`running-info`)
+        info?.let { BuildRunningInfoImpl(it) }
+    }
+
+    private val parameters = SuspendingLazy {
+        val properties = fromFullBeanIf(BuildField.PARAMETERS !in prefetchedFields, BuildBean::properties)
+        properties?.property?.map(::ParameterImpl) ?: emptyList()
+    }
+
+    private val tags = SuspendingLazy {
+        val tags = fromFullBeanIf(BuildField.TAGS !in prefetchedFields, BuildBean::tags)
+        tags?.tag?.map { it.name!! } ?: emptyList()
+    }
+
+    private val revisions = SuspendingLazy {
+        val revisionsBean = fromFullBeanIf(BuildField.REVISIONS !in prefetchedFields, BuildBean::revisions)
+        revisionsBean?.revision?.map { RevisionImpl(it) } ?: emptyList()
+    }
+
+    private val pinInfo = SuspendingLazy {
+        val pinInfoBean = fromFullBeanIf(BuildField.PIN_INFO !in prefetchedFields, BuildBean::pinInfo)
+        pinInfoBean?.let { PinInfoImpl(it, instance) }
+    }
+
+    private val triggeredInfo = SuspendingLazy {
+        val triggeredInfoBean = fromFullBeanIf(BuildField.TRIGGERED_INFO !in prefetchedFields, BuildBean::triggered)
+        triggeredInfoBean?.let { TriggeredImpl(it, instance) }
+    }
+
+    private val buildConfigurationId = SuspendingLazy {
+        val buildTypeId = fromFullBeanIf(BuildField.BUILD_CONFIGURATION_ID !in prefetchedFields, BuildBean::buildTypeId)
+        BuildConfigurationId(checkNotNull(buildTypeId))
+    }
+
+    private val buildNumber = SuspendingLazy {
+        fromFullBeanIf(BuildField.BUILD_NUMBER !in prefetchedFields, BuildBean::number)
+    }
+
+    private val status = SuspendingLazy { fromFullBeanIf(BuildField.STATUS !in prefetchedFields, BuildBean::status) }
+
+    private val personal = SuspendingLazy {
+        fromFullBeanIf(BuildField.IS_PERSONAL !in prefetchedFields, BuildBean::personal) ?: false
+    }
+
+    private val comment = SuspendingLazy {
+        fromFullBeanIf(BuildField.COMMENT !in prefetchedFields, BuildBean::comment)
+            ?.let { BuildCommentInfoImpl(it, instance) }
+    }
+
+    private val composite = SuspendingLazy {
+        fromFullBeanIf(BuildField.IS_COMPOSITE !in prefetchedFields, BuildBean::composite)
+    }
 
     private val queuedDateTime = SuspendingLazy {
-        notnull { it.queuedDate }.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        checkNotNull(fromFullBeanIf(BuildField.QUEUED_DATETIME !in prefetchedFields, BuildBean::queuedDate))
+            .let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val startDateTime = SuspendingLazy {
-        nullable { it.startDate }?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        fromFullBeanIf(BuildField.START_DATETIME !in prefetchedFields, BuildBean::startDate)
+            ?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val finishDateTime = SuspendingLazy {
-        nullable { it.finishDate }?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        fromFullBeanIf(BuildField.FINISH_DATETIME !in prefetchedFields, BuildBean::finishDate)
+            ?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val changes = SuspendingLazy {
@@ -1689,19 +1755,19 @@ private class BuildImpl(
     }
 
     private val snapshotDependencies = SuspendingLazy {
-        nullable { it.`snapshot-dependencies`?.build }?.map { BuildImpl(it, false, instance) }
-            ?: emptyList()
+        val snapshotDepsBean = fromFullBeanIf(BuildField.SNAPSHOT_DEPENDENCIES !in prefetchedFields, BuildBean::`snapshot-dependencies`)
+        snapshotDepsBean?.build?.map { BuildImpl(it, BuildField.essentialFields, instance) } ?: emptyList()
     }
 
     private val agent = SuspendingLazy {
-        nullable { it.agent }
+        fromFullBeanIf(BuildField.AGENT !in prefetchedFields, BuildBean::agent)
             ?.takeIf { it.id != null }
             ?.let { BuildAgentImpl(it, false, instance) }
     }
 
     private val state = SuspendingLazy {
         try {
-            val state = notnull { it.state }
+            val state = checkNotNull(fromFullBeanIf(BuildField.STATE !in prefetchedFields, BuildBean::state))
             BuildState.valueOf(state.uppercase())
         } catch (e: IllegalArgumentException) {
             BuildState.UNKNOWN
@@ -1709,25 +1775,37 @@ private class BuildImpl(
     }
 
     private val name = SuspendingLazy {
-        nullable { it.buildType?.name } ?: instance.buildConfiguration(getBuildConfigurationId()).getName()
+        val name = fromFullBeanIf(BuildField.NAME !in prefetchedFields) { it.buildType?.name }
+        name ?: instance.buildConfiguration(getBuildConfigurationId()).getName()
     }
 
     private val canceledInfo = SuspendingLazy {
-        nullable { it.canceledInfo }?.let { BuildCanceledInfoImpl(it, instance) }
+        fromFullBeanIf(BuildField.CANCELED_INFO !in prefetchedFields, BuildBean::canceledInfo)
+            ?.let { BuildCanceledInfoImpl(it, instance) }
     }
 
     private val branch = SuspendingLazy {
-        val branchName = nullable { it.branchName }
-        val isDefaultBranch = nullable { it.defaultBranch }
+        val (branchName, isDefaultBranch) = fromFullBeanIf(BuildField.BRANCH !in prefetchedFields) {
+            it.branchName to it.defaultBranch
+        }
         BranchImpl(
             name = branchName,
             isDefault = isDefaultBranch ?: (branchName == null)
         )
     }
 
-    private val detachedFromAgent = SuspendingLazy { nullable { it.detachedFromAgent } ?: false }
+    private val detachedFromAgent = SuspendingLazy {
+        fromFullBeanIf(BuildField.IS_DETACHED_FROM_AGENT !in prefetchedFields, BuildBean::detachedFromAgent) ?: false
+    }
+
     private val projectId = SuspendingLazy {
-        ProjectId(notnull { it.buildType?.projectId })
+        val stringId = fromFullBeanIf(BuildField.PROJECT_ID !in prefetchedFields) { it.buildType?.projectId }
+        ProjectId(checkNotNull(stringId))
+    }
+
+    private val queuedWaitReasons = SuspendingLazy {
+        fromFullBeanIf(BuildField.QUEUED_WAIT_REASONS !in prefetchedFields, BuildBean::queuedWaitReasons)?.property
+            ?.map(::PropertyImpl) ?: emptyList()
     }
 
     override fun getHomeUrl(): String = getUserUrlPage(
@@ -1973,9 +2051,7 @@ private class BuildImpl(
     override suspend fun getStatistics(): List<Property> =
         instance.service.buildStatistics(id.stringId).property?.map(::PropertyImpl) ?: emptyList()
 
-    override suspend fun getQueuedWaitReasons(): List<Property> =
-        instance.service.buildQueuedWaitReasons(id.stringId).queuedWaitReasons?.property?.map(::PropertyImpl)
-            ?: emptyList()
+    override suspend fun getQueuedWaitReasons(): List<Property> = queuedWaitReasons.getValue()
 
     override fun testRunsLocator(status: TestStatus?) = instance.testRuns()
         .forBuild(id)
@@ -2164,7 +2240,7 @@ private class BuildAgentImpl(
     private val currentBuild = SuspendingLazy {
         fullBean.getValue().build?.let {
             // API may return an empty build bean, pass it as null
-            if (it.id == null) null else BuildImpl(it, false, instance)
+            if (it.id == null) null else BuildImpl(it, emptySet(), instance)
         }
     }
 
@@ -2285,51 +2361,71 @@ private class BuildQueueImpl(private val instance: TeamCityCoroutinesInstanceImp
         instance.service.removeQueuedBuild(id.stringId, request)
     }
 
-    override fun queuedBuilds(projectId: ProjectId?): Flow<Build> {
+    override fun queuedBuilds(projectId: ProjectId?, prefetchFields: Set<BuildField>): Flow<Build> {
         val parameters = if (projectId == null) emptyList() else listOf("project:${projectId.stringId}")
-        return queuedBuilds(parameters)
+        return queuedBuilds(parameters, prefetchFields)
     }
 
-    override fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Flow<BuildImpl> {
+    override fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildField>
+    ): Flow<Build> {
         val parameters = listOf("buildType:${buildConfigurationId.stringId}")
-        return queuedBuilds(parameters)
+        return queuedBuilds(parameters, prefetchFields)
     }
 
-    override fun queuedBuildsSeq(projectId: ProjectId?): Sequence<Build> {
+    override fun queuedBuildsSeq(projectId: ProjectId?, prefetchFields: Set<BuildField>): Sequence<Build> {
         val parameters = if (projectId == null) emptyList() else listOf("project:${projectId.stringId}")
-        return queuedBuildsSeq(parameters)
+        return queuedBuildsSeq(parameters, prefetchFields)
     }
 
-    override fun queuedBuildsSeq(buildConfigurationId: BuildConfigurationId): Sequence<Build> {
+    override fun queuedBuildsSeq(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildField>
+    ): Sequence<Build> {
         val parameters = listOf("buildType:${buildConfigurationId.stringId}")
-        return queuedBuildsSeq(parameters)
+        return queuedBuildsSeq(parameters, prefetchFields)
     }
 
-    private fun queuedBuilds(parameters: List<String>): Flow<BuildImpl> = lazyPagingFlow(instance,
-        getFirstBean = {
-            val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
-            LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
-            instance.service.queuedBuilds(locator = buildLocator)
-        },
-        convertToPage = { buildsBean ->
-            Page(
-                data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                nextHref = buildsBean.nextHref
-            )
-        })
+    private fun queuedBuilds(parameters: List<String>, prefetchFields: Set<BuildField>): Flow<BuildImpl> {
+        val prefetchFieldsCopy = prefetchFields.copyToEnumSet()
+        return lazyPagingFlow(
+            instance,
+            getFirstBean = {
+                val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
+                LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
+                instance.service.queuedBuilds(
+                    locator = buildLocator,
+                    fields = BuildBean.buildCustomFieldsFilter(prefetchFieldsCopy, wrap = true)
+                )
+            },
+            convertToPage = { buildsBean ->
+                Page(
+                    data = buildsBean.build.map { BuildImpl(it, prefetchFieldsCopy, instance) },
+                    nextHref = buildsBean.nextHref
+                )
+            })
+    }
 
-    private fun queuedBuildsSeq(parameters: List<String>): Sequence<BuildImpl> = lazyPagingSequence(instance,
-        getFirstBean = {
-            val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
-            LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
-            instance.service.queuedBuilds(locator = buildLocator)
-        },
-        convertToPage = { buildsBean ->
-            Page(
-                data = buildsBean.build.map { BuildImpl(it, false, instance) },
-                nextHref = buildsBean.nextHref
-            )
-        })
+    private fun queuedBuildsSeq(parameters: List<String>, prefetchFields: Set<BuildField>): Sequence<BuildImpl> {
+        val prefetchFieldsCopy = prefetchFields.copyToEnumSet()
+        return lazyPagingSequence(
+            instance,
+            getFirstBean = {
+                val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
+                LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
+                instance.service.queuedBuilds(
+                    locator = buildLocator,
+                    fields = BuildBean.buildCustomFieldsFilter(prefetchFieldsCopy, wrap = true)
+                )
+            },
+            convertToPage = { buildsBean ->
+                Page(
+                    data = buildsBean.build.map { BuildImpl(it, prefetchFieldsCopy, instance) },
+                    nextHref = buildsBean.nextHref
+                )
+            })
+    }
 }
 
 private fun getNameValueProperty(properties: List<NameValueProperty>, name: String): String? =

@@ -4,13 +4,10 @@ package org.jetbrains.teamcity.rest.coroutines
 
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
-import org.jetbrains.teamcity.rest.BuildStatus
-import org.jetbrains.teamcity.rest.InvestigationState
-import org.jetbrains.teamcity.rest.TeamCityConversationException
-import org.jetbrains.teamcity.rest.TeamCityRestException
-import org.jetbrains.teamcity.rest.TestRunsLocatorSettings
+import org.jetbrains.teamcity.rest.*
 import retrofit2.Response
 import retrofit2.http.*
+import java.util.*
 
 internal interface TeamCityService {
     // Even with `@Path(encoded = true)` retrofit2 will encode special characters like [?,=,&]
@@ -22,15 +19,15 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("app/rest/builds")
-    suspend fun builds(@Query("locator") buildLocator: String): Response<BuildListBean>
+    suspend fun builds(@Query("locator") buildLocator: String, @Query("fields") fields: String?): Response<BuildListBean>
 
     @Headers("Accept: application/json")
-    @GET("app/rest/buildQueue?fields=build(id,buildTypeId,state,personal,queuedDate,branchName,buildType(id,projectId),revisions)")
-    suspend fun queuedBuilds(@Query("locator") locator: String?): Response<BuildListBean>
+    @GET("app/rest/buildQueue")
+    suspend fun queuedBuilds(@Query("locator") locator: String?, @Query("fields") fields: String?): Response<BuildListBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/builds/id:{id}")
-    suspend fun build(@Path("id") id: String): Response<BuildBean>
+    suspend fun build(@Path("id") id: String, @Query("fields") fields: String?): Response<BuildBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/investigations")
@@ -250,9 +247,6 @@ internal interface TeamCityService {
     @GET("app/rest/builds/id:{id}/statistics")
     suspend fun buildStatistics(@Path("id") buildId: String): Response<StatisticsBean>
 
-    @Headers("Accept: application/json")
-    @GET("app/rest/builds/id:{id}?fields=queuedWaitReasons(*)")
-    suspend fun buildQueuedWaitReasons(@Path("id") buildId: String): Response<QueuedWaitReasonsBean>
 
     @Headers("Accept: application/json")
     @POST("app/rest/builds/{buildLocator}/status")
@@ -299,9 +293,9 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
         checkNotNull(runErrorWrappingBridgeCallNullable(provider))
 
     suspend fun root(path: String, encodedParams: Map<String, String>): ResponseBody = runErrorWrappingBridgeCall { service.root(path, encodedParams) }
-    suspend fun builds(buildLocator: String): BuildListBean = runErrorWrappingBridgeCall { service.builds(buildLocator) }
-    suspend fun queuedBuilds(locator: String?): BuildListBean = runErrorWrappingBridgeCall { service.queuedBuilds(locator) }
-    suspend fun build(id: String): BuildBean = runErrorWrappingBridgeCall { service.build(id) }
+    suspend fun builds(buildLocator: String, fields: String?): BuildListBean = runErrorWrappingBridgeCall { service.builds(buildLocator, fields) }
+    suspend fun queuedBuilds(locator: String?, fields: String?): BuildListBean = runErrorWrappingBridgeCall { service.queuedBuilds(locator, fields) }
+    suspend fun build(id: String, fields: String?): BuildBean = runErrorWrappingBridgeCall { service.build(id, fields) }
     suspend fun investigations(investigationLocator: String?): InvestigationListBean = runErrorWrappingBridgeCall { service.investigations(investigationLocator) }
     suspend fun createInvestigations(investigations: InvestigationListBean) = runErrorWrappingBridgeCall { service.createInvestigations(investigations) }
     suspend fun createMutes(mutes: MuteListBean) = runErrorWrappingBridgeCall { service.createMutes(mutes) }
@@ -397,7 +391,6 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun deleteUserRole(userLocator: String, roleId: String, scope: String): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.deleteUserRole(userLocator, roleId, scope) }
     suspend fun buildStatistics(buildId: String): StatisticsBean = runErrorWrappingBridgeCall { service.buildStatistics(buildId) }
-    suspend fun buildQueuedWaitReasons(buildId: String): QueuedWaitReasonsBean = runErrorWrappingBridgeCall { service.buildQueuedWaitReasons(buildId) }
     suspend fun updateBuildStatus(buildLocator: String, value: BuildStatusUpdateBean): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.updateBuildStatus(buildLocator, value) }
 
@@ -496,6 +489,54 @@ internal open class BuildBean: IdBean() {
 
     var `snapshot-dependencies`: BuildListBean? = null
     var detachedFromAgent: Boolean? = null
+    var queuedWaitReasons: QueueWaitReasonsPropertiesBean? = null
+
+    companion object {
+        val fullFieldsFilter: String = buildCustomFieldsFilter(
+            fields =  EnumSet.allOf(BuildLocatorSettings.BuildField::class.java),
+            wrap = false
+        )
+
+        fun buildCustomFieldsFilter(
+            fields: Set<BuildLocatorSettings.BuildField>,
+            wrap: Boolean
+        ): String {
+            val allFields = (fields.asSequence().map(::remapField) + "id").distinct()
+            return if (wrap) {
+                allFields.joinToString(prefix = "nextHref,build(", separator = ",", postfix = ")")
+            } else {
+                allFields.joinToString(separator = ",")
+            }
+        }
+
+        private fun remapField(field: BuildLocatorSettings.BuildField): String = when (field) {
+            BuildLocatorSettings.BuildField.NAME,
+            BuildLocatorSettings.BuildField.PROJECT_ID -> "buildType(name,projectId)"
+            BuildLocatorSettings.BuildField.BUILD_CONFIGURATION_ID -> "buildTypeId"
+            BuildLocatorSettings.BuildField.BUILD_NUMBER -> "number"
+            BuildLocatorSettings.BuildField.STATUS -> "status"
+            BuildLocatorSettings.BuildField.STATUS_TEXT -> "statusText"
+            BuildLocatorSettings.BuildField.STATE -> "state"
+            BuildLocatorSettings.BuildField.BRANCH -> "branchName,defaultBranch"
+            BuildLocatorSettings.BuildField.IS_PERSONAL -> "personal"
+            BuildLocatorSettings.BuildField.CANCELED_INFO -> "canceledInfo(*,user(id,name,username,email))"
+            BuildLocatorSettings.BuildField.COMMENT -> "comment(*,user(id,name,username,email))"
+            BuildLocatorSettings.BuildField.IS_COMPOSITE -> "composite"
+            BuildLocatorSettings.BuildField.QUEUED_DATETIME -> "queuedDate"
+            BuildLocatorSettings.BuildField.START_DATETIME -> "startDate"
+            BuildLocatorSettings.BuildField.FINISH_DATETIME -> "finishDate"
+            BuildLocatorSettings.BuildField.RUNNING_INFO -> "running-info(*)"
+            BuildLocatorSettings.BuildField.PARAMETERS -> "properties(*,property(*))"
+            BuildLocatorSettings.BuildField.TAGS -> "tags(*,tag(*))"
+            BuildLocatorSettings.BuildField.REVISIONS -> "revisions(*,revision(*))"
+            BuildLocatorSettings.BuildField.SNAPSHOT_DEPENDENCIES -> "snapshot-dependencies(*,build(id,buildTypeId,number,status,branchName,defaultBranch))"
+            BuildLocatorSettings.BuildField.PIN_INFO -> "pinInfo(*,user(id,name,username,email))"
+            BuildLocatorSettings.BuildField.TRIGGERED_INFO -> "triggered(*,user(id,name,username,email),build(id,buildTypeId),buildType(name,projectId),properties(*,property(*)))"
+            BuildLocatorSettings.BuildField.AGENT -> "agent"
+            BuildLocatorSettings.BuildField.IS_DETACHED_FROM_AGENT -> "detachedFromAgent"
+            BuildLocatorSettings.BuildField.QUEUED_WAIT_REASONS -> "queuedWaitReasons(*,property(*))"
+        }
+    }
 }
 
 internal class BuildRunningInfoBean {
@@ -938,10 +979,6 @@ internal class TypedValuesBean {
 
 internal class StatisticsBean {
     var property: List<PropertyBean>? = null
-}
-
-internal class QueuedWaitReasonsBean {
-    var queuedWaitReasons: QueueWaitReasonsPropertiesBean? = null
 }
 
 internal class QueueWaitReasonsPropertiesBean {

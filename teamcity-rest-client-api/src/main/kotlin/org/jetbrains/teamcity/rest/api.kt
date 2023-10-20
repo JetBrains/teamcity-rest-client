@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import org.jetbrains.teamcity.rest.BuildLocatorSettings.*
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -705,8 +706,24 @@ interface ArtifactRule {
 
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
-    fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
-    fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Sequence<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        projectId: ProjectId? = null,
+        prefetchFields: Set<BuildField> = BuildLocatorSettings.BuildField.essentialFields
+    ): Sequence<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildField> = BuildLocatorSettings.BuildField.essentialFields
+    ): Sequence<Build>
 }
 
 interface Property {

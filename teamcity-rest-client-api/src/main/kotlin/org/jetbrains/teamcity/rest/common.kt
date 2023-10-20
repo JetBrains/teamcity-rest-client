@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -74,6 +75,70 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
      * True by default.
      */
     fun defaultFilter(enable: Boolean) : Self
+
+    /**
+     * Use this method to manually select Build fields to prefetch. By default [BuildField.defaultFields] are fetched/
+     */
+    fun prefetchFields(vararg fields: BuildField): Self
+
+    enum class BuildField {
+        NAME,
+        BUILD_CONFIGURATION_ID,
+        PROJECT_ID,
+        BUILD_NUMBER,
+        STATUS,
+        STATUS_TEXT,
+        STATE,
+        BRANCH,
+        IS_PERSONAL,
+        CANCELED_INFO,
+        COMMENT,
+        IS_COMPOSITE,
+        QUEUED_DATETIME,
+        START_DATETIME,
+        FINISH_DATETIME,
+        RUNNING_INFO,
+        PARAMETERS,
+        TAGS,
+        REVISIONS,
+        SNAPSHOT_DEPENDENCIES,
+        PIN_INFO,
+        TRIGGERED_INFO,
+        AGENT,
+        IS_DETACHED_FROM_AGENT,
+        QUEUED_WAIT_REASONS,
+        ;
+
+        companion object {
+            val size = BuildField.values().size
+
+            val essentialFields = setOf(
+                BuildLocatorSettings.BuildField.BUILD_CONFIGURATION_ID,
+                BuildLocatorSettings.BuildField.BUILD_NUMBER,
+                BuildLocatorSettings.BuildField.STATUS,
+                BuildLocatorSettings.BuildField.BRANCH,
+            )
+
+            val defaultFields = setOf(
+                BuildLocatorSettings.BuildField.BUILD_CONFIGURATION_ID,
+                BuildLocatorSettings.BuildField.BUILD_NUMBER,
+                BuildLocatorSettings.BuildField.STATUS,
+                BuildLocatorSettings.BuildField.STATE,
+                BuildLocatorSettings.BuildField.IS_PERSONAL,
+                BuildLocatorSettings.BuildField.BRANCH,
+                BuildLocatorSettings.BuildField.IS_COMPOSITE,
+                BuildLocatorSettings.BuildField.QUEUED_DATETIME,
+                BuildLocatorSettings.BuildField.START_DATETIME,
+                BuildLocatorSettings.BuildField.FINISH_DATETIME,
+                BuildLocatorSettings.BuildField.CANCELED_INFO,
+                BuildLocatorSettings.BuildField.TRIGGERED_INFO,
+                BuildLocatorSettings.BuildField.REVISIONS,
+                BuildLocatorSettings.BuildField.AGENT,
+                BuildLocatorSettings.BuildField.PARAMETERS,
+                BuildLocatorSettings.BuildField.SNAPSHOT_DEPENDENCIES,
+            )
+        }
+    }
 }
 
 interface InvestigationLocatorSettings<Self : InvestigationLocatorSettings<Self>> {

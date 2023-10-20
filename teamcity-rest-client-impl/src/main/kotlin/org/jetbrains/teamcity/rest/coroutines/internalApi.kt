@@ -9,10 +9,7 @@
  */
 package org.jetbrains.teamcity.rest.coroutines
 
-import org.jetbrains.teamcity.rest.BuildConfigurationId
-import org.jetbrains.teamcity.rest.ProjectId
-import org.jetbrains.teamcity.rest.TeamCityInstanceBuilder
-import org.jetbrains.teamcity.rest.TestStatus
+import org.jetbrains.teamcity.rest.*
 
 internal interface TeamCityCoroutinesInstanceEx : TeamCityCoroutinesInstance {
     fun toBuilder(): TeamCityInstanceBuilder
@@ -23,7 +20,6 @@ internal interface ProjectEx : Project {
 }
 
 internal interface BuildEx : Build {
-    suspend fun getProjectId(): ProjectId
     fun getTestRunsSeq(status: TestStatus? = null): Sequence<TestRun>
     fun getBuildProblemsSeq(): Sequence<BuildProblemOccurrence>
 }
@@ -67,8 +63,15 @@ internal interface UserLocatorEx : UserLocator {
 }
 
 internal interface BuildQueueEx : BuildQueue {
-    fun queuedBuildsSeq(projectId: ProjectId? = null): Sequence<Build>
-    fun queuedBuildsSeq(buildConfigurationId: BuildConfigurationId): Sequence<Build>
+    fun queuedBuildsSeq(
+        projectId: ProjectId? = null,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Sequence<Build>
+
+    fun queuedBuildsSeq(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Sequence<Build>
 }
 
 internal interface IssueEx : Issue {
