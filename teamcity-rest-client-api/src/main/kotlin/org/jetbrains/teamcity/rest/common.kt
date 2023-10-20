@@ -215,7 +215,12 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
         FIRST_FAILED_IN_BUILD_ID,
         TEST_ID,
         METADATA_VALUES,
-        LOG_ANCHOR
+        LOG_ANCHOR,
+        ;
+
+        companion object {
+            val size = TestRunField.values().size
+        }
     }
 }
 

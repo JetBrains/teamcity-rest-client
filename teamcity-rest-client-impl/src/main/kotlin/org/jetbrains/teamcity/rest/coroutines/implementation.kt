@@ -19,6 +19,7 @@ import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.teamcity.rest.*
 import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
+import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -773,7 +774,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
     private var testStatus: TestStatus? = null
     private var expandMultipleInvocations = false
     private var muted: Boolean? = null
-    private val testRunFields: MutableSet<TestRunsLocatorSettings.TestRunField> = TestRunsLocatorSettings.TestRunField.values().toMutableSet()
+    private val testRunFields = EnumSet.allOf(TestRunField::class.java)
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -807,7 +808,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun withoutDetailsField(): TestRunsLocator {
-        this.testRunFields.remove(TestRunsLocatorSettings.TestRunField.DETAILS)
+        this.testRunFields.remove(TestRunField.DETAILS)
         return this
     }
 
@@ -821,18 +822,18 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         return this
     }
 
-    override fun prefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+    override fun prefetchFields(vararg fields: TestRunField): TestRunsLocator {
         this.testRunFields.clear()
         this.testRunFields.addAll(fields)
         return this
     }
 
-    override fun excludePrefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+    override fun excludePrefetchFields(vararg fields: TestRunField): TestRunsLocator {
         this.testRunFields.removeAll(fields.toSet())
         return this
     }
 
-    private data class Locator(val testOccurrencesLocator: String, val fields: String, val isFullBean: Boolean)
+    private data class Locator(val testOccurrencesLocator: String, val fields: String, val fieldsSet: Set<TestRunField>)
 
     private fun getLocator(): Locator {
         val statusLocator = when (testStatus) {
@@ -857,19 +858,18 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         require(parameters.isNotEmpty()) { "At least one parameter should be specified" }
         val testOccurrencesLocator = parameters.joinToString(",")
 
-        val isFullBean = testRunFields.containsAll(TestRunsLocatorSettings.TestRunField.values().toList())
         val fields = TestOccurrenceBean.buildCustomFieldsFilter(testRunFields, wrap = true)
         LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
-        return Locator(testOccurrencesLocator, fields, isFullBean)
+        return Locator(testOccurrencesLocator, fields, testRunFields.clone())
     }
 
     override fun all(): Flow<TestRun> {
-        val (testOccurrencesLocator, fields, isFullBean) = getLocator()
+        val (testOccurrencesLocator, fields, fieldsSet) = getLocator()
         val flow = lazyPagingFlow(instance,
             getFirstBean = { instance.service.testOccurrences(testOccurrencesLocator, fields) },
             convertToPage = { testOccurrencesBean ->
                 Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, isFullBean, instance) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, fieldsSet, instance) },
                     nextHref = testOccurrencesBean.nextHref
                 )
             })
@@ -878,12 +878,12 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
 
 
     override fun allSeq(): Sequence<TestRun> {
-        val (testOccurrencesLocator, fields, isFullBean) = getLocator()
+        val (testOccurrencesLocator, fields, fieldsSet) = getLocator()
         val sequence = lazyPagingSequence(instance,
             getFirstBean = { instance.service.testOccurrences(testOccurrencesLocator, fields) },
             convertToPage = { testOccurrencesBean ->
                 Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, isFullBean, instance) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, fieldsSet, instance) },
                     nextHref = testOccurrencesBean.nextHref
                 )
             })
@@ -911,6 +911,11 @@ private abstract class BaseImpl<TBean : IdBean>(
     protected suspend inline fun <T> nullable(getter: (TBean) -> T?): T? =
         getter(bean) ?: getter(fullBean.getValue())
 
+    protected suspend fun <T> fromFullBeanIf(check: Boolean, getter: (TBean) -> T): T = if (check) {
+        getter(fullBean.getValue())
+    } else {
+        getter(bean)
+    }
 
     val fullBean = SuspendingLazy {
         if (!isFullBean) {
@@ -1667,12 +1672,6 @@ private class BuildImpl(
     override val id: BuildId = BuildId(idString)
 
     override suspend fun fetchFullBean(): BuildBean = instance.service.build(id.stringId, BuildBean.fullFieldsFilter)
-
-    private suspend fun <T> fromFullBeanIf(check: Boolean, getter: (BuildBean) -> T): T = if (check) {
-        getter(fullBean.getValue())
-    } else {
-        getter(bean)
-    }
 
     private val statusText = SuspendingLazy {
         fromFullBeanIf(BuildField.STATUS_TEXT !in prefetchedFields, BuildBean::statusText)
@@ -2433,45 +2432,90 @@ private fun getNameValueProperty(properties: List<NameValueProperty>, name: Stri
 
 private open class TestRunImpl(
     bean: TestOccurrenceBean,
-    isFullBean: Boolean,
+    private val prefetchedFields: Set<TestRunField>,
     instance: TeamCityCoroutinesInstanceImpl
-) : TestRun, BaseImpl<TestOccurrenceBean>(bean, isFullBean, instance) {
+) : TestRun, BaseImpl<TestOccurrenceBean>(bean, isFullBean = prefetchedFields.size == TestRunField.size, instance) {
 
     override val testOccurrenceId = TestOccurrenceId(bean.id!!)
-    private val name = SuspendingLazy { notnull { it.name } }
-    private val duration = SuspendingLazy { Duration.ofMillis(nullable { it.duration } ?: 0L)!! }
-    private val ignored = SuspendingLazy { nullable { it.ignored } ?: false }
-    private val currentlyMuted = SuspendingLazy { nullable { it.currentlyMuted } ?: false }
-    private val mutedAtRunningTime = SuspendingLazy { nullable { it.muted } ?: false }
-    private val newFailure = SuspendingLazy { nullable { it.newFailure } ?: false }
-    private val buildId = SuspendingLazy { BuildId(notnull { it.build }.id!!) }
-    private val metadataValues = SuspendingLazy { nullable { it.metadata }?.typedValues?.map { it.value.toString() } }
-    private val testId = SuspendingLazy { TestId(notnull { it.test }.id!!) }
-    private val logAnchor = SuspendingLazy { notnull { it.logAnchor } }
+    private val name = SuspendingLazy {
+        checkNotNull(fromFullBeanIf(TestRunField.NAME !in prefetchedFields, TestOccurrenceBean::name))
+    }
+
+    private val duration = SuspendingLazy {
+        val duration = fromFullBeanIf(TestRunField.DURATION !in prefetchedFields, TestOccurrenceBean::duration) ?: 0L
+        Duration.ofMillis(duration)
+    }
+
+    private val ignored = SuspendingLazy {
+        fromFullBeanIf(TestRunField.IGNORED !in prefetchedFields, TestOccurrenceBean::ignored) ?: false
+    }
+
+    private val currentlyMuted = SuspendingLazy {
+        fromFullBeanIf(TestRunField.IS_CURRENTLY_MUTED !in prefetchedFields, TestOccurrenceBean::currentlyMuted)
+            ?: false
+    }
+
+    private val mutedAtRunningTime = SuspendingLazy {
+        fromFullBeanIf(TestRunField.IS_MUTED !in prefetchedFields, TestOccurrenceBean::muted) ?: false
+    }
+
+    private val newFailure = SuspendingLazy {
+        fromFullBeanIf(TestRunField.IS_NEW_FAILURE !in prefetchedFields, TestOccurrenceBean::newFailure) ?: false
+    }
+
+    private val buildId = SuspendingLazy {
+        val buildId = fromFullBeanIf(TestRunField.BUILD_ID !in prefetchedFields, TestOccurrenceBean::build)?.id
+        BuildId(checkNotNull(buildId))
+    }
+
+    private val metadataValues = SuspendingLazy {
+        fromFullBeanIf(TestRunField.METADATA_VALUES !in prefetchedFields, TestOccurrenceBean::metadata)
+            ?.typedValues?.map { it.value.toString() }
+    }
+
+    private val testId = SuspendingLazy {
+        val stringId = fromFullBeanIf(TestRunField.TEST_ID !in prefetchedFields, TestOccurrenceBean::test)?.id
+        TestId(checkNotNull(stringId))
+    }
+
+    private val logAnchor = SuspendingLazy {
+        checkNotNull(fromFullBeanIf(TestRunField.LOG_ANCHOR !in prefetchedFields, TestOccurrenceBean::logAnchor))
+    }
 
     private val fixedIn = SuspendingLazy {
-        if (nullable { it.nextFixed }?.id == null) null
-        else BuildId(notnull { it.nextFixed }.id!!)
+        fromFullBeanIf(TestRunField.FIXED_IN_BUILD_ID !in prefetchedFields, TestOccurrenceBean::nextFixed)
+            ?.id?.let { BuildId(it) }
     }
 
     private val firstFailedIn = SuspendingLazy {
-        if (nullable { it.firstFailed }?.id == null) null
-        else BuildId(notnull { it.firstFailed }.id!!)
+        fromFullBeanIf(TestRunField.FIRST_FAILED_IN_BUILD_ID !in prefetchedFields, TestOccurrenceBean::firstFailed)
+            ?.id?.let { BuildId(it) }
     }
 
     private val status = SuspendingLazy {
-        when {
-            nullable { it.ignored } == true -> TestStatus.IGNORED
-            nullable { it.status } == "FAILURE" -> TestStatus.FAILED
-            nullable { it.status } == "SUCCESS" -> TestStatus.SUCCESSFUL
+        val ignored = fromFullBeanIf(TestRunField.IGNORED !in prefetchedFields, TestOccurrenceBean::ignored)
+        if (ignored == true) return@SuspendingLazy TestStatus.IGNORED
+
+        val status = fromFullBeanIf(TestRunField.STATUS !in prefetchedFields, TestOccurrenceBean::status)
+        when (status) {
+            "FAILURE" -> TestStatus.FAILED
+            "SUCCESS" -> TestStatus.SUCCESSFUL
             else -> TestStatus.UNKNOWN
         }
     }
 
     private val details = SuspendingLazy {
         when (getStatus()) {
-            TestStatus.IGNORED -> nullable { it.ignoreDetails }
-            TestStatus.FAILED -> nullable { it.details }
+            TestStatus.IGNORED -> fromFullBeanIf(
+                TestRunField.DETAILS !in prefetchedFields,
+                TestOccurrenceBean::ignoreDetails
+            )
+
+            TestStatus.FAILED -> fromFullBeanIf(
+                TestRunField.DETAILS !in prefetchedFields,
+                TestOccurrenceBean::details
+            )
+
             else -> null
         } ?: ""
     }

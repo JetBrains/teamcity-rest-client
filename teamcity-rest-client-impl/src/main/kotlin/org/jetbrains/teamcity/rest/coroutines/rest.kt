@@ -860,7 +860,7 @@ internal open class TestOccurrenceBean: IdBean() {
 
     companion object {
         val fullFieldsFilter: String = buildCustomFieldsFilter(
-            fields = TestRunsLocatorSettings.TestRunField.values().toList(),
+            fields = EnumSet.allOf(TestRunsLocatorSettings.TestRunField::class.java),
             wrap = false
         )
 
