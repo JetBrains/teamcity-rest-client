@@ -902,14 +902,16 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     }
 
     override fun getArtifacts(parentPath: String, recursive: Boolean, hidden: Boolean): List<BuildArtifact> =
-        runBlocking { delegate.getArtifacts(parentPath, recursive, hidden).map(::BuildArtifactBridge) }
+        runBlocking {
+            delegate.getArtifacts(parentPath, recursive, hidden).map { BuildArtifactBridge(it, this@BuildBridge) }
+        }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact = runBlocking {
-        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath) })
+        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath) }, this@BuildBridge)
     }
 
     override fun findArtifact(pattern: String, parentPath: String, recursive: Boolean): BuildArtifact = runBlocking {
-        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath, recursive) })
+        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath, recursive) }, this@BuildBridge)
     }
 
     override fun downloadArtifacts(pattern: String, outputDir: File) = runBlocking {
@@ -979,13 +981,13 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
 
 
 private class BuildArtifactBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildArtifact
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildArtifact,
+    override val build: Build,
 ) : BuildArtifact {
     override val name: String by lazy { delegate.name }
     override val fullName: String by lazy { delegate.fullName }
     override val size: Long? by lazy { delegate.size }
     override val modificationDateTime: ZonedDateTime by lazy { delegate.modificationDateTime }
-    override val build: Build = BuildBridge(delegate.build)
 
     override fun download(output: File) = runBlocking { delegate.download(output) }
 
