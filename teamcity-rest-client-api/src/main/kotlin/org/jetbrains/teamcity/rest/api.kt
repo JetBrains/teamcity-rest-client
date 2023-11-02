@@ -21,6 +21,7 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
     abstract fun createInvestigations(investigations: Collection<Investigation>)
 
     abstract fun mutes(): MuteLocator
+    abstract fun createMutes(mutes: List<Mute>)
 
     abstract fun tests(): TestLocator
     abstract fun build(id: BuildId): Build
@@ -187,6 +188,7 @@ interface Project {
      */
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
+    @Deprecated(message = "use TeamCityInstance.createMutes(mutes)")
     fun createMutes(mutes: List<Mute>)
 
     @Deprecated(message = "use getHomeUrl(branch)",

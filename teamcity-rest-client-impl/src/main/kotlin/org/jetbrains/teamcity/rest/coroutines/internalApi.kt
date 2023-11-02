@@ -16,6 +16,7 @@ internal interface TeamCityCoroutinesInstanceEx : TeamCityCoroutinesInstance {
 }
 
 internal interface ProjectEx : Project {
+    suspend fun createMutes(mutes: List<Mute>)
     fun getMutesSeq(): Sequence<Mute>
 }
 

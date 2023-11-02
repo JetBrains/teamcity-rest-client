@@ -77,6 +77,7 @@ internal class TeamCityInstanceBlockingBridge(
     }
 
     override fun mutes(): MuteLocator = MuteLocatorBridge(delegate.mutes() as MuteLocatorEx)
+    override fun createMutes(mutes: List<Mute>) = runBlocking { delegate.createMutes(mutes.map(::MuteReverseBridge)) }
 
     override fun tests(): TestLocator = TestLocatorBridge(delegate.tests() as TestLocatorEx)
 
@@ -564,31 +565,9 @@ private class ProjectBridge(
     override fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration =
         BuildConfigurationBridge(runBlocking { delegate.createBuildConfiguration(buildConfigurationDescriptionXml) })
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun createMutes(mutes: List<Mute>) = runBlocking {
-        delegate.createMutes(mutes.map { mute ->
-            object : org.jetbrains.teamcity.rest.coroutines.Mute {
-                override val id = mute.id
-                override val assignee = mute.assignee?.id
-                override val reporter = mute.reporter?.id
-
-                override val resolutionTime: ZonedDateTime? = mute.resolutionTime
-                override val comment: String = mute.comment
-                override val resolveMethod: InvestigationResolveMethod = mute.resolveMethod
-                override val targetType: InvestigationTargetType = mute.targetType
-                override val testIds: List<TestId>? = mute.testIds
-                override val problemIds: List<BuildProblemId>? = mute.problemIds
-                override val scope: InvestigationScopeCoroutines = when (val sc = mute.scope) {
-                    is InvestigationScope.InBuildConfiguration ->
-                        InvestigationScopeCoroutines.InBuildConfiguration(sc.configuration.id)
-
-                    is InvestigationScope.InBuildConfigurations ->
-                        InvestigationScopeCoroutines.InBuildConfigurations(sc.configuration.map(BuildConfiguration::id))
-
-                    is InvestigationScope.InProject ->
-                        InvestigationScopeCoroutines.InProject(sc.project.id)
-                }
-            }
-        })
+        (delegate as ProjectEx).createMutes(mutes.map(::MuteReverseBridge))
     }
 
     @Suppress("OVERRIDE_DEPRECATION")
@@ -1297,6 +1276,31 @@ private class MuteBridge(
     override fun toString(): String = delegate.toString()
     override fun equals(other: Any?): Boolean = equalsById(other) { id }
     override fun hashCode(): Int = id.hashCode()
+}
+
+private class MuteReverseBridge(
+    delegate: Mute,
+) : org.jetbrains.teamcity.rest.coroutines.Mute {
+    override val id = delegate.id
+    override val assignee = delegate.assignee?.id
+    override val reporter = delegate.reporter?.id
+
+    override val resolutionTime: ZonedDateTime? = delegate.resolutionTime
+    override val comment: String = delegate.comment
+    override val resolveMethod: InvestigationResolveMethod = delegate.resolveMethod
+    override val targetType: InvestigationTargetType = delegate.targetType
+    override val testIds: List<TestId>? = delegate.testIds
+    override val problemIds: List<BuildProblemId>? = delegate.problemIds
+    override val scope: InvestigationScopeCoroutines = when (val sc = delegate.scope) {
+        is InvestigationScope.InBuildConfiguration ->
+            InvestigationScopeCoroutines.InBuildConfiguration(sc.configuration.id)
+
+        is InvestigationScope.InBuildConfigurations ->
+            InvestigationScopeCoroutines.InBuildConfigurations(sc.configuration.map(BuildConfiguration::id))
+
+        is InvestigationScope.InProject ->
+            InvestigationScopeCoroutines.InProject(sc.project.id)
+    }
 }
 
 private class TestBridge(

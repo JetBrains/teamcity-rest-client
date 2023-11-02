@@ -29,6 +29,7 @@ interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<T
     suspend fun createInvestigations(investigations: Collection<Investigation>)
 
     fun mutes(): MuteLocator
+    suspend fun createMutes(mutes: List<Mute>)
 
     fun tests(): TestLocator
     suspend fun build(id: BuildId): Build
@@ -124,7 +125,6 @@ interface Project {
      */
     suspend fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
-    suspend fun createMutes(mutes: List<Mute>)
     fun getMutes(): Flow<Mute>
     suspend fun assignToAgentPool(agentPoolId: BuildAgentPoolId)
 }
