@@ -963,7 +963,8 @@ private abstract class InvestigationMuteBaseImpl<TBean : InvestigationMuteBaseBe
     val id: InvestigationId
         get() = InvestigationId(idString)
 
-    val reporter: UserId? by lazy { bean.assignment?.user?.id?.let(::UserId) }
+    override val reporter: UserId? by lazy { bean.assignment?.user?.id?.let(::UserId) }
+    override val reportedAt: ZonedDateTime? by lazy { bean.assignment?.timestamp?.let { time -> ZonedDateTime.parse(time, teamCityServiceDateFormat) } }
 
     override val comment: String
         get() = bean.assignment?.text ?: ""

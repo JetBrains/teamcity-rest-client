@@ -55,6 +55,7 @@ internal class TeamCityInstanceBlockingBridge(
                 override val id = investigation.id
                 override val assignee = investigation.assignee.id
                 override val reporter = investigation.reporter?.id
+                override val reportedAt: ZonedDateTime? = investigation.reportedAt
                 override val state: InvestigationState = investigation.state
                 override val resolutionTime: ZonedDateTime? = investigation.resolutionTime
                 override val comment: String = investigation.comment
@@ -1238,6 +1239,7 @@ private class InvestigationBridge(
     override val id: InvestigationId by lazy { delegate.id }
     override val assignee: User by lazyBlocking { UserBridge((delegate as IssueEx).tcInstance.user(delegate.assignee)) }
     override val reporter: User? by lazyBlocking { delegate.reporter?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
+    override val reportedAt: ZonedDateTime? by lazy { delegate.reportedAt }
     override val comment: String by lazy { delegate.comment }
     override val resolveMethod: InvestigationResolveMethod by lazy { delegate.resolveMethod }
     override val resolutionTime: ZonedDateTime? by lazy { delegate.resolutionTime }
@@ -1258,6 +1260,7 @@ private class MuteBridge(
     override val id: InvestigationId by lazy { delegate.id }
     override val assignee: User? by lazyBlocking { delegate.assignee?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
     override val reporter: User? by lazyBlocking { delegate.reporter?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
+    override val reportedAt: ZonedDateTime? by lazy { delegate.reportedAt }
     override val mutedBy: User?
         get() = reporter
     override val comment: String by lazy { delegate.comment }
@@ -1284,6 +1287,7 @@ private class MuteReverseBridge(
     override val id = delegate.id
     override val assignee = delegate.assignee?.id
     override val reporter = delegate.reporter?.id
+    override val reportedAt = delegate.reportedAt
 
     override val resolutionTime: ZonedDateTime? = delegate.resolutionTime
     override val comment: String = delegate.comment

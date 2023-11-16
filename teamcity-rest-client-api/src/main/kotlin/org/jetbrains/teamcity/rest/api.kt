@@ -455,19 +455,19 @@ interface Issue {
     val testIds: List<TestId>? // test ids if target type is test
     val problemIds: List<BuildProblemId>? // build problem ids if target type is build problem
     val scope: InvestigationScope // scope of investigation/mute
+    val reporter: User?
+    val reportedAt: ZonedDateTime?
 }
 
 interface Investigation : Issue {
     val id: InvestigationId
     val assignee: User
-    val reporter: User?
     val state: InvestigationState
 }
 
 interface Mute : Issue {
     val id: InvestigationId
     val assignee: User?
-    val reporter: User?
     val mutedBy: User?
     val tests: List<Test>?
 }
