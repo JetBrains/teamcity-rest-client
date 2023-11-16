@@ -638,11 +638,11 @@ private class InvestigationLocatorImpl(private val instance: TeamCityCoroutinesI
         return this
     }
 
-    private suspend fun getInvestigations(): List<InvestigationImpl> {
+    private fun getLocator(): String? {
         var locator: String? = null
 
         val parameters = listOfNotNull(
-            limitResults?.let { "count:$it" },
+            (limitResults ?: reasonableMaxPageSize).let { "count:$it" },
             affectedProjectId?.let { "affectedProject:$it" },
             targetType?.let { "type:${it.value}" },
             testId?.let { "test:(id:${it.stringId})" },
@@ -653,15 +653,34 @@ private class InvestigationLocatorImpl(private val instance: TeamCityCoroutinesI
             locator = parameters.joinToString(",")
             LOG.debug("Retrieving investigations from ${instance.serverUrl} using query '$locator'")
         }
-
-        return instance.service
-            .investigations(locator)
-            .investigation.map { InvestigationImpl(it, true, instance) }
+        return locator
     }
 
-    override fun all(): Flow<Investigation> = flow { getInvestigations().forEach { emit(it) } }
+    override fun all(): Flow<Investigation> {
+        val locator = getLocator()
+        val flow = lazyPagingFlow(instance,
+            getFirstBean = { instance.service.investigations(locator) },
+            convertToPage = { investigationsBean ->
+                Page(
+                    data = investigationsBean.investigation.map { InvestigationImpl(it, true, instance) },
+                    nextHref = investigationsBean.nextHref
+                )
+            })
+        return limitResults?.let(flow::take) ?: flow
+    }
 
-    override fun allSeq(): Sequence<Investigation> = runBlocking { getInvestigations() }.asSequence()
+    override fun allSeq(): Sequence<Investigation> {
+        val locator = getLocator()
+        val flow = lazyPagingSequence(instance,
+            getFirstBean = { instance.service.investigations(locator) },
+            convertToPage = { investigationsBean ->
+                Page(
+                    data = investigationsBean.investigation.map { InvestigationImpl(it, true, instance) },
+                    nextHref = investigationsBean.nextHref
+                )
+            })
+        return limitResults?.let(flow::take) ?: flow
+    }
 }
 
 private class MuteLocatorImpl(private val instance: TeamCityCoroutinesInstanceImpl) : MuteLocatorEx {
@@ -690,11 +709,11 @@ private class MuteLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
         return this
     }
 
-    private suspend fun getMutes(): List<MuteImpl> {
+    private fun getLocator(): String? {
         var muteLocator: String? = null
 
         val parameters = listOfNotNull(
-            limitResults?.let { "count:$it" },
+            (limitResults ?: reasonableMaxPageSize).let { "count:$it" },
             affectedProjectId?.let { "affectedProject:$it" },
             reporter?.let { "reporter:$it" },
             test?.let { "test:$it" }
@@ -705,16 +724,34 @@ private class MuteLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
             LOG.debug("Retrieving mutes from ${instance.serverUrl} using query '$muteLocator'")
         }
 
-        return instance.service
-            .mutes(muteLocator)
-            .mute.map { MuteImpl(it, true, instance) }
+        return muteLocator
     }
 
-    override fun all(): Flow<Mute> = flow {
-        getMutes().forEach { emit(it) }
+    override fun all(): Flow<Mute> {
+        val locator = getLocator()
+        val flow = lazyPagingFlow(instance,
+            getFirstBean = { instance.service.mutes(locator) },
+            convertToPage = { mutesBean ->
+                Page(
+                    data = mutesBean.mute.map { MuteImpl(it, true, instance) },
+                    nextHref = mutesBean.nextHref
+                )
+            })
+        return limitResults?.let(flow::take) ?: flow
     }
 
-    override fun allSeq(): Sequence<Mute> = runBlocking { getMutes() }.asSequence()
+    override fun allSeq(): Sequence<Mute> {
+        val locator = getLocator()
+        val flow = lazyPagingSequence(instance,
+            getFirstBean = { instance.service.mutes(locator) },
+            convertToPage = { mutesBean ->
+                Page(
+                    data = mutesBean.mute.map { MuteImpl(it, true, instance) },
+                    nextHref = mutesBean.nextHref
+                )
+            })
+        return limitResults?.let(flow::take) ?: flow
+    }
 }
 
 private class TestLocatorImpl(private val instance: TeamCityCoroutinesInstanceImpl) : TestLocatorEx {
