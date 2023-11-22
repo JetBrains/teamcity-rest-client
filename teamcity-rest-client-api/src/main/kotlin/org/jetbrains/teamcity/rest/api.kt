@@ -19,6 +19,7 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
     abstract fun createInvestigations(investigations: Collection<Investigation>)
+    abstract fun deleteInvestigation(investigationId: InvestigationId)
 
     abstract fun mutes(): MuteLocator
     abstract fun createMutes(mutes: List<Mute>)

@@ -27,6 +27,7 @@ interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<T
     fun builds(): BuildLocator
     fun investigations(): InvestigationLocator
     suspend fun createInvestigations(investigations: Collection<Investigation>)
+    suspend fun deleteInvestigation(investigationId: InvestigationId)
 
     fun mutes(): MuteLocator
     suspend fun createMutes(mutes: List<Mute>)

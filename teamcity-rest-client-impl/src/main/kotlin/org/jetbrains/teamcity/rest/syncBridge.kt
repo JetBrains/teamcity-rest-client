@@ -77,6 +77,10 @@ internal class TeamCityInstanceBlockingBridge(
         })
     }
 
+    override fun deleteInvestigation(investigationId: InvestigationId) = runBlocking {
+        delegate.deleteInvestigation(investigationId)
+    }
+
     override fun mutes(): MuteLocator = MuteLocatorBridge(delegate.mutes() as MuteLocatorEx)
     override fun createMutes(mutes: List<Mute>) = runBlocking { delegate.createMutes(mutes.map(::MuteReverseBridge)) }
 

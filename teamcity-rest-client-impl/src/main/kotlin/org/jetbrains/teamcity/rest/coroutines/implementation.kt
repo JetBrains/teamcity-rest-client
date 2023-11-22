@@ -261,6 +261,11 @@ internal class TeamCityCoroutinesInstanceImpl(
         service.createInvestigations(bean)
     }
 
+    override suspend fun deleteInvestigation(investigationId: InvestigationId) {
+        // investigation id works as locator: `assignmentProject:(id:ijplatform),test:(id:5074875983533370049)`
+        service.deleteInvestigations(investigationId.stringId)
+    }
+
     override fun mutes(): MuteLocator = MuteLocatorImpl(this)
 
     override suspend fun createMutes(mutes: List<Mute>) {

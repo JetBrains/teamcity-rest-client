@@ -38,6 +38,10 @@ internal interface TeamCityService {
     suspend fun createInvestigations(@Body investigations: InvestigationListBean): Response<ResponseBody>
 
     @Headers("Accept: application/json")
+    @DELETE("app/rest/investigations/{locator}")
+    suspend fun deleteInvestigations(@Path("locator") locator: String): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
     @POST("app/rest/mutes/multiple")
     suspend fun createMutes(@Body mutes: MuteListBean): Response<ResponseBody>
 
@@ -302,6 +306,7 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun build(id: String, fields: String?): BuildBean = runErrorWrappingBridgeCall { service.build(id, fields) }
     suspend fun investigations(investigationLocator: String?): InvestigationListBean = runErrorWrappingBridgeCall { service.investigations(investigationLocator) }
     suspend fun createInvestigations(investigations: InvestigationListBean) = runErrorWrappingBridgeCall { service.createInvestigations(investigations) }
+    suspend fun deleteInvestigations(investigationLocator: String) = runErrorWrappingBridgeCallNullable { service.deleteInvestigations(investigationLocator) }
     suspend fun createMutes(mutes: MuteListBean) = runErrorWrappingBridgeCall { service.createMutes(mutes) }
     suspend fun tests(locator: String?): TestListBean = runErrorWrappingBridgeCall { service.tests(locator) }
     suspend fun test(id: String): TestBean = runErrorWrappingBridgeCall { service.test(id) }
