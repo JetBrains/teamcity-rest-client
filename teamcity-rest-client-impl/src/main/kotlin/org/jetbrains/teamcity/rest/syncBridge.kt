@@ -926,6 +926,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
         runBlocking { delegate.getResultingParameters().map(::ParameterBridge) }
 
     override fun finish() = runBlocking { delegate.finish() }
+    override fun log(message: String) = runBlocking { delegate.log(message) }
     override fun markAsSuccessful(comment: String) = runBlocking { delegate.markAsSuccessful(comment) }
     override fun markAsFailed(comment: String) = runBlocking { delegate.markAsFailed(comment) }
 

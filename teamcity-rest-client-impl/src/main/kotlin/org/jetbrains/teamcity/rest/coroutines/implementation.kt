@@ -2127,6 +2127,10 @@ private class BuildImpl(
         instance.service.finishBuild(id.stringId)
     }
 
+    override suspend fun log(message: String) {
+        instance.service.log(id.stringId, message)
+    }
+
     override suspend fun getStatistics(): List<Property> =
         instance.service.buildStatistics(id.stringId).property?.map(::PropertyImpl) ?: emptyList()
 

@@ -414,7 +414,7 @@ interface Build {
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     fun getResultingParameters(): List<Parameter>
     fun finish()
-
+    fun log(message: String)
     fun markAsSuccessful(comment: String)
     fun markAsFailed(comment: String)
 

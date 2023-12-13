@@ -171,6 +171,10 @@ internal interface TeamCityService {
     @PUT("app/rest/builds/id:{id}/finish")
     suspend fun finishBuild(@Path("id") buildId: String): Response<ResponseBody>
 
+    @Headers("Content-Type: text/plain")
+    @POST("app/rest/builds/id:{id}/log")
+    suspend fun log(@Path("id") buildId: String, @Body message: String): Response<ResponseBody>
+
     @Headers("Accept: application/json")
     @POST("app/rest/buildQueue/id:{id}")
     suspend fun removeQueuedBuild(@Path("id") buildId: String, @Body value: BuildCancelRequestBean): Response<ResponseBody>
@@ -376,6 +380,8 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
         runErrorWrappingBridgeCallNullable { service.cancelBuild(buildId, value) }
     suspend fun finishBuild(buildId: String): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.finishBuild(buildId) }
+    suspend fun log(buildId: String, message: String): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.log(buildId, message) }
     suspend fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.removeQueuedBuild(buildId, value) }
     suspend fun users(): UserListBean = runErrorWrappingBridgeCall { service.users() }

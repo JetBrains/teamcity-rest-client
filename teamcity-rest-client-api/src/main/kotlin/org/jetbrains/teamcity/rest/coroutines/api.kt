@@ -296,6 +296,7 @@ interface Build {
     suspend fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     suspend fun getResultingParameters(): List<Parameter>
     suspend fun finish()
+    suspend fun log(message: String)
     suspend fun getStatistics(): List<Property>
     suspend fun getQueuedWaitReasons(): List<Property>
     fun testRunsLocator(status: TestStatus?): TestRunsLocator
