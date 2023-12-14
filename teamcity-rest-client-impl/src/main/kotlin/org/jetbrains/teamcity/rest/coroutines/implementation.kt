@@ -975,7 +975,7 @@ private abstract class BaseImpl<TBean : IdBean>(
     val fullBean = SuspendingLazy {
         if (!isFullBean) {
             val full = fetchFullBean()
-            require(full.id == bean.id) {
+            check(isFullBeanIdValid(bean.id, full.id)) {
                 "Incorrect full bean fetched: current '${bean.id}' != fetched '${full.id}'"
             }
             bean = full
@@ -984,6 +984,7 @@ private abstract class BaseImpl<TBean : IdBean>(
         bean
     }
 
+    open fun isFullBeanIdValid(beanId: String?, fullBeanId: String?): Boolean = beanId == fullBeanId
     abstract suspend fun fetchFullBean(): TBean
     abstract override fun toString(): String
 
@@ -1746,6 +1747,12 @@ private class BuildImpl(
 ) : BaseImpl<BuildBean>(bean, isFullBean = prefetchedFields.size == BuildField.size, instance),
     BuildEx {
     override val id: BuildId = BuildId(idString)
+
+    /**
+     * Build id may change because of build reuse. No easy way to verify.
+     * https://www.jetbrains.com/help/teamcity/build-dependencies-setup.html#Reusing+builds
+     */
+    override fun isFullBeanIdValid(beanId: String?, fullBeanId: String?): Boolean = true
 
     override suspend fun fetchFullBean(): BuildBean = instance.service.build(id.stringId, BuildBean.fullFieldsFilter)
 
