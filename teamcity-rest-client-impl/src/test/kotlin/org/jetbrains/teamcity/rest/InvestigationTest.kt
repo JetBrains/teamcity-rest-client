@@ -23,30 +23,41 @@ class InvestigationTest {
 
     @Test
     fun test_assignee() {
-        var hasAtLeastOneName = false
+        var hasAtLeastOneAssigneeName = false
+        var hasAtLeastOneReporterName = false
         val investigations = publicInstance().investigations().limitResults(10).all().toList()
         for (investigation in investigations) {
-            Assert.assertNotNull(investigation.assignee)
             Assert.assertNotNull(investigation.assignee.id)
             Assert.assertNotNull(investigation.assignee.username)
             if (investigation.assignee.name != null) {
-                hasAtLeastOneName = true
+                hasAtLeastOneAssigneeName = true
+            }
+
+            if (investigation.reporter?.name != null) {
+                hasAtLeastOneReporterName = true
             }
         }
-        Assert.assertTrue(hasAtLeastOneName)
+        Assert.assertTrue(hasAtLeastOneAssigneeName)
+        Assert.assertTrue(hasAtLeastOneReporterName)
 
         runBlocking {
-            var hasAtLeastOneNameAsync = false
+            var hasAtLeastOneAssigneeNameAsync = false
+            var hasAtLeastOneReporterNameAsync = false
             val investigationsAsync = publicCoroutinesInstance().investigations().limitResults(10).all().toList()
             for (investigation in investigationsAsync) {
-                Assert.assertNotNull(investigation.assignee)
-                Assert.assertNotNull(investigation.assignee.id)
-                Assert.assertNotNull(investigation.assignee.getUsername())
-                if (investigation.assignee.getName() != null) {
-                    hasAtLeastOneNameAsync = true
+                val assignee = publicCoroutinesInstance().user(investigation.assignee)
+                Assert.assertNotNull(assignee.getUsername())
+                if (assignee.getName() != null) {
+                    hasAtLeastOneAssigneeNameAsync = true
+                }
+                val reporter = investigation.reporter?.let { publicCoroutinesInstance().user(it) }
+                Assert.assertNotNull(reporter?.getUsername())
+                if (reporter?.getName() != null) {
+                    hasAtLeastOneReporterNameAsync = true
                 }
             }
-            Assert.assertTrue(hasAtLeastOneNameAsync)
+            Assert.assertTrue(hasAtLeastOneAssigneeNameAsync)
+            Assert.assertTrue(hasAtLeastOneReporterNameAsync)
             assertEqualsAnyOrder(investigations.map { it.id.stringId }, investigationsAsync.map { it.id.stringId })
         }
     }

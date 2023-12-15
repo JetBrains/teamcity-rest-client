@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Before
@@ -41,5 +42,40 @@ class ProjectTest {
         kotlin.test.assertEquals(
                 "$publicInstanceUrl/project.html?projectId=${reportProject.stringId}&branch=%3Cdefault%3E",
                 proj.getHomeUrl(branch = "<default>"))
+    }
+
+    @Test
+    fun `project parameter test`() {
+        val testParamName = "rest-client-test-project-parameter"
+        val testParamValue = "rest-client-test-project-parameter-value"
+
+        publicInstance().project(reportProject).removeParameter(testParamName)
+        val project = publicInstance().project(reportProject)
+
+        val paramsBefore = project.parameters.associate { it.name to it.value }
+        assertFalse(paramsBefore.containsKey(testParamName))
+
+        project.setParameter(testParamName, testParamValue)
+        val paramsAfter = publicInstance().project(reportProject).parameters.associate { it.name to it.value }
+        assertEquals(testParamValue, paramsAfter[testParamName])
+
+        project.removeParameter(testParamName)
+        val paramsAfterRemoval = publicInstance().project(reportProject).parameters.associate { it.name to it.value }
+        assertFalse(paramsAfterRemoval.containsKey(testParamName))
+    }
+
+    @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().rootProject().id
+
+        val firstBlocking = publicInstance().project(id)
+        val secondBlocking = publicInstance().project(id)
+        kotlin.test.assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().project(id)
+            val second = publicCoroutinesInstance().project(id)
+            kotlin.test.assertEquals(first, second)
+        }
     }
 }

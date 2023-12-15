@@ -2,6 +2,7 @@ package org.jetbrains.teamcity.rest.coroutines
 
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.teamcity.rest.*
+import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -25,6 +26,7 @@ import java.time.ZonedDateTime
 interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<TeamCityCoroutinesInstance> {
     fun builds(): BuildLocator
     fun investigations(): InvestigationLocator
+    suspend fun createInvestigations(investigations: Collection<Investigation>)
 
     fun mutes(): MuteLocator
 
@@ -40,12 +42,15 @@ interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<T
     suspend fun user(id: UserId): User
     suspend fun user(userName: String): User
     fun users(): UserLocator
+    suspend fun buildAgent(id: BuildAgentId): BuildAgent
+    suspend fun buildAgent(typeId: BuildAgentTypeId): BuildAgent
     fun buildAgents(): BuildAgentLocator
     fun buildAgentPools(): BuildAgentPoolLocator
     fun testRuns(): TestRunsLocator
 
     suspend fun change(buildConfigurationId: BuildConfigurationId, vcsRevision: String): Change
     suspend fun change(id: ChangeId): Change
+    suspend fun test(testId: TestId): Test
 }
 
 interface VcsRootLocator : VcsRootLocatorSettings<VcsRootLocator> {
@@ -102,6 +107,7 @@ interface Project {
     suspend fun getParameters(): List<Parameter>
 
     suspend fun setParameter(name: String, value: String)
+    suspend fun removeParameter(name: String)
 
     /**
      * See properties example from existing VCS roots via inspection of the following url:
@@ -117,6 +123,10 @@ interface Project {
      * returns
      */
     suspend fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
+
+    suspend fun createMutes(mutes: List<Mute>)
+    fun getMutes(): Flow<Mute>
+    suspend fun assignToAgentPool(agentPoolId: BuildAgentPoolId)
 }
 
 interface BuildConfiguration {
@@ -134,7 +144,9 @@ interface BuildConfiguration {
     suspend fun getFinishBuildTriggers(): List<FinishBuildTrigger>
     suspend fun getArtifactDependencies(): List<ArtifactDependency>
 
+    suspend fun getParameters(): List<Parameter>
     suspend fun setParameter(name: String, value: String)
+    suspend fun removeParameter(name: String)
 
     suspend fun getBuildCounter(): Int
     suspend fun setBuildCounter(value: Int)
@@ -207,6 +219,7 @@ interface BuildCanceledInfo {
 interface Build {
     val id: BuildId
     suspend fun getBuildConfigurationId(): BuildConfigurationId
+    suspend fun getProjectId(): ProjectId
     suspend fun getBuildNumber(): String?
     suspend fun getStatus(): BuildStatus?
     suspend fun getBranch(): Branch
@@ -280,32 +293,34 @@ interface Build {
     suspend fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     suspend fun getResultingParameters(): List<Parameter>
     suspend fun finish()
+    suspend fun getStatistics(): List<Property>
+    suspend fun getQueuedWaitReasons(): List<Property>
+    fun testRunsLocator(status: TestStatus?): TestRunsLocator
+    suspend fun markAsSuccessful(comment: String)
+    suspend fun markAsFailed(comment: String)
 }
 
-interface Investigation {
+interface Issue {
+    val resolutionTime: ZonedDateTime? // resolution time
+    val comment: String // assignment comment
+    val resolveMethod: InvestigationResolveMethod // resolution type
+    val targetType: InvestigationTargetType // investigation target type
+    val testIds: List<TestId>? // test ids if target type is test
+    val problemIds: List<BuildProblemId>? // build problem ids if target type is build problem
+    val scope: InvestigationScope // scope of investigation/mute
+}
+
+interface Investigation : Issue {
     val id: InvestigationId
-    val assignee: User
-    val reporter: User?
-    val comment: String
-    val resolveMethod: InvestigationResolveMethod
-    val targetType: InvestigationTargetType
-    val testIds: List<TestId>?
-    val problemIds: List<BuildProblemId>?
-    val scope: InvestigationScope
+    val assignee: UserId
+    val reporter: UserId?
     val state: InvestigationState
 }
 
-interface Mute {
+interface Mute : Issue {
     val id: InvestigationId
-    val assignee: User?
-    val reporter: User?
-    val comment: String
-    val resolveMethod: InvestigationResolveMethod
-    val targetType: InvestigationTargetType
-    val testIds: List<TestId>?
-    val problemIds: List<BuildProblemId>?
-    val scope: InvestigationScope
-    val tests: List<Test>?
+    val assignee: UserId?
+    val reporter: UserId?
 }
 
 interface Test {
@@ -344,6 +359,7 @@ interface Change {
      * configuration as the revision. The feature is experimental, see https://youtrack.jetbrains.com/issue/TW-24633
      */
     suspend fun firstBuilds(): List<Build>
+    suspend fun getRegistrationDate(): ZonedDateTime
 }
 
 interface ChangeFile {
@@ -368,10 +384,19 @@ interface User {
     suspend fun getName(): String?
     suspend fun getEmail(): String?
 
+    suspend fun getRoles(): List<AssignedRole>
+    suspend fun addRole(roleId: RoleId, roleScope: RoleScope)
+    suspend fun deleteRole(roleId: RoleId, roleScope: RoleScope)
+
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
     fun getHomeUrl(): String
+}
+
+interface AssignedRole {
+    val id: RoleId
+    val scope: RoleScope
 }
 
 interface BuildArtifact {
@@ -399,6 +424,7 @@ interface VcsRoot {
 
 interface BuildAgent {
     val id: BuildAgentId
+    suspend fun getTypeId(): BuildAgentTypeId
     suspend fun getName(): String
     suspend fun getPool(): BuildAgentPool
     suspend fun isConnected(): Boolean
@@ -411,6 +437,9 @@ interface BuildAgent {
     suspend fun getAuthorizedInfo(): BuildAgentAuthorizedInfo?
     suspend fun getCurrentBuild(): Build?
     fun getHomeUrl(): String
+
+    suspend fun getCompatibleBuildConfigurations(): CompatibleBuildConfigurations
+    suspend fun setCompatibleBuildConfigurations(value: CompatibleBuildConfigurations)
 }
 
 interface BuildAgentPool {
@@ -433,7 +462,7 @@ interface PinInfo {
 
 interface Revision {
     val version: String
-    val vcsBranchName: String
+    val vcsBranchName: String?
     val vcsRootInstance: VcsRootInstance
 }
 
@@ -476,6 +505,7 @@ interface TestRun {
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+    val type: String
 }
 
 interface FinishBuildTrigger {
@@ -486,7 +516,8 @@ interface FinishBuildTrigger {
 }
 
 interface ArtifactDependency {
-    val dependsOnBuildConfiguration: BuildConfiguration
+    val id: ArtifactDependencyId
+    suspend fun getDependsOnBuildConfiguration(): BuildConfiguration
     suspend fun getBranch(): String?
     suspend fun getArtifactRules(): List<ArtifactRule>
     suspend fun isCleanDestinationDirectory(): Boolean
@@ -510,11 +541,33 @@ interface ArtifactRule {
 
 interface BuildQueue {
     suspend fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
-    fun queuedBuilds(projectId: ProjectId? = null): Flow<Build>
-    fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Flow<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        projectId: ProjectId? = null,
+        prefetchFields: Set<BuildField> = BuildField.essentialFields
+    ): Flow<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildField> = BuildField.essentialFields
+    ): Flow<Build>
 }
 
 sealed class InvestigationScope {
-    class InProject(val project: Project): InvestigationScope()
-    class InBuildConfiguration(val configuration: BuildConfiguration): InvestigationScope()
+    class InProject(val projectId: ProjectId): InvestigationScope()
+    class InBuildConfiguration(val configurationId: BuildConfigurationId): InvestigationScope()
+    class InBuildConfigurations(val configurationIds: List<BuildConfigurationId>): InvestigationScope()
+}
+
+interface CompatibleBuildConfigurations {
+    val buildConfigurationIds: List<BuildConfigurationId>
+    val policy: CompatibleBuildConfigurationsPolicy
 }

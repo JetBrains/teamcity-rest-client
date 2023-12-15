@@ -5,4 +5,10 @@ open class TeamCityRestException(message: String?, cause: Throwable?) : RuntimeE
 
 open class TeamCityQueryException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
 
-open class TeamCityConversationException(message: String?, cause: Throwable? = null) : TeamCityRestException(message, cause)
+open class TeamCityConversationException(
+    message: String?,
+    cause: Throwable? = null,
+    val httpCode: Int? = null,
+    val requestUrl: String? = null,
+    val responseErrorBody: String? = null,
+) : TeamCityRestException(message, cause)

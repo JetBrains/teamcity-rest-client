@@ -11,8 +11,18 @@ import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
+import org.jetbrains.teamcity.rest.coroutines.InvestigationScope as InvestigationScopeCoroutines
 
 private fun <T> lazyBlocking(block: suspend () -> T): Lazy<T> = lazy { runBlocking { block() } }
+
+private inline fun <reified SelfT : Any, reified IdT, reified OtherT : Any> SelfT.equalsById(
+    other: OtherT?,
+    idMapper: (SelfT) -> IdT
+): Boolean {
+    if (this === other) return true
+    if (this.javaClass != other?.javaClass) return false
+    return idMapper(this) == idMapper(other as SelfT)
+}
 
 internal class TeamCityInstanceBlockingBridge(
     private val delegate: TeamCityCoroutinesInstanceEx
@@ -38,6 +48,33 @@ internal class TeamCityInstanceBlockingBridge(
 
     override fun investigations(): InvestigationLocator =
         InvestigationLocatorBridge(delegate.investigations() as InvestigationLocatorEx)
+
+    override fun createInvestigations(investigations: Collection<Investigation>) = runBlocking {
+        delegate.createInvestigations(investigations.map { investigation ->
+            object : org.jetbrains.teamcity.rest.coroutines.Investigation {
+                override val id = investigation.id
+                override val assignee = investigation.assignee.id
+                override val reporter = investigation.reporter?.id
+                override val state: InvestigationState = investigation.state
+                override val resolutionTime: ZonedDateTime? = investigation.resolutionTime
+                override val comment: String = investigation.comment
+                override val resolveMethod: InvestigationResolveMethod = investigation.resolveMethod
+                override val targetType: InvestigationTargetType = investigation.targetType
+                override val testIds: List<TestId>? = investigation.testIds
+                override val problemIds: List<BuildProblemId>? = investigation.problemIds
+                override val scope: InvestigationScopeCoroutines = when (val sc = investigation.scope) {
+                    is InvestigationScope.InBuildConfiguration ->
+                        InvestigationScopeCoroutines.InBuildConfiguration(sc.configuration.id)
+
+                    is InvestigationScope.InBuildConfigurations ->
+                        InvestigationScopeCoroutines.InBuildConfigurations(sc.configuration.map(BuildConfiguration::id))
+
+                    is InvestigationScope.InProject ->
+                        InvestigationScopeCoroutines.InProject(sc.project.id)
+                }
+            }
+        })
+    }
 
     override fun mutes(): MuteLocator = MuteLocatorBridge(delegate.mutes() as MuteLocatorEx)
 
@@ -69,6 +106,8 @@ internal class TeamCityInstanceBlockingBridge(
     override fun user(userName: String): User = UserBridge(runBlocking { delegate.user(userName) })
 
     override fun users(): UserLocator = UserLocatorBridge(this, delegate.users() as UserLocatorEx)
+    override fun buildAgent(id: BuildAgentId): BuildAgent = runBlocking { BuildAgentBridge(delegate.buildAgent(id)) }
+    override fun buildAgent(typeId: BuildAgentTypeId): BuildAgent = runBlocking { BuildAgentBridge(delegate.buildAgent(typeId)) }
 
     override fun buildAgents(): BuildAgentLocator = BuildAgentLocatorBridge(delegate.buildAgents() as BuildAgentLocatorEx)
 
@@ -112,11 +151,17 @@ private class BuildQueueBridge(
         delegate.removeBuild(id, comment, reAddIntoQueue)
     }
 
-    override fun queuedBuilds(projectId: ProjectId?): Sequence<Build> =
-        delegate.queuedBuildsSeq(projectId).map(::BuildBridge)
+    override fun queuedBuilds(
+        projectId: ProjectId?,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Sequence<Build> =
+        delegate.queuedBuildsSeq(projectId, prefetchFields).map(::BuildBridge)
 
-    override fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Sequence<Build> =
-        delegate.queuedBuildsSeq(buildConfigurationId).map(::BuildBridge)
+    override fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Sequence<Build> =
+        delegate.queuedBuildsSeq(buildConfigurationId, prefetchFields).map(::BuildBridge)
 }
 
 private class VcsRootLocatorBridge(
@@ -217,13 +262,30 @@ private class TestRunsLocatorBridge(
         return this
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun withoutDetailsField(): TestRunsLocator {
+        @Suppress("DEPRECATION")
         delegate.withoutDetailsField()
         return this
     }
 
     override fun expandMultipleInvocations(): TestRunsLocator {
         delegate.expandMultipleInvocations()
+        return this
+    }
+
+    override fun muted(muted: Boolean): TestRunsLocator {
+        delegate.muted(muted)
+        return this
+    }
+
+    override fun prefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+        delegate.prefetchFields(*fields)
+        return this
+    }
+
+    override fun excludePrefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
+        delegate.excludePrefetchFields(*fields)
         return this
     }
 }
@@ -343,6 +405,21 @@ private class BuildLocatorBridge(
         return this
     }
 
+    override fun withAgent(agentName: String): BuildLocator {
+        delegate.withAgent(agentName)
+        return this
+    }
+
+    override fun defaultFilter(enable: Boolean): BuildLocator {
+        delegate.defaultFilter(enable)
+        return this
+    }
+
+    override fun prefetchFields(vararg fields: BuildLocatorSettings.BuildField): BuildLocator {
+        delegate.prefetchFields(*fields)
+        return this
+    }
+
     @Suppress("OVERRIDE_DEPRECATION")
     override fun sinceDate(date: Date): BuildLocator {
         delegate.since(date.toInstant())
@@ -375,6 +452,16 @@ private class InvestigationLocatorBridge(
 
     override fun forProject(projectId: ProjectId): InvestigationLocator {
         delegate.forProject(projectId)
+        return this
+    }
+
+    override fun forBuildConfiguration(buildConfigurationId: BuildConfigurationId): InvestigationLocator {
+        delegate.forBuildConfiguration(buildConfigurationId)
+        return this
+    }
+
+    override fun forTest(testId: TestId): InvestigationLocator {
+        delegate.forTest(testId)
         return this
     }
 
@@ -450,6 +537,7 @@ private class ProjectBridge(
     override val parentProjectId: ProjectId? by lazyBlocking { delegate.getParentProjectId() }
     override val childProjects: List<Project> by lazyBlocking { delegate.getChildProjects().map(::ProjectBridge) }
     override val parameters: List<Parameter> by lazyBlocking { delegate.getParameters().map(::ParameterBridge) }
+    override val mutes: Sequence<Mute> = (delegate as ProjectEx).getMutesSeq().map(::MuteBridge)
     override val buildConfigurations: List<BuildConfiguration> by lazyBlocking {
         delegate.getBuildConfigurations().map(::BuildConfigurationBridge)
     }
@@ -457,6 +545,7 @@ private class ProjectBridge(
     override fun getHomeUrl(branch: String?): String = delegate.getHomeUrl(branch)
     override fun getTestHomeUrl(testId: TestId): String = delegate.getTestHomeUrl(testId)
     override fun setParameter(name: String, value: String) = runBlocking { delegate.setParameter(name, value) }
+    override fun removeParameter(name: String) = runBlocking { delegate.removeParameter(name) }
 
     override fun createVcsRoot(
         id: VcsRootId,
@@ -468,8 +557,39 @@ private class ProjectBridge(
     override fun createProject(id: ProjectId, name: String): Project =
         ProjectBridge(runBlocking { delegate.createProject(id, name) })
 
+    override fun assignToAgentPool(agentPool: BuildAgentPool) = runBlocking {
+        delegate.assignToAgentPool(agentPool.id)
+    }
+
     override fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration =
         BuildConfigurationBridge(runBlocking { delegate.createBuildConfiguration(buildConfigurationDescriptionXml) })
+
+    override fun createMutes(mutes: List<Mute>) = runBlocking {
+        delegate.createMutes(mutes.map { mute ->
+            object : org.jetbrains.teamcity.rest.coroutines.Mute {
+                override val id = mute.id
+                override val assignee = mute.assignee?.id
+                override val reporter = mute.reporter?.id
+
+                override val resolutionTime: ZonedDateTime? = mute.resolutionTime
+                override val comment: String = mute.comment
+                override val resolveMethod: InvestigationResolveMethod = mute.resolveMethod
+                override val targetType: InvestigationTargetType = mute.targetType
+                override val testIds: List<TestId>? = mute.testIds
+                override val problemIds: List<BuildProblemId>? = mute.problemIds
+                override val scope: InvestigationScopeCoroutines = when (val sc = mute.scope) {
+                    is InvestigationScope.InBuildConfiguration ->
+                        InvestigationScopeCoroutines.InBuildConfiguration(sc.configuration.id)
+
+                    is InvestigationScope.InBuildConfigurations ->
+                        InvestigationScopeCoroutines.InBuildConfigurations(sc.configuration.map(BuildConfiguration::id))
+
+                    is InvestigationScope.InProject ->
+                        InvestigationScopeCoroutines.InProject(sc.project.id)
+                }
+            }
+        })
+    }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun getWebUrl(branch: String?): String = getHomeUrl(branch)
@@ -483,6 +603,8 @@ private class ProjectBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchParameters(): List<Parameter> = parameters
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class ParameterBridge(
@@ -520,7 +642,9 @@ private class BuildConfigurationBridge(
 
     override fun getHomeUrl(branch: String?): String = delegate.getHomeUrl(branch)
 
+    override fun getParameters() = runBlocking { delegate.getParameters().map(::ParameterBridge) }
     override fun setParameter(name: String, value: String) = runBlocking { delegate.setParameter(name, value) }
+    override fun removeParameter(name: String) = runBlocking { delegate.removeParameter(name) }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun runBuild(
@@ -606,6 +730,8 @@ private class BuildConfigurationBridge(
     override fun fetchArtifactDependencies(): List<ArtifactDependency> = artifactDependencies
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class FinishBuildTriggerBridge(
@@ -621,8 +747,10 @@ private class FinishBuildTriggerBridge(
 private class ArtifactDependencyBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.ArtifactDependency
 ) : ArtifactDependency {
-    override val dependsOnBuildConfiguration: BuildConfiguration =
-        BuildConfigurationBridge(delegate.dependsOnBuildConfiguration)
+    override val id: ArtifactDependencyId = delegate.id
+    override val dependsOnBuildConfiguration: BuildConfiguration by lazyBlocking {
+        BuildConfigurationBridge(delegate.getDependsOnBuildConfiguration())
+    }
 
     override val branch: String? by lazyBlocking { delegate.getBranch() }
     override val artifactRules: List<ArtifactRule> by lazyBlocking {
@@ -630,6 +758,8 @@ private class ArtifactDependencyBridge(
     }
     override val cleanDestinationDirectory: Boolean by lazyBlocking { delegate.isCleanDestinationDirectory() }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class ArtifactRuleBridge(
@@ -647,11 +777,27 @@ private class UserBridge(private val delegate: org.jetbrains.teamcity.rest.corou
     override val username: String by lazyBlocking { delegate.getUsername() }
     override val name: String? by lazyBlocking { delegate.getName() }
     override val email: String? by lazyBlocking { delegate.getEmail() }
+    override val roles: List<AssignedRole> by lazyBlocking { delegate.getRoles().map(::AssignedRoleBridge) }
+    override fun addRole(roleId: RoleId, roleScope: RoleScope) = runBlocking {
+        delegate.addRole(roleId, roleScope)
+    }
+
+    override fun deleteRole(roleId: RoleId, roleScope: RoleScope) = runBlocking {
+        delegate.deleteRole(roleId, roleScope)
+    }
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
+private class AssignedRoleBridge(
+    delegate: org.jetbrains.teamcity.rest.coroutines.AssignedRole
+) : AssignedRole {
+    override val id: RoleId = delegate.id
+    override val scope: RoleScope = delegate.scope
+}
 
 private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coroutines.Build) : Build {
     override val id: BuildId by lazy { delegate.id }
@@ -708,6 +854,12 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
     override fun tests(status: TestStatus?): Sequence<TestOccurrence> = testRuns(status)
+    override val statistics: List<Property> by lazyBlocking { delegate.getStatistics() }
+    override val queuedWaitReasons: List<Property> by lazyBlocking { delegate.getQueuedWaitReasons() }
+    override val projectId: ProjectId by lazyBlocking { (delegate as BuildEx).getProjectId() }
+
+    override fun testRunsLocator(status: TestStatus?): TestRunsLocator =
+        TestRunsLocatorBridge(delegate.testRunsLocator(status) as TestRunsLocatorEx)
 
     override fun testRuns(status: TestStatus?): Sequence<TestRun> =
         (delegate as BuildEx).getTestRunsSeq(status).map(::TestRunBridge)
@@ -771,6 +923,8 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
         runBlocking { delegate.getResultingParameters().map(::ParameterBridge) }
 
     override fun finish() = runBlocking { delegate.finish() }
+    override fun markAsSuccessful(comment: String) = runBlocking { delegate.markAsSuccessful(comment) }
+    override fun markAsFailed(comment: String) = runBlocking { delegate.markAsFailed(comment) }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun getWebUrl(): String = getHomeUrl()
@@ -802,6 +956,8 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 
@@ -837,7 +993,7 @@ private class RevisionBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Revision,
 ) : Revision {
     override val version: String by lazy { delegate.version }
-    override val vcsBranchName: String by lazy { delegate.vcsBranchName }
+    override val vcsBranchName: String? by lazy { delegate.vcsBranchName }
     override val vcsRootInstance: VcsRootInstance = VcsRootInstanceBridge(delegate.vcsRootInstance)
     override fun toString(): String = delegate.toString()
 }
@@ -850,6 +1006,7 @@ private class ChangeBridge(
     override val username: String by lazyBlocking { delegate.getUsername() }
     override val user: User? by lazyBlocking { delegate.getUser()?.let(::UserBridge) }
     override val dateTime: ZonedDateTime by lazyBlocking { delegate.getDateTime() }
+    override val registrationDate: ZonedDateTime by lazyBlocking { delegate.getRegistrationDate() }
     override val comment: String by lazyBlocking { delegate.getComment() }
     override val vcsRootInstance: VcsRootInstance? by lazyBlocking {
         delegate.getVcsRootInstance()?.let(::VcsRootInstanceBridge)
@@ -872,6 +1029,8 @@ private class ChangeBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override val date: Date by lazy { Date.from(dateTime.toInstant()) }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class ChangeFileBridge(
@@ -933,6 +1092,8 @@ private class TriggeredInfoBridge(
 ) : TriggeredInfo {
     override val user: User? by lazy { delegate.user?.let(::UserBridge) }
     override val build: Build? by lazy { delegate.build?.let(::BuildBridge) }
+    override val type: String = delegate.type
+
     override fun toString(): String = delegate.toString()
 }
 
@@ -963,12 +1124,15 @@ private class BuildAgentPoolBridge(
     override val projects: List<Project> by lazyBlocking { delegate.getProjects().map(::ProjectBridge) }
     override val agents: List<BuildAgent> by lazyBlocking { delegate.getAgents().map(::BuildAgentBridge) }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class BuildAgentBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildAgent
 ) : BuildAgent {
     override val id: BuildAgentId by lazy { delegate.id }
+    override val typeId: BuildAgentTypeId by lazyBlocking { delegate.getTypeId() }
     override val name: String by lazyBlocking { delegate.getName() }
     override val pool: BuildAgentPool by lazyBlocking { BuildAgentPoolBridge(delegate.getPool()) }
     override val connected: Boolean by lazyBlocking { delegate.isConnected() }
@@ -986,7 +1150,28 @@ private class BuildAgentBridge(
     override val currentBuild: Build? by lazyBlocking { delegate.getCurrentBuild()?.let(::BuildBridge) }
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
+
+    override var compatibleBuildConfigurations: CompatibleBuildConfigurations
+        get() = CompatibleBuildConfigurationsBridge(runBlocking { delegate.getCompatibleBuildConfigurations() })
+        set(value) {
+            // reverse bridge
+            val compatibleConfigurations = object : org.jetbrains.teamcity.rest.coroutines.CompatibleBuildConfigurations {
+                override val buildConfigurationIds = value.buildTypeIds
+                override val policy = value.policy
+            }
+            runBlocking { delegate.setCompatibleBuildConfigurations(compatibleConfigurations) }
+        }
+
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
+}
+
+private class CompatibleBuildConfigurationsBridge(
+    delegate: org.jetbrains.teamcity.rest.coroutines.CompatibleBuildConfigurations,
+) : CompatibleBuildConfigurations {
+    override val buildTypeIds: List<BuildConfigurationId> = delegate.buildConfigurationIds
+    override val policy = delegate.policy
 }
 
 private class BuildAgentAuthorizedInfoInfoBridge(
@@ -1015,6 +1200,30 @@ private class VcsRootBridge(
     override val url: String? by lazyBlocking { delegate.getUrl() }
     override val defaultBranch: String? by lazyBlocking { delegate.getDefaultBranch() }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
+}
+
+private suspend fun bridgeInvestigationScope(
+    scope: InvestigationScopeCoroutines,
+    instance: TeamCityCoroutinesInstance
+) = when (scope) {
+    is InvestigationScopeCoroutines.InProject ->
+        InvestigationScope.InProject(ProjectBridge(instance.project(scope.projectId)))
+
+    is InvestigationScopeCoroutines.InBuildConfiguration ->
+        InvestigationScope.InBuildConfiguration(
+            BuildConfigurationBridge(
+                instance.buildConfiguration(
+                    scope.configurationId
+                )
+            )
+        )
+
+    is InvestigationScopeCoroutines.InBuildConfigurations ->
+        InvestigationScope.InBuildConfigurations(scope.configurationIds.map { id ->
+            BuildConfigurationBridge(instance.buildConfiguration(id))
+        })
 }
 
 private class VcsRootInstanceBridge(
@@ -1029,48 +1238,46 @@ private class InvestigationBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Investigation
 ) : Investigation {
     override val id: InvestigationId by lazy { delegate.id }
-    override val assignee: User = UserBridge(delegate.assignee)
-    override val reporter: User? by lazy { delegate.reporter?.let(::UserBridge) }
+    override val assignee: User by lazyBlocking { UserBridge((delegate as IssueEx).tcInstance.user(delegate.assignee)) }
+    override val reporter: User? by lazyBlocking { delegate.reporter?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
     override val comment: String by lazy { delegate.comment }
     override val resolveMethod: InvestigationResolveMethod by lazy { delegate.resolveMethod }
+    override val resolutionTime: ZonedDateTime? by lazy { delegate.resolutionTime }
     override val targetType: InvestigationTargetType by lazy { delegate.targetType }
     override val testIds: List<TestId>? by lazy { delegate.testIds }
     override val problemIds: List<BuildProblemId>? by lazy { delegate.problemIds }
-    override val scope: InvestigationScope by lazy {
-        when (val effectiveScope = delegate.scope) {
-            is org.jetbrains.teamcity.rest.coroutines.InvestigationScope.InProject ->
-                InvestigationScope.InProject(ProjectBridge(effectiveScope.project))
-
-            is org.jetbrains.teamcity.rest.coroutines.InvestigationScope.InBuildConfiguration ->
-                InvestigationScope.InBuildConfiguration(BuildConfigurationBridge(effectiveScope.configuration))
-        }
-    }
+    override val scope: InvestigationScope by lazyBlocking { bridgeInvestigationScope(delegate.scope, (delegate as IssueEx).tcInstance) }
     override val state: InvestigationState by lazy { delegate.state }
+
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class MuteBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Mute
 ) : Mute {
     override val id: InvestigationId by lazy { delegate.id }
-    override val assignee: User? by lazy { delegate.assignee?.let(::UserBridge) }
-    override val reporter: User? by lazy { delegate.assignee?.let(::UserBridge) }
+    override val assignee: User? by lazyBlocking { delegate.assignee?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
+    override val reporter: User? by lazyBlocking { delegate.reporter?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
+    override val mutedBy: User?
+        get() = reporter
     override val comment: String by lazy { delegate.comment }
     override val resolveMethod: InvestigationResolveMethod by lazy { delegate.resolveMethod }
+    override val resolutionTime: ZonedDateTime? by lazy { delegate.resolutionTime }
     override val targetType: InvestigationTargetType by lazy { delegate.targetType }
     override val testIds: List<TestId>? by lazy { delegate.testIds }
     override val problemIds: List<BuildProblemId>? by lazy { delegate.problemIds }
-    override val scope: InvestigationScope by lazy {
-        when (val effectiveScope = delegate.scope) {
-            is org.jetbrains.teamcity.rest.coroutines.InvestigationScope.InProject ->
-                InvestigationScope.InProject(ProjectBridge(effectiveScope.project))
-
-            is org.jetbrains.teamcity.rest.coroutines.InvestigationScope.InBuildConfiguration ->
-                InvestigationScope.InBuildConfiguration(BuildConfigurationBridge(effectiveScope.configuration))
+    override val scope: InvestigationScope by lazyBlocking { bridgeInvestigationScope(delegate.scope, (delegate as IssueEx).tcInstance) }
+    override val tests: List<Test>? by lazyBlocking {
+        (delegate as IssueEx).testIds?.map { testId ->
+            TestBridge(delegate.tcInstance.test(testId))
         }
     }
-    override val tests: List<Test>? by lazy { delegate.tests?.map(::TestBridge) }
+
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class TestBridge(
@@ -1079,6 +1286,8 @@ private class TestBridge(
     override val id: TestId by lazy { delegate.id }
     override val name: String by lazyBlocking { delegate.getName() }
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun hashCode(): Int = id.hashCode()
 }
 
 private class TestRunBridge(
@@ -1102,4 +1311,6 @@ private class TestRunBridge(
     override val logAnchor: String by lazyBlocking { delegate.getLogAnchor() }
 
     override fun toString(): String = delegate.toString()
+    override fun equals(other: Any?): Boolean = equalsById(other) { testOccurrenceId }
+    override fun hashCode(): Int = testOccurrenceId.hashCode()
 }

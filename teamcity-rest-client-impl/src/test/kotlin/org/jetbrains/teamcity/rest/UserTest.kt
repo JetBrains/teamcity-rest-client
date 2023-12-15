@@ -62,4 +62,19 @@ class UserTest {
             assertEquals("admin@test.test", usersAsync.single { it.id.stringId == "1" }.getEmail())
         }
     }
+
+    @Test
+    fun test_equals_hashcode() {
+        val id = publicInstance().users().all().first().id
+
+        val firstBlocking = publicInstance().user(id)
+        val secondBlocking = publicInstance().user(id)
+        kotlin.test.assertEquals(firstBlocking, secondBlocking)
+
+        runBlocking {
+            val first = publicCoroutinesInstance().user(id)
+            val second = publicCoroutinesInstance().user(id)
+            kotlin.test.assertEquals(first, second)
+        }
+    }
 }

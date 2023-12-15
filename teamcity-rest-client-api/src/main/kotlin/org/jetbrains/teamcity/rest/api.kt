@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.rest
 
+import org.jetbrains.teamcity.rest.BuildLocatorSettings.*
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -17,6 +18,7 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
 
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
+    abstract fun createInvestigations(investigations: Collection<Investigation>)
 
     abstract fun mutes(): MuteLocator
 
@@ -32,6 +34,8 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
     abstract fun user(id: UserId): User
     abstract fun user(userName: String): User
     abstract fun users(): UserLocator
+    abstract fun buildAgent(id: BuildAgentId): BuildAgent
+    abstract fun buildAgent(typeId: BuildAgentTypeId): BuildAgent
     abstract fun buildAgents(): BuildAgentLocator
     abstract fun buildAgentPools(): BuildAgentPoolLocator
     abstract fun testRuns(): TestRunsLocator
@@ -56,21 +60,21 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
     abstract fun queuedBuilds(projectId: ProjectId? = null): List<Build>
 
     companion object {
-        private const val builderFQN = "org.jetbrains.teamcity.rest.TeamCityInstanceBuilder"
+        private const val BUILDER_FQN = "org.jetbrains.teamcity.rest.TeamCityInstanceBuilder"
 
         @JvmStatic
-        @Deprecated("Use [TeamCityInstanceBuilder] class instead", ReplaceWith("TeamCityInstanceBuilder(serverUrl).withGuestAuth().buildBlockingInstance()", builderFQN))
+        @Deprecated("Use [TeamCityInstanceBuilder] class instead", ReplaceWith("TeamCityInstanceBuilder(serverUrl).withGuestAuth().buildBlockingInstance()", BUILDER_FQN))
         fun guestAuth(serverUrl: String): TeamCityInstance {
-            val builderClass = TeamCityInstance::class.java.classLoader.loadClass(builderFQN)
+            val builderClass = TeamCityInstance::class.java.classLoader.loadClass(BUILDER_FQN)
             val builder = builderClass.getConstructor(String::class.java).newInstance(serverUrl)
             builderClass.getMethod("withGuestAuth").invoke(builder)
             return builderClass.getMethod("buildBlockingInstance").invoke(builder) as TeamCityInstance
         }
 
         @JvmStatic
-        @Deprecated("Use [TeamCityInstanceBuilder] class instead", ReplaceWith("TeamCityInstanceBuilder(serverUrl).withHttpAuth(serverUrl, username, password).buildBlockingInstance()", builderFQN))
+        @Deprecated("Use [TeamCityInstanceBuilder] class instead", ReplaceWith("TeamCityInstanceBuilder(serverUrl).withHttpAuth(serverUrl, username, password).buildBlockingInstance()", BUILDER_FQN))
         fun httpAuth(serverUrl: String, username: String, password: String): TeamCityInstance{
-            val builderClass = TeamCityInstance::class.java.classLoader.loadClass(builderFQN)
+            val builderClass = TeamCityInstance::class.java.classLoader.loadClass(BUILDER_FQN)
             val builder = builderClass.getConstructor(String::class.java).newInstance(serverUrl)
             builderClass.getMethod("withHttpAuth", String::class.java, String::class.java)
                 .invoke(builder, username, password)
@@ -161,8 +165,10 @@ interface Project {
     val childProjects: List<Project>
     val buildConfigurations: List<BuildConfiguration>
     val parameters: List<Parameter>
+    val mutes: Sequence<Mute>
 
     fun setParameter(name: String, value: String)
+    fun removeParameter(name: String)
 
     /**
      * See properties example from existing VCS roots via inspection of the following url:
@@ -172,12 +178,16 @@ interface Project {
 
     fun createProject(id: ProjectId, name: String): Project
 
+    fun assignToAgentPool(agentPool: BuildAgentPool)
+
     /**
      * XML in the same format as
      * https://teamcity/app/rest/buildTypes/YourBuildConfigurationId
      * returns
      */
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
+
+    fun createMutes(mutes: List<Mute>)
 
     @Deprecated(message = "use getHomeUrl(branch)",
                 replaceWith = ReplaceWith("getHomeUrl(branch"))
@@ -209,7 +219,9 @@ interface BuildConfiguration {
     val finishBuildTriggers: List<FinishBuildTrigger>
     val artifactDependencies: List<ArtifactDependency>
 
+    fun getParameters(): List<Parameter>
     fun setParameter(name: String, value: String)
+    fun removeParameter(name: String)
 
     var buildCounter: Int
     var buildNumberFormat: String
@@ -370,6 +382,13 @@ interface Build {
     @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
 
+    val statistics: List<Property>
+
+    val queuedWaitReasons: List<Property>
+
+    val projectId: ProjectId
+
+    fun testRunsLocator(status: TestStatus? = null) : TestRunsLocator
     fun testRuns(status: TestStatus? = null) : Sequence<TestRun>
 
     val buildProblems: Sequence<BuildProblemOccurrence>
@@ -390,6 +409,9 @@ interface Build {
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     fun getResultingParameters(): List<Parameter>
     fun finish()
+
+    fun markAsSuccessful(comment: String)
+    fun markAsFailed(comment: String)
 
     @Deprecated(message = "use getHomeUrl()", replaceWith = ReplaceWith("getHomeUrl()"))
     fun getWebUrl(): String
@@ -421,29 +443,28 @@ interface Build {
     val finishDate: Date?
 }
 
-interface Investigation {
+interface Issue {
+    val comment: String // assignment comment
+    val resolveMethod: InvestigationResolveMethod // resolution type
+    val resolutionTime: ZonedDateTime? // resolution time
+    val targetType: InvestigationTargetType // investigation target type
+    val testIds: List<TestId>? // test ids if target type is test
+    val problemIds: List<BuildProblemId>? // build problem ids if target type is build problem
+    val scope: InvestigationScope // scope of investigation/mute
+}
+
+interface Investigation : Issue {
     val id: InvestigationId
     val assignee: User
     val reporter: User?
-    val comment: String
-    val resolveMethod: InvestigationResolveMethod
-    val targetType: InvestigationTargetType
-    val testIds: List<TestId>?
-    val problemIds: List<BuildProblemId>?
-    val scope: InvestigationScope
     val state: InvestigationState
 }
 
-interface Mute {
+interface Mute : Issue {
     val id: InvestigationId
     val assignee: User?
     val reporter: User?
-    val comment: String
-    val resolveMethod: InvestigationResolveMethod
-    val targetType: InvestigationTargetType
-    val testIds: List<TestId>?
-    val problemIds: List<BuildProblemId>?
-    val scope: InvestigationScope
+    val mutedBy: User?
     val tests: List<Test>?
 }
 
@@ -466,6 +487,7 @@ interface Change {
     val username: String
     val user: User?
     val dateTime: ZonedDateTime
+    val registrationDate: ZonedDateTime
     val comment: String
     val vcsRootInstance: VcsRootInstance?
     val files: List<ChangeFile>
@@ -510,11 +532,20 @@ interface User {
     val username: String
     val name: String?
     val email: String?
+    val roles: List<AssignedRole>
+
+    fun addRole(roleId: RoleId, roleScope: RoleScope)
+    fun deleteRole(roleId: RoleId, roleScope: RoleScope)
 
     /**
      * Web UI URL for user, especially useful for error and log messages
      */
     fun getHomeUrl(): String
+}
+
+interface AssignedRole {
+    val id: RoleId
+    val scope: RoleScope
 }
 
 interface BuildArtifact {
@@ -546,6 +577,7 @@ interface VcsRoot {
 
 interface BuildAgent {
     val id: BuildAgentId
+    val typeId: BuildAgentTypeId
     val name: String
     val pool: BuildAgentPool
 
@@ -563,6 +595,8 @@ interface BuildAgent {
     val currentBuild: Build?
 
     fun getHomeUrl(): String
+
+    var compatibleBuildConfigurations: CompatibleBuildConfigurations
 }
 
 interface BuildAgentPool {
@@ -589,7 +623,7 @@ interface PinInfo {
 
 interface Revision {
     val version: String
-    val vcsBranchName: String
+    val vcsBranchName: String?
     val vcsRootInstance: VcsRootInstance
 }
 
@@ -636,6 +670,7 @@ interface TestRun : TestOccurrence
 interface TriggeredInfo {
     val user: User?
     val build: Build?
+    val type: String
 }
 
 interface FinishBuildTrigger {
@@ -646,6 +681,7 @@ interface FinishBuildTrigger {
 }
 
 interface ArtifactDependency {
+    val id: ArtifactDependencyId
     val dependsOnBuildConfiguration: BuildConfiguration
     val branch: String?
     val artifactRules: List<ArtifactRule>
@@ -670,11 +706,39 @@ interface ArtifactRule {
 
 interface BuildQueue {
     fun removeBuild(id: BuildId, comment: String = "", reAddIntoQueue: Boolean = false)
-    fun queuedBuilds(projectId: ProjectId? = null): Sequence<Build>
-    fun queuedBuilds(buildConfigurationId: BuildConfigurationId): Sequence<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        projectId: ProjectId? = null,
+        prefetchFields: Set<BuildField> = BuildLocatorSettings.BuildField.essentialFields
+    ): Sequence<Build>
+
+    /**
+     * Use [prefetchFields] to manually select Build fields to prefetch.
+     * By default [BuildField.essentialFields] are fetched.
+     */
+    fun queuedBuilds(
+        buildConfigurationId: BuildConfigurationId,
+        prefetchFields: Set<BuildField> = BuildLocatorSettings.BuildField.essentialFields
+    ): Sequence<Build>
+}
+
+interface Property {
+    val name: String
+    val value: String
 }
 
 sealed class InvestigationScope {
     class InProject(val project: Project): InvestigationScope()
     class InBuildConfiguration(val configuration: BuildConfiguration): InvestigationScope()
+    class InBuildConfigurations(val configuration: List<BuildConfiguration>): InvestigationScope()
 }
+
+interface CompatibleBuildConfigurations {
+    val buildTypeIds: List<BuildConfigurationId>
+    val policy: CompatibleBuildConfigurationsPolicy
+}
+
