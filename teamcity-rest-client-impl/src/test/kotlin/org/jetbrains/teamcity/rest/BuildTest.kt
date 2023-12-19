@@ -9,6 +9,8 @@ import org.junit.Before
 import org.junit.Test
 import java.io.InputStream
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -240,15 +242,24 @@ class BuildTest {
     @Test
     fun test_download_build_log() {
         val build = customInstanceByConnectionFile().build(BuildId("422"))
-        Files.createTempFile("test_download_artifact_", ".txt").apply {
-            try {
-                build.downloadBuildLog(toFile())
-                val expectedSha256 = "36287e73417e20ef998c96feed26e003e46f100275ac4e85a9811a2ba1a04a9b"
-                val actualDownloadFileSha256 = calculateSha256Hash(inputStream())
-                assertEquals(expectedSha256, actualDownloadFileSha256)
-            } finally {
-                deleteIfExists() // cleanup
-            }
+
+        val logWithTCVersion = Files.createTempFile("test_download_buildlog_", ".txt")
+        val logWithReplacedTCVersion = Files.createTempFile("test_download_buildlog_without_version_", ".txt")
+
+        try {
+            build.downloadBuildLog(logWithTCVersion.toFile())
+
+            // Log file contains TeamCity version of the *current* server, not the one where the build was run at.
+            // To avoid changing this expected sha256 after each server upgrade, we make it stable by removing
+            // server version from the file.
+            replaceTeamCityVersionInLog(logWithTCVersion, logWithReplacedTCVersion)
+
+            val expectedSha256 = "4d6a6a1125e09694d5fe01b251d6474571eaf2ee39b4dfd3fb436708c9d6cc45"
+            val actualDownloadFileSha256 = calculateSha256Hash(logWithReplacedTCVersion.inputStream())
+            assertEquals(expectedSha256, actualDownloadFileSha256)
+        } finally {
+            logWithReplacedTCVersion.deleteIfExists()
+            logWithReplacedTCVersion.deleteIfExists()
         }
     }
 
@@ -302,6 +313,20 @@ class BuildTest {
 
         return digest.digest().joinToString(separator = "") { byte ->
             String.format("%02x", byte)
+        }
+    }
+
+    private fun replaceTeamCityVersionInLog(before: Path, after: Path) {
+        val versionText = Regex("TeamCity server version is [\\d.]+ \\(build \\d+\\), server timezone: .*")
+        val replacementText = "TeamCity server version is REPLACED (build REPLACED), server timezone: REPLACED"
+
+        Files.newBufferedWriter(after, StandardOpenOption.WRITE).use { writer ->
+            Files.lines(before)
+                .map { it.replace(versionText, replacementText) }
+                .forEach {
+                    writer.write(it)
+                    writer.newLine()
+                }
         }
     }
 }
