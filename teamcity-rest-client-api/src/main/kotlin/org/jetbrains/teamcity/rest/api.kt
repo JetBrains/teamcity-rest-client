@@ -292,7 +292,7 @@ interface BuildProblemOccurrence {
 
 interface Parameter {
     val name: String
-    val value: String
+    val value: String?
     val own: Boolean
 }
 

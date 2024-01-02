@@ -595,7 +595,7 @@ private class ParameterBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Parameter,
 ) : Parameter {
     override val name: String by lazy { delegate.name }
-    override val value: String by lazy { delegate.value }
+    override val value: String? by lazy { delegate.value }
     override val own: Boolean by lazy { delegate.own }
     override fun toString(): String = delegate.toString()
 }

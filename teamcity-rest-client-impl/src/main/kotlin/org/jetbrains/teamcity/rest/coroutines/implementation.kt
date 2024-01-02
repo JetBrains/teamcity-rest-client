@@ -1532,11 +1532,11 @@ private class BuildCanceledInfoImpl(
 
 private class ParameterImpl(
     override val name: String,
-    override val value: String,
+    override val value: String?,
     override val own: Boolean,
 ) : Parameter {
-    constructor(bean: ParameterBean) : this(bean.name!!, bean.value!!, bean.own == true)
-    constructor(bean: BuildTypeParameterBean) : this(bean.name!!, bean.value!!, bean.inherited == false)
+    constructor(bean: ParameterBean) : this(bean.name!!, bean.value, bean.own == true)
+    constructor(bean: BuildTypeParameterBean) : this(bean.name!!, bean.value, bean.inherited == false)
 }
 
 private class FinishBuildTriggerImpl(private val bean: TriggerBean) : FinishBuildTrigger {
