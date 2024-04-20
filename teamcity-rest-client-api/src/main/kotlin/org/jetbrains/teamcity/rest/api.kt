@@ -383,6 +383,8 @@ interface Build {
 
     val detachedFromAgent: Boolean
 
+    val isFailedToStart: Boolean
+
     @Suppress("DEPRECATION")
     @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>

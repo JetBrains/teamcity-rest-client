@@ -506,6 +506,7 @@ internal open class BuildBean: IdBean() {
     var `snapshot-dependencies`: BuildListBean? = null
     var detachedFromAgent: Boolean? = null
     var queuedWaitReasons: QueueWaitReasonsPropertiesBean? = null
+    var failedToStart: Boolean? = null
 
     companion object {
         val fullFieldsFilter: String = buildCustomFieldsFilter(
@@ -551,6 +552,7 @@ internal open class BuildBean: IdBean() {
             BuildLocatorSettings.BuildField.AGENT -> "agent"
             BuildLocatorSettings.BuildField.IS_DETACHED_FROM_AGENT -> "detachedFromAgent"
             BuildLocatorSettings.BuildField.QUEUED_WAIT_REASONS -> "queuedWaitReasons(*,property(*))"
+            BuildLocatorSettings.BuildField.IS_FAILED_TO_START -> "failedToStart"
         }
     }
 }

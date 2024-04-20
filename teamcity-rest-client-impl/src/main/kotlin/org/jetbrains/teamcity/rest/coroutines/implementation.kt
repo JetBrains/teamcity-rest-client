@@ -1880,6 +1880,10 @@ private class BuildImpl(
         fromFullBeanIf(BuildField.IS_DETACHED_FROM_AGENT !in prefetchedFields, BuildBean::detachedFromAgent) ?: false
     }
 
+    private val failedToStart = SuspendingLazy {
+        fromFullBeanIf(BuildField.IS_FAILED_TO_START !in prefetchedFields, BuildBean::failedToStart) ?: false
+    }
+
     private val projectId = SuspendingLazy {
         val stringId = fromFullBeanIf(BuildField.PROJECT_ID !in prefetchedFields) { it.buildType?.projectId }
         ProjectId(checkNotNull(stringId))
@@ -1944,6 +1948,8 @@ private class BuildImpl(
         else "Build{id=$id}"
 
     override suspend fun isDetachedFromAgent(): Boolean = detachedFromAgent.getValue()
+
+    override suspend fun isFailedToStart(): Boolean = failedToStart.getValue()
 
     override fun getTestRuns(status: TestStatus?): Flow<TestRun> = instance
         .testRuns()

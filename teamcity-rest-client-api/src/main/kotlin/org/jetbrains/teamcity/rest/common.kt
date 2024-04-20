@@ -107,6 +107,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         AGENT,
         IS_DETACHED_FROM_AGENT,
         QUEUED_WAIT_REASONS,
+        IS_FAILED_TO_START,
         ;
 
         companion object {
@@ -136,6 +137,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
                 BuildLocatorSettings.BuildField.AGENT,
                 BuildLocatorSettings.BuildField.PARAMETERS,
                 BuildLocatorSettings.BuildField.SNAPSHOT_DEPENDENCIES,
+                BuildLocatorSettings.BuildField.IS_FAILED_TO_START,
             )
         }
     }

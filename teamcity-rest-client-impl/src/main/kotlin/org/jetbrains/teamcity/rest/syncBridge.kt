@@ -834,6 +834,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     }
     override val agent: BuildAgent? by lazyBlocking { delegate.getAgent()?.let(::BuildAgentBridge) }
     override val detachedFromAgent: Boolean by lazyBlocking { delegate.isDetachedFromAgent() }
+    override val isFailedToStart: Boolean by lazyBlocking { delegate.isFailedToStart() }
     override val buildProblems: Sequence<BuildProblemOccurrence> by lazyBlocking {
         (delegate as BuildEx).getBuildProblemsSeq().map(::BuildProblemOccurrenceBridge)
     }

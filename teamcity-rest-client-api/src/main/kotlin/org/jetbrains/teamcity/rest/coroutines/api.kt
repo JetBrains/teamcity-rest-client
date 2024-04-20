@@ -276,6 +276,8 @@ interface Build {
 
     suspend fun isDetachedFromAgent(): Boolean
 
+    suspend fun isFailedToStart(): Boolean
+
     fun getTestRuns(status: TestStatus? = null): Flow<TestRun>
 
     fun getBuildProblems(): Flow<BuildProblemOccurrence>
