@@ -134,6 +134,7 @@ interface BuildConfiguration {
     val id: BuildConfigurationId
     suspend fun getName(): String
     suspend fun getProjectId(): ProjectId
+    suspend fun getProjectName(): String
     suspend fun isPaused(): Boolean
     suspend fun getType(): BuildConfigurationType
 
@@ -229,6 +230,7 @@ interface Build {
     suspend fun getState(): BuildState
     suspend fun isPersonal(): Boolean
     suspend fun getName(): String
+    suspend fun getProjectName(): String
     suspend fun getCanceledInfo(): BuildCanceledInfo?
     suspend fun getComment(): BuildCommentInfo?
 

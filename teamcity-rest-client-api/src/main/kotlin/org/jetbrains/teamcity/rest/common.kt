@@ -85,6 +85,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         NAME,
         BUILD_CONFIGURATION_ID,
         PROJECT_ID,
+        PROJECT_NAME,
         BUILD_NUMBER,
         STATUS,
         STATUS_TEXT,

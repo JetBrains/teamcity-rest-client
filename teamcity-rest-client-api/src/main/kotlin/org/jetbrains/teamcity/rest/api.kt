@@ -211,6 +211,7 @@ interface BuildConfiguration {
     val id: BuildConfigurationId
     val name: String
     val projectId: ProjectId
+    val projectName: String
     val paused: Boolean
 
     /**
@@ -337,6 +338,7 @@ interface Build {
     val state: BuildState
     val personal: Boolean
     val name: String
+    val projectName: String
     val canceledInfo: BuildCanceledInfo?
     val comment: BuildCommentInfo?
 

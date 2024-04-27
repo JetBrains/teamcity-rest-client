@@ -966,10 +966,12 @@ private abstract class BaseImpl<TBean : IdBean>(
     protected suspend inline fun <T> nullable(getter: (TBean) -> T?): T? =
         getter(bean) ?: getter(fullBean.getValue())
 
-    protected suspend fun <T> fromFullBeanIf(check: Boolean, getter: (TBean) -> T): T = if (check) {
-        getter(fullBean.getValue())
-    } else {
-        getter(bean)
+    protected suspend fun <T> fromFullBeanIf(check: Boolean, getter: (TBean) -> T): T {
+        val maybeValue = getter(bean)
+        if (maybeValue != null || !check) {
+            return maybeValue
+        }
+        return getter(fullBean.getValue())
     }
 
     val fullBean = SuspendingLazy {
@@ -1237,6 +1239,8 @@ private class BuildConfigurationImpl(
     private val paused = SuspendingLazy { nullable { it.paused } ?: false } // TC won't return paused:false field
     private val type = SuspendingLazy { BuildConfigurationType.valueOf(notnull { it.type }) }
 
+    private val projectName = SuspendingLazy { notnull { it.projectName } }
+
     private val buildCounter = SuspendingLazy {
         getSetting("buildNumberCounter")?.toIntOrNull()
             ?: throw TeamCityQueryException("Cannot get 'buildNumberCounter' setting for $idString")
@@ -1249,6 +1253,7 @@ private class BuildConfigurationImpl(
 
     override suspend fun getName(): String = name.getValue()
     override suspend fun getProjectId(): ProjectId = projectId.getValue()
+    override suspend fun getProjectName(): String = projectName.getValue()
 
     override suspend fun isPaused(): Boolean = paused.getValue()
 
@@ -1889,6 +1894,11 @@ private class BuildImpl(
         ProjectId(checkNotNull(stringId))
     }
 
+    private val projectName = SuspendingLazy {
+        val stringId = fromFullBeanIf(BuildField.PROJECT_NAME !in prefetchedFields) { it.buildType?.projectName }
+        checkNotNull(stringId)
+    }
+
     private val queuedWaitReasons = SuspendingLazy {
         fromFullBeanIf(BuildField.QUEUED_WAIT_REASONS !in prefetchedFields, BuildBean::queuedWaitReasons)?.property
             ?.map(::PropertyImpl) ?: emptyList()
@@ -1934,6 +1944,8 @@ private class BuildImpl(
     override suspend fun isPersonal(): Boolean = personal.getValue()
 
     override suspend fun getName(): String = name.getValue()
+
+    override suspend fun getProjectName(): String = projectName.getValue()
 
     override suspend fun getCanceledInfo(): BuildCanceledInfo? = canceledInfo.getValue()
 

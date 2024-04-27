@@ -528,7 +528,8 @@ internal open class BuildBean: IdBean() {
 
         private fun remapField(field: BuildLocatorSettings.BuildField): String = when (field) {
             BuildLocatorSettings.BuildField.NAME,
-            BuildLocatorSettings.BuildField.PROJECT_ID -> "buildType(name,projectId)"
+            BuildLocatorSettings.BuildField.PROJECT_ID,
+            BuildLocatorSettings.BuildField.PROJECT_NAME -> "buildType(name,projectId,projectName)"
             BuildLocatorSettings.BuildField.BUILD_CONFIGURATION_ID -> "buildTypeId"
             BuildLocatorSettings.BuildField.BUILD_NUMBER -> "number"
             BuildLocatorSettings.BuildField.STATUS -> "status"
@@ -568,12 +569,13 @@ internal class BuildRunningInfoBean {
 internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
+    var projectName: String? = null
     var paused: Boolean? = null
     var type: String? = null
     var settings: BuildTypeSettingsBean? = null
 
     companion object {
-        const val fields = "id,name,projectId,paused,type,settings"
+        const val fields = "id,name,projectId,projectName,paused,type,settings"
     }
 }
 

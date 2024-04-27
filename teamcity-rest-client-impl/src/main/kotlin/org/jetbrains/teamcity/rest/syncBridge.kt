@@ -606,6 +606,7 @@ private class BuildConfigurationBridge(
     override val id: BuildConfigurationId by lazy { delegate.id }
     override val name: String by lazyBlocking { delegate.getName() }
     override val projectId: ProjectId by lazyBlocking { delegate.getProjectId() }
+    override val projectName: String by lazyBlocking { delegate.getProjectName() }
     override val paused: Boolean by lazyBlocking { delegate.isPaused() }
     override val buildTags: List<String> by lazyBlocking { delegate.getBuildTags() }
     override val finishBuildTriggers: List<FinishBuildTrigger> by lazyBlocking {
@@ -809,6 +810,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     override val state: BuildState by lazyBlocking { delegate.getState() }
     override val personal: Boolean by lazyBlocking { delegate.isPersonal() }
     override val name: String by lazyBlocking { delegate.getName() }
+    override val projectName: String by lazyBlocking { delegate.getProjectName() }
     override val canceledInfo: BuildCanceledInfo? by lazyBlocking {
         delegate.getCanceledInfo()?.let(::BuildCanceledInfoBridge)
     }
