@@ -26,6 +26,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private var retryInitialDelayMs: Long = 1000
     private var retryMaxDelayMs: Long = 1000
     private var nodeSelector: NodeSelector = NodeSelector.Unspecified
+    private var userAgent: String? = null
 
     /**
      * Creates guest authenticated accessor. Default setting.
@@ -133,6 +134,14 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 
     /**
+     * Send custom `User-Agent` header value when sending requests.
+     */
+    fun withCustomUserAgent(userAgent: String): TeamCityInstanceBuilder {
+        this.userAgent = userAgent
+        return this
+    }
+
+    /**
      * Build instance over coroutines
      */
     fun build(): TeamCityCoroutinesInstance = TeamCityCoroutinesInstanceImpl(
@@ -147,7 +156,8 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         maxConcurrentRequestsPerHost,
         retryMaxAttempts,
         retryInitialDelayMs,
-        retryMaxDelayMs
+        retryMaxDelayMs,
+        userAgent
     )
     
     fun buildBlockingInstance(): TeamCityInstance = TeamCityInstanceBlockingBridge(build() as TeamCityCoroutinesInstanceEx)

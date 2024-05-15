@@ -169,6 +169,7 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val retryMaxAttempts: Int,
     private val retryInitialDelayMs: Long,
     private val retryMaxDelayMs: Long,
+    private val userAgent: String?,
 
     ) : TeamCityCoroutinesInstanceEx {
     override fun toBuilder(): TeamCityInstanceBuilder = TeamCityInstanceBuilder(serverUrl)
@@ -179,6 +180,7 @@ internal class TeamCityCoroutinesInstanceImpl(
         .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
         .withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost)
         .selectNode(nodeSelector)
+        .apply { if (userAgent != null) withCustomUserAgent(userAgent) }
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -201,6 +203,9 @@ internal class TeamCityCoroutinesInstanceImpl(
             val request = chain.request().newBuilder().apply {
                 if (authHeader != null) {
                     header("Authorization", authHeader)
+                }
+                if (userAgent != null) {
+                    header("User-Agent", userAgent)
                 }
             }.build()
             chain.proceed(request)
