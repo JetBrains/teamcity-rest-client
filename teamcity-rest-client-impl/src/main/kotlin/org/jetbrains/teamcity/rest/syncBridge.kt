@@ -285,6 +285,11 @@ private class TestRunsLocatorBridge(
         return this
     }
 
+    override fun currentlyMuted(currentlyMuted: Boolean): TestRunsLocator {
+        delegate.currentlyMuted(currentlyMuted)
+        return this
+    }
+
     override fun prefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
         delegate.prefetchFields(*fields)
         return this

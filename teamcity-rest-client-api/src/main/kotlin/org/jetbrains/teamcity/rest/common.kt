@@ -192,6 +192,8 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
 
     fun muted(muted: Boolean): Self
 
+    fun currentlyMuted(currentlyMuted: Boolean): Self
+
 
     /**
      * Use this method to manually select TestRun fields to prefetch.

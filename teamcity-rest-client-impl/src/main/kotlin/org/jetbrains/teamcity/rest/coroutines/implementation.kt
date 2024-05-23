@@ -834,6 +834,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
     private var testStatus: TestStatus? = null
     private var expandMultipleInvocations = false
     private var muted: Boolean? = null
+    private var currentlyMuted: Boolean? = null
     private val testRunFields = EnumSet.allOf(TestRunField::class.java)
 
     override fun limitResults(count: Int): TestRunsLocator {
@@ -882,6 +883,11 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         return this
     }
 
+    override fun currentlyMuted(currentlyMuted: Boolean): TestRunsLocator {
+        this.currentlyMuted = currentlyMuted
+        return this
+    }
+
     override fun prefetchFields(vararg fields: TestRunField): TestRunsLocator {
         this.testRunFields.clear()
         this.testRunFields.addAll(fields)
@@ -911,7 +917,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
             buildId?.let { "build:$it" },
             testId?.let { "test:$it" },
             muted?.let { "muted:$it" },
-            muted?.let { "currentlyMuted:$it" },
+            currentlyMuted?.let { "currentlyMuted:$it" },
             expandMultipleInvocations.let { "expandInvocations:$it" },
             statusLocator
         )
