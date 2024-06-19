@@ -534,6 +534,11 @@ private class MuteLocatorBridge(
         delegate.forTest(testId)
         return this
     }
+
+    override fun byId(muteId: InvestigationId): MuteLocator {
+        delegate.byId(muteId)
+        return this
+    }
 }
 
 private class TestLocatorBridge(

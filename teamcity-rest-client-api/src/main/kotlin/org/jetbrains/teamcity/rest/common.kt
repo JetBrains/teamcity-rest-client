@@ -173,6 +173,7 @@ interface MuteLocatorSettings<Self : MuteLocatorSettings<Self>> {
     fun forProject(projectId: ProjectId): Self
     fun byUser(userId: UserId): Self
     fun forTest(testId: TestId): Self
+    fun byId(muteId: InvestigationId): Self
 }
 
 interface TestLocatorSettings<Self : TestLocatorSettings<Self>> {
