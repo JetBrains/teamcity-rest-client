@@ -977,7 +977,7 @@ private abstract class BaseImpl<TBean : IdBean>(
     protected suspend inline fun <T> nullable(getter: (TBean) -> T?): T? =
         getter(bean) ?: getter(fullBean.getValue())
 
-    protected suspend fun <T> fromFullBeanIf(check: Boolean, getter: (TBean) -> T): T {
+    protected suspend fun <T> fromFullBeanIf(check: Boolean, getter: (TBean) -> T?): T? {
         val maybeValue = getter(bean)
         if (maybeValue != null || !check) {
             return maybeValue
@@ -1884,8 +1884,11 @@ private class BuildImpl(
 
     private val branch = SuspendingLazy {
         val (branchName, isDefaultBranch) = fromFullBeanIf(BuildField.BRANCH !in prefetchedFields) {
-            it.branchName to it.defaultBranch
-        }
+            when {
+                it.branchName == null && it.defaultBranch == null -> null
+                else -> it.branchName to it.defaultBranch
+            }
+        } ?: (null to null)
         BranchImpl(
             name = branchName,
             isDefault = isDefaultBranch ?: (branchName == null)

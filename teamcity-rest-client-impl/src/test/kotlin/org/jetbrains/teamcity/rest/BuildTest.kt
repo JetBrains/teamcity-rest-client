@@ -20,6 +20,7 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BuildTest {
@@ -160,6 +161,24 @@ class BuildTest {
 
         assertTrue(build.tags.isNotEmpty())
         assertTrue(build.tags.contains("1.0"))
+    }
+
+    @Test
+    fun `test a default branch for vcs root with non-empty branch spec`() {
+        val build = publicInstance().build(BuildId("433"))
+        assertNotNull(build.branch.name)
+    }
+
+    @Test
+    fun `test a non-default branch for vcs root with non-empty branch spec`() {
+        val build = publicInstance().build(BuildId("427"))
+        assertNotNull(build.branch.name)
+    }
+
+    @Test
+    fun `test a branch for vcs root with empty branch spec`() {
+        val build = publicInstance().build(BuildId("241"))
+        assertNull(build.branch.name)
     }
 
     @Test
