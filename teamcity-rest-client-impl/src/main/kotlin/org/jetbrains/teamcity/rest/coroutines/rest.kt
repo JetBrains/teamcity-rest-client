@@ -8,6 +8,7 @@ import org.jetbrains.teamcity.rest.*
 import retrofit2.Response
 import retrofit2.http.*
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 
 internal interface TeamCityService {
     // Even with `@Path(encoded = true)` retrofit2 will encode special characters like [?,=,&]
@@ -296,7 +297,10 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
             )
         } catch (e: TeamCityRestException) {
             throw e
-        } catch (t: Throwable) {
+        } catch (ce: CancellationException) {
+            throw ce
+        }
+        catch (t: Throwable) {
             throw TeamCityRestException("Connect failed: ${t.message}", t)
         }
     }
