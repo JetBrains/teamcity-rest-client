@@ -242,7 +242,7 @@ interface Build {
     fun getHomeUrl(): String
 
     suspend fun getStatusText(): String?
-    suspend fun getQueuedDateTime(): ZonedDateTime
+    suspend fun getQueuedDateTime(): ZonedDateTime?
     suspend fun getStartDateTime(): ZonedDateTime?
     suspend fun getFinishDateTime(): ZonedDateTime?
 

@@ -822,7 +822,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     override val comment: BuildCommentInfo? by lazyBlocking { delegate.getComment()?.let(::BuildCommentInfoBridge) }
     override val composite: Boolean? by lazyBlocking { delegate.isComposite() }
     override val statusText: String? by lazyBlocking { delegate.getStatusText() }
-    override val queuedDateTime: ZonedDateTime by lazyBlocking { delegate.getQueuedDateTime() }
+    override val queuedDateTime: ZonedDateTime? by lazyBlocking { delegate.getQueuedDateTime() }
     override val startDateTime: ZonedDateTime? by lazyBlocking { delegate.getStartDateTime() }
     override val finishDateTime: ZonedDateTime? by lazyBlocking { delegate.getFinishDateTime() }
     override val runningInfo: BuildRunningInfo? by lazyBlocking {
@@ -853,7 +853,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     override val buildTypeId: BuildConfigurationId by lazy { runBlocking { delegate.getBuildConfigurationId() } }
 
     @Suppress("OVERRIDE_DEPRECATION")
-    override val queuedDate: Date by lazy { Date.from(queuedDateTime.toInstant()) }
+    override val queuedDate: Date? by lazy { queuedDateTime?.let { Date.from(it.toInstant()) } }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val startDate: Date? by lazy { startDateTime?.let { Date.from(it.toInstant()) } }
@@ -945,7 +945,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     override fun fetchStatusText(): String? = statusText
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
-    override fun fetchQueuedDate(): Date = queuedDate
+    override fun fetchQueuedDate(): Date? = queuedDate
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
     override fun fetchStartDate(): Date? = startDate

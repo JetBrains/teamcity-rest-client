@@ -1831,8 +1831,8 @@ private class BuildImpl(
     }
 
     private val queuedDateTime = SuspendingLazy {
-        checkNotNull(fromFullBeanIf(BuildField.QUEUED_DATETIME !in prefetchedFields, BuildBean::queuedDate))
-            .let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
+        fromFullBeanIf(BuildField.QUEUED_DATETIME !in prefetchedFields, BuildBean::queuedDate)
+            ?.let { ZonedDateTime.parse(it, teamCityServiceDateFormat) }
     }
 
     private val startDateTime = SuspendingLazy {
@@ -1922,7 +1922,7 @@ private class BuildImpl(
 
     override suspend fun getStatusText(): String? = statusText.getValue()
 
-    override suspend fun getQueuedDateTime(): ZonedDateTime = queuedDateTime.getValue()
+    override suspend fun getQueuedDateTime(): ZonedDateTime? = queuedDateTime.getValue()
 
     override suspend fun getStartDateTime(): ZonedDateTime? = startDateTime.getValue()
 

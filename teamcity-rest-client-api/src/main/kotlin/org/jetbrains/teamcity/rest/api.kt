@@ -349,7 +349,7 @@ interface Build {
     fun getHomeUrl(): String
 
     val statusText: String?
-    val queuedDateTime: ZonedDateTime
+    val queuedDateTime: ZonedDateTime?
     val startDateTime: ZonedDateTime?
     val finishDateTime: ZonedDateTime?
 
@@ -426,8 +426,8 @@ interface Build {
     fun getWebUrl(): String
     @Deprecated(message = "use statusText", replaceWith = ReplaceWith("statusText"))
     fun fetchStatusText(): String?
-    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
-    fun fetchQueuedDate(): Date
+    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("queuedDateTime?.toInstant()?.let { Date.from(it) }"))
+    fun fetchQueuedDate(): Date?
     @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("startDateTime?.toInstant()?.let { Date.from(it) }"))
     fun fetchStartDate(): Date?
     @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("finishDateTime?.toInstant()?.let { Date.from(it) }"))
@@ -444,8 +444,8 @@ interface Build {
     fun fetchTriggeredInfo(): TriggeredInfo?
     @Deprecated(message = "use buildConfigurationId", replaceWith = ReplaceWith("buildConfigurationId"))
     val buildTypeId: BuildConfigurationId
-    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
-    val queuedDate: Date
+    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("queuedDateTime?.toInstant()?.let { Date.from(it) }"))
+    val queuedDate: Date?
     @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("startDateTime?.toInstant()?.let { Date.from(it) }"))
     val startDate: Date?
     @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("finishDateTime?.toInstant()?.let { Date.from(it) }"))
