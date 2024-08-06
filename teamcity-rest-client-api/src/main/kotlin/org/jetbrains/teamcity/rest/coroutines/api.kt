@@ -183,6 +183,9 @@ interface BuildProblemOccurrence {
     val build: Build
     val details: String
     val additionalData: String?
+    val muted: Boolean
+    val currentlyMuted: Boolean
+    val currentlyInvestigated: Boolean
 }
 
 interface Parameter {

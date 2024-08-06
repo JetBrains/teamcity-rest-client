@@ -612,7 +612,9 @@ internal class BuildProblemOccurrenceBean {
     var details: String? = null
     var additionalData: String? = null
     var problem: BuildProblemBean? = null
-    var build: BuildBean? = null
+    var muted: Boolean? = null
+    var currentlyMuted: Boolean? = null
+    var currentlyInvestigated: Boolean? = null
 }
 
 internal class BuildTypesBean {

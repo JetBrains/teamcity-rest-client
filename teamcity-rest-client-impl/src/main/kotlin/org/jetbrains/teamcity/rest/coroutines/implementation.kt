@@ -1657,20 +1657,24 @@ private class BuildProblemImpl(private val bean: BuildProblemBean) : BuildProble
 }
 
 private class BuildProblemOccurrenceImpl(
+    override val build: Build,
     private val bean: BuildProblemOccurrenceBean,
-    private val instance: TeamCityCoroutinesInstanceImpl
 ) : BuildProblemOccurrence {
     override val buildProblem: BuildProblem
         get() = BuildProblemImpl(bean.problem!!)
-    override val build: Build
-        get() = BuildImpl(bean.build!!, emptySet(), instance)
     override val details: String
         get() = bean.details ?: ""
     override val additionalData: String?
         get() = bean.additionalData
+    override val muted: Boolean
+        get() = checkNotNull(bean.muted) { "Unable to fetch muted flag for buildId=${build.id.stringId} problemId=${bean.problem?.id}" }
+    override val currentlyMuted: Boolean
+        get() = checkNotNull(bean.currentlyMuted) { "Unable to fetch currentlyMuted flag for buildId=${build.id.stringId} problemId=${bean.problem?.id}" }
+    override val currentlyInvestigated: Boolean
+        get() = checkNotNull(bean.currentlyInvestigated) { "Unable to fetch currentlyInvestigated flag for buildId=${build.id.stringId} problemId=${bean.problem?.id}" }
 
     override fun toString(): String =
-        "BuildProblemOccurrence(build=${build.id},problem=$buildProblem,details=$details,additionalData=$additionalData)"
+        "BuildProblemOccurrence(build=${build.id},problem=$buildProblem,details=$details,additionalData=$additionalData,muted=$muted,currentlyMuted=$currentlyMuted,currentlyInvestigated=$currentlyInvestigated)"
 }
 
 internal class ArtifactRuleImpl(private val pathRule: String) : ArtifactRule {
@@ -1995,11 +1999,11 @@ private class BuildImpl(
         getFirstBean = {
             instance.service.problemOccurrences(
                 locator = "build:(id:${id.stringId})",
-                fields = "\$long,problemOccurrence(\$long)"
+                fields = "nextHref,problemOccurrence(details,additionalData,muted,currentlyMuted,currentlyInvestigated,problem(id,type,identity))"
             )
         }, convertToPage = { bean ->
             Page(
-                data = bean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
+                data = bean.problemOccurrence.map { BuildProblemOccurrenceImpl(this@BuildImpl, it) },
                 nextHref = bean.nextHref
             )
         })
@@ -2008,11 +2012,11 @@ private class BuildImpl(
         getFirstBean = {
             instance.service.problemOccurrences(
                 locator = "build:(id:${id.stringId})",
-                fields = "\$long,problemOccurrence(\$long)"
+                fields = "nextHref,problemOccurrence(details,additionalData,muted,currentlyMuted,currentlyInvestigated,problem(id,type,identity))"
             )
         }, convertToPage = { bean ->
             Page(
-                data = bean.problemOccurrence.map { BuildProblemOccurrenceImpl(it, instance) },
+                data = bean.problemOccurrence.map { BuildProblemOccurrenceImpl(this@BuildImpl, it) },
                 nextHref = bean.nextHref
             )
         })
