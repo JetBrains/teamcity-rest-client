@@ -10,12 +10,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okhttp3.Dispatcher
-import okhttp3.Interceptor
+import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.teamcity.rest.*
 import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
@@ -160,10 +157,29 @@ private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int
     return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
 }
 
+private class NodeIdCookieJar(val nodeId: String) : CookieJar {
+    override fun loadForRequest(url: HttpUrl): List<Cookie> {
+        val domain = url.topPrivateDomain() ?: return emptyList()
+
+        return listOf(
+            Cookie.Builder()
+                .domain(domain)
+                .name("X-TeamCity-Node-Id-Cookie")
+                .value(nodeId)
+                .build()
+        )
+    }
+
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        // noop, same as CookieJar.NO_COOKIES
+    }
+}
+
 internal class TeamCityCoroutinesInstanceImpl(
     override val serverUrl: String,
     val serverUrlBase: String,
     private val authHeader: String?,
+    private val nodeId: String?,
     private val logResponses: Boolean,
     private val timeout: Long,
     private val unit: TimeUnit,
@@ -181,6 +197,7 @@ internal class TeamCityCoroutinesInstanceImpl(
         .withMaxConcurrentRequests(maxConcurrentRequests)
         .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
         .withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost)
+        .apply { if(nodeId != null) bindToNode(nodeId) }
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -222,6 +239,7 @@ internal class TeamCityCoroutinesInstanceImpl(
                 maxRequests = maxConcurrentRequests
                 maxRequestsPerHost = maxConcurrentRequestsPerHost
             })
+        .apply { if(nodeId != null) cookieJar(NodeIdCookieJar(nodeId)) }
         .build()
 
     internal val service = Retrofit.Builder()

@@ -25,6 +25,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private var retryMaxAttempts: Int = 3
     private var retryInitialDelayMs: Long = 1000
     private var retryMaxDelayMs: Long = 1000
+    private var nodeId: String? = null
 
     /**
      * Creates guest authenticated accessor. Default setting.
@@ -114,12 +115,24 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 
     /**
+     * Binds requests to the given server [nodeId] using `X-TeamCity-Node-Id-Cookie` cookie.
+     *
+     * Binding relies on a proxy in front of TeamCity server which should be set up in accordance to
+     * [TeamCity Multinode Setup for High Availability](https://www.jetbrains.com/help/teamcity/multinode-setup.html) documentation.
+     */
+    fun bindToNode(nodeId: String): TeamCityInstanceBuilder {
+        this.nodeId = nodeId
+        return this
+    }
+
+    /**
      * Build instance over coroutines
      */
     fun build(): TeamCityCoroutinesInstance = TeamCityCoroutinesInstanceImpl(
         serverUrl,
         urlBase.value,
-        authHeader, 
+        authHeader,
+        nodeId,
         logResponses,
         timeout,
         timeoutTimeUnit,
