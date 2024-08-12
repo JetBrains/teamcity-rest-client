@@ -6,14 +6,17 @@ import okhttp3.HttpUrl
 import org.jetbrains.teamcity.rest.NodeSelector
 
 fun NodeSelector.toCookieJar(): CookieJar {
-    return when(this) {
+    return when (this) {
         is NodeSelector.PinToNode -> PinToNodeCookieJar(this.nodeId)
         is NodeSelector.ServerControlled -> ServerControlledRouting()
         is NodeSelector.Unspecified -> CookieJar.NO_COOKIES
     }
 }
 
-private class ServerControlledRouting: CookieJar {
+private const val TEAMCITY_NODE_ID_COOKIE_NAME = "X-TeamCity-Node-Id-Cookie"
+
+private class ServerControlledRouting : CookieJar {
+    @Volatile
     private var serverProvidedNodeId: String? = null
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val targetNodeId = serverProvidedNodeId ?: return emptyList()
@@ -23,7 +26,7 @@ private class ServerControlledRouting: CookieJar {
         return listOf(
             Cookie.Builder()
                 .domain(domain)
-                .name("X-TeamCity-Node-Id-Cookie")
+                .name(TEAMCITY_NODE_ID_COOKIE_NAME)
                 .value(targetNodeId)
                 .build()
         )
@@ -31,19 +34,19 @@ private class ServerControlledRouting: CookieJar {
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         cookies
-            .find { it.name == "X-TeamCity-Node-Id-Cookie" }
+            .find { it.name == TEAMCITY_NODE_ID_COOKIE_NAME }
             ?.let { serverProvidedNodeId = it.value }
     }
 }
 
-private class PinToNodeCookieJar(val nodeId: String): CookieJar {
+private class PinToNodeCookieJar(val nodeId: String) : CookieJar {
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val domain = url.topPrivateDomain() ?: return emptyList()
 
         return listOf(
             Cookie.Builder()
                 .domain(domain)
-                .name("X-TeamCity-Node-Id-Cookie")
+                .name(TEAMCITY_NODE_ID_COOKIE_NAME)
                 .value(nodeId)
                 .build()
         )
