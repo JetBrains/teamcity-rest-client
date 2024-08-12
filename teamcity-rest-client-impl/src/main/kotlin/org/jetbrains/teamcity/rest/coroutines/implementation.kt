@@ -10,12 +10,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okhttp3.Dispatcher
-import okhttp3.Interceptor
+import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.teamcity.rest.*
 import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
@@ -164,6 +161,7 @@ internal class TeamCityCoroutinesInstanceImpl(
     override val serverUrl: String,
     val serverUrlBase: String,
     private val authHeader: String?,
+    private val nodeSelector: NodeSelector,
     private val logResponses: Boolean,
     private val timeout: Long,
     private val unit: TimeUnit,
@@ -181,6 +179,7 @@ internal class TeamCityCoroutinesInstanceImpl(
         .withMaxConcurrentRequests(maxConcurrentRequests)
         .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
         .withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost)
+        .selectNode(nodeSelector)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -222,6 +221,7 @@ internal class TeamCityCoroutinesInstanceImpl(
                 maxRequests = maxConcurrentRequests
                 maxRequestsPerHost = maxConcurrentRequestsPerHost
             })
+        .cookieJar(nodeSelector.toCookieJar())
         .build()
 
     internal val service = Retrofit.Builder()

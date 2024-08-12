@@ -25,6 +25,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private var retryMaxAttempts: Int = 3
     private var retryInitialDelayMs: Long = 1000
     private var retryMaxDelayMs: Long = 1000
+    private var nodeSelector: NodeSelector = NodeSelector.Unspecified
 
     /**
      * Creates guest authenticated accessor. Default setting.
@@ -114,12 +115,22 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 
     /**
+     * Specifies how to route requests to different TeamCity nodes in a multinode TeamCity setup.
+     * Does not affect a single node setup.
+     */
+    fun selectNode(selector: NodeSelector): TeamCityInstanceBuilder {
+        this.nodeSelector = selector
+        return this
+    }
+
+    /**
      * Build instance over coroutines
      */
     fun build(): TeamCityCoroutinesInstance = TeamCityCoroutinesInstanceImpl(
         serverUrl,
         urlBase.value,
-        authHeader, 
+        authHeader,
+        nodeSelector,
         logResponses,
         timeout,
         timeoutTimeUnit,
@@ -186,3 +197,29 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 }
 
+
+/**
+ * Controls to which node requests of this client are routed In multinode TeamCity setup. In a case of
+ * single node setup this setting is essentially a no-op.
+ *
+ * Pinning is done by setting `X-TeamCity-Node-Id-Cookie` cookie.
+ * Routing relies on a proxy in front of TeamCity server which should be set up in accordance to
+ * [TeamCity Multinode Setup for High Availability](https://www.jetbrains.com/help/teamcity/multinode-setup.html) documentation.
+ */
+sealed interface NodeSelector {
+    /**
+     * Does not use cookie to pin to a specific node, even if given by the server.
+     * Relies on a proxy routing decision, and usually is routed to first healthy node.
+     */
+    object Unspecified : NodeSelector
+
+    /**
+     * Respects server's load balancing decision and pins requests to the node provided by the server in the `Set-Cookie` header.
+     */
+    object ServerControlled : NodeSelector
+
+    /**
+     * Pins requests to the node with id=[nodeId].
+     */
+    data class PinToNode(val nodeId: String) : NodeSelector
+}
