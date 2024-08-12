@@ -2,6 +2,13 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [2.1.0] - 2024-08-12
+
+- Added ability to select server node in multi-node setup.
+
+## [2.0.0] - 2024-07-11
+
+- Added coroutine support, with builders for synchronious and async clients.
 
 
 ## [1.21.0] - 2023-05-24
