@@ -115,7 +115,8 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 
     /**
-     *
+     * Specifies how to route requests to different TeamCity nodes in a multinode TeamCity setup.
+     * Does not affect a single node setup.
      */
     fun selectNode(selector: NodeSelector): TeamCityInstanceBuilder {
         this.nodeSelector = selector
