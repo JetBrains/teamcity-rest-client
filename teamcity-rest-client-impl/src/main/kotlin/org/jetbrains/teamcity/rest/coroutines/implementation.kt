@@ -157,29 +157,11 @@ private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int
     return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
 }
 
-private class NodeIdCookieJar(val nodeId: String) : CookieJar {
-    override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        val domain = url.topPrivateDomain() ?: return emptyList()
-
-        return listOf(
-            Cookie.Builder()
-                .domain(domain)
-                .name("X-TeamCity-Node-Id-Cookie")
-                .value(nodeId)
-                .build()
-        )
-    }
-
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-        // noop, same as CookieJar.NO_COOKIES
-    }
-}
-
 internal class TeamCityCoroutinesInstanceImpl(
     override val serverUrl: String,
     val serverUrlBase: String,
     private val authHeader: String?,
-    private val nodeId: String?,
+    private val nodeSelector: NodeSelector,
     private val logResponses: Boolean,
     private val timeout: Long,
     private val unit: TimeUnit,
@@ -197,7 +179,7 @@ internal class TeamCityCoroutinesInstanceImpl(
         .withMaxConcurrentRequests(maxConcurrentRequests)
         .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
         .withMaxConcurrentRequestsPerHost(maxConcurrentRequestsPerHost)
-        .apply { if(nodeId != null) bindToNode(nodeId) }
+        .selectNode(nodeSelector)
 
     private val restLog = LoggerFactory.getLogger(LOG.name + ".rest")
 
@@ -239,7 +221,7 @@ internal class TeamCityCoroutinesInstanceImpl(
                 maxRequests = maxConcurrentRequests
                 maxRequestsPerHost = maxConcurrentRequestsPerHost
             })
-        .apply { if(nodeId != null) cookieJar(NodeIdCookieJar(nodeId)) }
+        .cookieJar(nodeSelector.toCookieJar())
         .build()
 
     internal val service = Retrofit.Builder()

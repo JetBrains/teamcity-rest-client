@@ -25,7 +25,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private var retryMaxAttempts: Int = 3
     private var retryInitialDelayMs: Long = 1000
     private var retryMaxDelayMs: Long = 1000
-    private var nodeId: String? = null
+    private var nodeSelector: NodeSelector = NodeSelector.Unspecified
 
     /**
      * Creates guest authenticated accessor. Default setting.
@@ -115,13 +115,10 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 
     /**
-     * Binds requests to the given server [nodeId] using `X-TeamCity-Node-Id-Cookie` cookie.
      *
-     * Binding relies on a proxy in front of TeamCity server which should be set up in accordance to
-     * [TeamCity Multinode Setup for High Availability](https://www.jetbrains.com/help/teamcity/multinode-setup.html) documentation.
      */
-    fun bindToNode(nodeId: String): TeamCityInstanceBuilder {
-        this.nodeId = nodeId
+    fun selectNode(selector: NodeSelector): TeamCityInstanceBuilder {
+        this.nodeSelector = selector
         return this
     }
 
@@ -132,7 +129,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         serverUrl,
         urlBase.value,
         authHeader,
-        nodeId,
+        nodeSelector,
         logResponses,
         timeout,
         timeoutTimeUnit,
@@ -199,3 +196,29 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     }
 }
 
+
+/**
+ * Controls to which node requests of this client are routed In multinode TeamCity setup. In a case of
+ * single node setup this setting is essentially a no-op.
+ *
+ * Pinning is done by setting `X-TeamCity-Node-Id-Cookie` cookie.
+ * Routing relies on a proxy in front of TeamCity server which should be set up in accordance to
+ * [TeamCity Multinode Setup for High Availability](https://www.jetbrains.com/help/teamcity/multinode-setup.html) documentation.
+ */
+sealed interface NodeSelector {
+    /**
+     * Does not use cookie to pin to a specific node, even if given by the server.
+     * Relies on a proxy routing decision, and usually is routed to first healthy node.
+     */
+    object Unspecified : NodeSelector
+
+    /**
+     * Respects server's load balancing decision and pins requests to the node provided by the server in the `Set-Cookie` header.
+     */
+    object ServerControlled : NodeSelector
+
+    /**
+     * Pins requests to the node with id=[nodeId].
+     */
+    data class PinToNode(val nodeId: String) : NodeSelector
+}
