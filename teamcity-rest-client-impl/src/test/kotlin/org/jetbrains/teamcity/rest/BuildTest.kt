@@ -19,6 +19,7 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -55,6 +56,13 @@ class BuildTest {
             val second = publicCoroutinesInstance().build(id)
             assertEquals(first, second)
         }
+    }
+
+    @Test
+    fun different_builds_should_not_be_equal() {
+        val (buildA, buildB) = publicInstance().builds().all().take(2).toList()
+        assertNotEquals(buildA.id, buildB.id)
+        assertNotEquals(buildA, buildB)
     }
 
     @Test

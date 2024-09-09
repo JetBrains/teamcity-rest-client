@@ -17,7 +17,7 @@ private fun <T> lazyBlocking(block: suspend () -> T): Lazy<T> = lazy { runBlocki
 
 private inline fun <reified SelfT : Any, reified IdT, reified OtherT : Any> SelfT.equalsById(
     other: OtherT?,
-    idMapper: (SelfT) -> IdT
+    idMapper: SelfT.() -> IdT
 ): Boolean {
     if (this === other) return true
     if (this.javaClass != other?.javaClass) return false
