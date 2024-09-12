@@ -537,6 +537,11 @@ private class TestLocatorBridge(
         delegate.forProject(projectId)
         return this
     }
+
+    override fun prefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
+        delegate.prefetchFields(*fields)
+        return this
+    }
 }
 
 private class ProjectBridge(
@@ -1328,6 +1333,7 @@ private class TestBridge(
     override fun toString(): String = delegate.toString()
     override fun equals(other: Any?): Boolean = equalsById(other) { id }
     override fun hashCode(): Int = id.hashCode()
+    override val parsedTestName: ParsedTestName? by lazyBlocking { delegate.getParsedTestName() }
 }
 
 private class TestRunBridge(

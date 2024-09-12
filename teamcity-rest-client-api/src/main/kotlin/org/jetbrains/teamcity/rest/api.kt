@@ -480,6 +480,7 @@ interface Mute : Issue {
 interface Test {
     val id: TestId
     val name: String
+    val parsedTestName: ParsedTestName?
 }
 
 interface BuildRunningInfo {

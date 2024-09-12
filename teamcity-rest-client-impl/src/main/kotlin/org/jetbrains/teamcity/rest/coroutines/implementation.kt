@@ -280,7 +280,7 @@ internal class TeamCityCoroutinesInstanceImpl(
         service.createMutes(bean)
     }
 
-    override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, this)
+    override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, emptySet(), this)
     override fun tests(): TestLocator = TestLocatorImpl(this)
     override suspend fun build(id: BuildId): Build = BuildImpl(
         BuildBean().also { it.id = id.stringId }, emptySet(), this
@@ -770,6 +770,7 @@ private class TestLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
     private var name: String? = null
     private var affectedProjectId: ProjectId? = null
     private var currentlyMuted: Boolean? = null
+    private val testFields = EnumSet.noneOf(TestLocatorSettings.TestField::class.java)
 
     override fun limitResults(count: Int): TestLocator {
         this.count = count
@@ -796,6 +797,12 @@ private class TestLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
         return this
     }
 
+    override fun prefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
+        this.testFields.clear()
+        this.testFields.addAll(fields)
+        return this
+    }
+
     private suspend fun getTests(): List<TestImpl> {
         require(name != null || id != null || !(affectedProjectId == null || currentlyMuted == null)) {
             "TestLocator needs name or id, or affectedProjectID with e.g. currentlyMuted specified"
@@ -815,9 +822,11 @@ private class TestLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
             LOG.debug("Retrieving test from ${instance.serverUrl} using query '$testLocator'")
         }
 
+        val fields = TestBean.buildCustomFieldsFilter(testFields, true)
+
         return instance.service
-            .tests(testLocator)
-            .test.map { TestImpl(it, true, instance) }
+            .tests(testLocator, fields)
+            .test.map { TestImpl(it, false,  testFields, instance) }
     }
 
     override fun all(): Flow<Test> = flow { getTests().forEach { emit(it) } }
@@ -2203,18 +2212,36 @@ private class PropertyImpl(private val bean: PropertyBean) : Property {
 private class TestImpl(
     bean: TestBean,
     isFullBuildBean: Boolean,
+    private val prefetchedFields: Set<TestLocatorSettings.TestField>,
     instance: TeamCityCoroutinesInstanceImpl
 ) :
     BaseImpl<TestBean>(bean, isFullBuildBean, instance), Test {
 
-    override suspend fun fetchFullBean(): TestBean = instance.service.test(idString)
+    val parsedTestName = SuspendingLazy {
+        val p = fromFullBeanIf(TestLocatorSettings.TestField.PARSED_TEST_NAME !in prefetchedFields, TestBean::parsedTestName)
+            ?: return@SuspendingLazy null
+        ParsedTestName(
+            testPackage = notnull { p.testPackage },
+            testSuite = notnull { p.testSuite },
+            testClass = notnull { p.testClass },
+            testShortName = notnull { p.testShortName },
+            testNameWithoutPrefix = notnull { p.testNameWithoutPrefix },
+            testMethodName = notnull { p.testMethodName },
+            testNameWithParameters = notnull { p.testNameWithParameters }
+        )
+    }
+
+
+    override suspend fun fetchFullBean(): TestBean = instance.service.test(idString, TestBean.fullFieldsFilter)
 
     override val id = TestId(idString)
 
     override suspend fun getName(): String = notnull { it.name }
 
+    override suspend fun getParsedTestName() = parsedTestName.getValue()
+
     override fun toString(): String =
-        if (isFullBean) runBlocking { "Test(id=${id.stringId}, name=${getName()})" }
+        if (isFullBean) runBlocking { "Test(id=${id.stringId}, name=${getName()}, parsedTestName=${getParsedTestName()})" }
         else "Test(id=${id.stringId})"
 }
 

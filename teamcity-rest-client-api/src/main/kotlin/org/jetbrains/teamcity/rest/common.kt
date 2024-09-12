@@ -2,7 +2,6 @@ package org.jetbrains.teamcity.rest
 
 import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import java.time.Instant
-import java.util.concurrent.TimeUnit
 
 interface TeamCityInstanceSettings<Self : TeamCityInstanceSettings<Self>> {
     val serverUrl: String
@@ -166,6 +165,21 @@ interface TestLocatorSettings<Self : TestLocatorSettings<Self>> {
     fun byName(testName: String): Self
     fun currentlyMuted(muted: Boolean): Self
     fun forProject(projectId: ProjectId): Self
+
+    /**
+     * Use this method to manually select Test fields to prefetch.
+     */
+    fun prefetchFields(vararg fields: TestField): Self
+
+    enum class TestField {
+        PARSED_TEST_NAME,
+        ;
+
+        companion object {
+            val size = TestField.values().size
+        }
+    }
+
 }
 
 interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
@@ -243,6 +257,20 @@ data class TestId(val stringId: String) {
 
 data class TestOccurrenceId(val stringId: String) {
     override fun toString(): String = stringId
+}
+
+data class ParsedTestName(
+    val testPackage: String,
+    val testSuite: String,
+    val testClass: String,
+    val testShortName: String,
+    val testNameWithoutPrefix: String,
+    val testMethodName: String,
+    val testNameWithParameters: String,
+) {
+    override fun toString(): String {
+        return "ParsedTestName(testPackage='$testPackage', testSuite='$testSuite', testClass='$testClass', testShortName='$testShortName', testNameWithoutPrefix='$testNameWithoutPrefix', testMethodName='$testMethodName', testNameWithParameters='$testNameWithParameters')"
+    }
 }
 
 data class ChangeId(val stringId: String) {

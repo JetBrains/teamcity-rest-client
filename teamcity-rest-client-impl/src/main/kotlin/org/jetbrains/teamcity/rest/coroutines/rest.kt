@@ -48,11 +48,11 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("app/rest/tests")
-    suspend fun tests(@Query("locator") locator: String?): Response<TestListBean>
+    suspend fun tests(@Query("locator") locator: String?, @Query("fields") fields: String): Response<TestListBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/tests/id:{id}")
-    suspend fun test(@Path("id") id: String): Response<TestBean>
+    suspend fun test(@Path("id") id: String, @Query("fields") fields: String): Response<TestBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/investigations/id:{id}")
@@ -316,8 +316,8 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun createInvestigations(investigations: InvestigationListBean) = runErrorWrappingBridgeCall { service.createInvestigations(investigations) }
     suspend fun deleteInvestigations(investigationLocator: String) = runErrorWrappingBridgeCallNullable { service.deleteInvestigations(investigationLocator) }
     suspend fun createMutes(mutes: MuteListBean) = runErrorWrappingBridgeCall { service.createMutes(mutes) }
-    suspend fun tests(locator: String?): TestListBean = runErrorWrappingBridgeCall { service.tests(locator) }
-    suspend fun test(id: String): TestBean = runErrorWrappingBridgeCall { service.test(id) }
+    suspend fun tests(locator: String?, fields: String): TestListBean = runErrorWrappingBridgeCall { service.tests(locator, fields) }
+    suspend fun test(id: String, fields: String): TestBean = runErrorWrappingBridgeCall { service.test(id, fields) }
     suspend fun investigation(id: String): InvestigationBean = runErrorWrappingBridgeCall { service.investigation(id) }
     suspend fun mutes(muteLocator: String?): MuteListBean = runErrorWrappingBridgeCall { service.mutes(muteLocator) }
     suspend fun mute(id: String): MuteBean = runErrorWrappingBridgeCall { service.mute(id) }
@@ -880,6 +880,41 @@ internal class TestListBean {
 }
 internal open class TestBean: IdBean() {
     var name: String? = null
+    val parsedTestName: ParsedTestNameBean? = null
+
+    companion object {
+        val fullFieldsFilter: String = buildCustomFieldsFilter(
+            fields = EnumSet.allOf(TestLocatorSettings.TestField::class.java),
+            wrap = false
+        )
+
+        fun buildCustomFieldsFilter(
+            fields: Collection<TestLocatorSettings.TestField>,
+            wrap: Boolean
+        ): String {
+            val defaultFields = sequenceOf("id", "name")
+            val allFields = (fields.asSequence().map(Companion::remapField) + defaultFields).distinct()
+            return if (wrap) {
+                allFields.joinToString(prefix = "test(", separator = ",", postfix = ")")
+            } else {
+                allFields.joinToString(separator = ",")
+            }
+        }
+
+        private fun remapField(field: TestLocatorSettings.TestField): String = when (field) {
+            TestLocatorSettings.TestField.PARSED_TEST_NAME -> "parsedTestName(${"$"}long)"
+        }
+    }
+}
+
+internal open class ParsedTestNameBean {
+    var testPackage: String? = null
+    var testSuite: String? = null
+    var testClass: String? = null
+    var testShortName: String? = null
+    var testNameWithoutPrefix: String? = null
+    var testMethodName: String? = null
+    var testNameWithParameters: String? = null
 }
 
 internal open class TestOccurrenceBean: IdBean() {
