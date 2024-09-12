@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import java.util.EnumSet
 import kotlin.test.assertEquals
 
 class TestsTest {
@@ -84,7 +85,10 @@ class TestsTest {
         val testsById = publicInstance().tests().byId(testId).all().toList()
         Assert.assertTrue( "Not exactly one test found by ID $testId, found: ${testsById.size}", testsById.size == 1)
         Assert.assertNotNull("test name is not set for the test with id $testId", testsById.first().name)
-        
+
+        val parsedTestName = testsById.first().parsedTestName
+        assertParsedTestNameIsNotEmpty(parsedTestName)
+
         runBlocking {
             val testsAsync = publicCoroutinesInstance().tests().forProject(testProject)
                 .currentlyMuted(true)
@@ -95,6 +99,28 @@ class TestsTest {
             Assert.assertTrue("Not exactly one test found by ID $testId, found: ${testsByIdAsync.size}", testsByIdAsync.size == 1)
             Assert.assertNotNull("test name is not set for the test with id $testId", testsByIdAsync.first().getName())
             assertEqualsAnyOrder(testsById.map { it.id.stringId }, testsByIdAsync.map { it.id.stringId })
+
+            val parsedAsyncTestName = testsByIdAsync.first().getParsedTestName()
+            assertParsedTestNameIsNotEmpty(parsedAsyncTestName)
+
+
+            // prefetched
+            val testsByIdPrefetchedAsync = publicCoroutinesInstance().tests().byId(testId)
+                .prefetchFields(*TestLocatorSettings.TestField.values())
+                .all().toList()
+            assertParsedTestNameIsNotEmpty(testsByIdPrefetchedAsync.first().getParsedTestName())
         }
+    }
+
+    private fun assertParsedTestNameIsNotEmpty(parsedTestName: ParsedTestName?) {
+        Assert.assertTrue(parsedTestName != null)
+        check(parsedTestName != null)
+        // tc returns empty `testPackage` so don't check it
+        Assert.assertTrue(parsedTestName.testSuite.isNotEmpty())
+        Assert.assertTrue(parsedTestName.testClass.isNotEmpty())
+        Assert.assertTrue(parsedTestName.testShortName.isNotEmpty())
+        Assert.assertTrue(parsedTestName.testNameWithoutPrefix.isNotEmpty())
+        Assert.assertTrue(parsedTestName.testMethodName.isNotEmpty())
+        Assert.assertTrue(parsedTestName.testNameWithParameters.isNotEmpty())
     }
 }
