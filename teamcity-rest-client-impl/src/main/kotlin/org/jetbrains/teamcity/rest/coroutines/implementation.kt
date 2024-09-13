@@ -16,6 +16,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.teamcity.rest.*
 import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
+import org.jetbrains.teamcity.rest.TestLocatorSettings.TestField
 import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
@@ -770,7 +771,7 @@ private class TestLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
     private var name: String? = null
     private var affectedProjectId: ProjectId? = null
     private var currentlyMuted: Boolean? = null
-    private val testFields = EnumSet.noneOf(TestLocatorSettings.TestField::class.java)
+    private val testFields = EnumSet.copyOf(TestBean.defaultFields)
 
     override fun limitResults(count: Int): TestLocator {
         this.count = count
@@ -800,6 +801,11 @@ private class TestLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
     override fun prefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
         this.testFields.clear()
         this.testFields.addAll(fields)
+        return this
+    }
+
+    override fun excludePrefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
+        this.testFields.removeAll(fields.toSet())
         return this
     }
 
@@ -845,6 +851,7 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
     private var muted: Boolean? = null
     private var currentlyMuted: Boolean? = null
     private val testRunFields = EnumSet.allOf(TestRunField::class.java)
+    private val testFields = EnumSet.noneOf(TestLocatorSettings.TestField::class.java)
 
     override fun limitResults(count: Int): TestRunsLocator {
         this.limitResults = count
@@ -908,7 +915,13 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         return this
     }
 
-    private data class Locator(val testOccurrencesLocator: String, val fields: String, val fieldsSet: Set<TestRunField>)
+    override fun prefetchTestFields(vararg fields: TestLocatorSettings.TestField): TestRunsLocator {
+        testFields.clear()
+        testFields.addAll(fields)
+        return this
+    }
+
+    private data class Locator(val testOccurrencesLocator: String, val fields: String, val testRunFieldsSet: Set<TestRunField>, val testFieldsSet: Set<TestLocatorSettings.TestField>)
 
     private fun getLocator(): Locator {
         val statusLocator = when (testStatus) {
@@ -933,18 +946,18 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
         require(parameters.isNotEmpty()) { "At least one parameter should be specified" }
         val testOccurrencesLocator = parameters.joinToString(",")
 
-        val fields = TestOccurrenceBean.buildCustomFieldsFilter(testRunFields, wrap = true)
+        val fieldsStr = TestOccurrenceBean.buildCustomFieldsFilter(testRunFields, testFields, wrap = true)
         LOG.debug("Retrieving test occurrences from ${instance.serverUrl} using query '$testOccurrencesLocator'")
-        return Locator(testOccurrencesLocator, fields, testRunFields.clone())
+        return Locator(testOccurrencesLocator, fieldsStr, testRunFields.clone(), testFields.clone())
     }
 
     override fun all(): Flow<TestRun> {
-        val (testOccurrencesLocator, fields, fieldsSet) = getLocator()
+        val (testOccurrencesLocator, fieldsStr, testRunFieldsSet, testFieldsSet) = getLocator()
         val flow = lazyPagingFlow(instance,
-            getFirstBean = { instance.service.testOccurrences(testOccurrencesLocator, fields) },
+            getFirstBean = { instance.service.testOccurrences(testOccurrencesLocator, fieldsStr) },
             convertToPage = { testOccurrencesBean ->
                 Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, fieldsSet, instance) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, testRunFieldsSet, testFieldsSet, instance) },
                     nextHref = testOccurrencesBean.nextHref
                 )
             })
@@ -953,12 +966,12 @@ private class TestRunsLocatorImpl(private val instance: TeamCityCoroutinesInstan
 
 
     override fun allSeq(): Sequence<TestRun> {
-        val (testOccurrencesLocator, fields, fieldsSet) = getLocator()
+        val (testOccurrencesLocator, fields, testRunFieldsSet, testFieldsSet ) = getLocator()
         val sequence = lazyPagingSequence(instance,
             getFirstBean = { instance.service.testOccurrences(testOccurrencesLocator, fields) },
             convertToPage = { testOccurrencesBean ->
                 Page(
-                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, fieldsSet, instance) },
+                    data = testOccurrencesBean.testOccurrence.map { TestRunImpl(it, testRunFieldsSet, testFieldsSet, instance) },
                     nextHref = testOccurrencesBean.nextHref
                 )
             })
@@ -2241,7 +2254,7 @@ private class TestImpl(
     override suspend fun getParsedTestName() = parsedTestName.getValue()
 
     override fun toString(): String =
-        if (isFullBean) runBlocking { "Test(id=${id.stringId}, name=${getName()}, parsedTestName=${getParsedTestName()})" }
+        if (isFullBean) runBlocking { "Test(id=${id.stringId}, name=${getName()})" }
         else "Test(id=${id.stringId})"
 }
 
@@ -2580,6 +2593,7 @@ private fun getNameValueProperty(properties: List<NameValueProperty>, name: Stri
 private open class TestRunImpl(
     bean: TestOccurrenceBean,
     private val prefetchedFields: Set<TestRunField>,
+    private val prefetchedTestFields: Set<TestLocatorSettings.TestField>,
     instance: TeamCityCoroutinesInstanceImpl
 ) : TestRun, BaseImpl<TestOccurrenceBean>(bean, isFullBean = prefetchedFields.size == TestRunField.size, instance) {
 
@@ -2639,6 +2653,11 @@ private open class TestRunImpl(
             ?.id?.let { BuildId(it) }
     }
 
+    private val test = SuspendingLazy {
+        val testBean = checkNotNull(fromFullBeanIf(TestRunField.TEST_ID !in prefetchedFields && prefetchedTestFields.isEmpty(), TestOccurrenceBean::test))
+        TestImpl(testBean, prefetchedTestFields.size == TestField.values().size, prefetchedTestFields, instance)
+    }
+
     private val status = SuspendingLazy {
         val ignored = fromFullBeanIf(TestRunField.IGNORED !in prefetchedFields, TestOccurrenceBean::ignored)
         if (ignored == true) return@SuspendingLazy TestStatus.IGNORED
@@ -2695,7 +2714,10 @@ private open class TestRunImpl(
 
     override suspend fun getLogAnchor(): String = logAnchor.getValue()
 
+    override suspend fun getTest(): Test = test.getValue()
+
     override suspend fun fetchFullBean(): TestOccurrenceBean = instance.service.testOccurrence(idString, TestOccurrenceBean.fullFieldsFilter)
+
 
     override fun toString() =
         if (isFullBean) runBlocking { "Test(id=${bean.id},name=${getName()}, status=${getStatus()}, duration=${getDuration()}, details=${getDetails()})" }

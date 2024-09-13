@@ -115,7 +115,8 @@ class TestsTest {
     private fun assertParsedTestNameIsNotEmpty(parsedTestName: ParsedTestName?) {
         Assert.assertTrue(parsedTestName != null)
         check(parsedTestName != null)
-        // tc returns empty `testPackage` so don't check it
+        // tc returns empty `testPackage`, it's expected
+        Assert.assertTrue(parsedTestName.testPackage.isEmpty())
         Assert.assertTrue(parsedTestName.testSuite.isNotEmpty())
         Assert.assertTrue(parsedTestName.testClass.isNotEmpty())
         Assert.assertTrue(parsedTestName.testShortName.isNotEmpty())

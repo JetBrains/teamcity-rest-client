@@ -512,6 +512,7 @@ interface TestRun {
     suspend fun getTestId(): TestId
     suspend fun getMetadataValues(): List<String>?
     suspend fun getLogAnchor(): String
+    suspend fun getTest(): Test
 }
 
 interface TriggeredInfo {

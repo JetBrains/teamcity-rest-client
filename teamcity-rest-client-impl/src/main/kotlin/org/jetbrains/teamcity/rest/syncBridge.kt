@@ -299,6 +299,11 @@ private class TestRunsLocatorBridge(
         delegate.excludePrefetchFields(*fields)
         return this
     }
+
+    override fun prefetchTestFields(vararg fields: TestLocatorSettings.TestField): TestRunsLocator {
+        delegate.prefetchTestFields(*fields)
+        return this
+    }
 }
 
 private class BuildLocatorBridge(
@@ -540,6 +545,11 @@ private class TestLocatorBridge(
 
     override fun prefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
         delegate.prefetchFields(*fields)
+        return this
+    }
+
+    override fun excludePrefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
+        delegate.excludePrefetchFields(*fields)
         return this
     }
 }
@@ -1353,6 +1363,7 @@ private class TestRunBridge(
     override val fixedIn: BuildId? by lazyBlocking { delegate.getFixedIn() }
     override val firstFailedIn: BuildId? by lazyBlocking { delegate.getFirstFailedIn() }
     override val testId: TestId by lazyBlocking { delegate.getTestId() }
+    override val test: Test by lazyBlocking { TestBridge(delegate.getTest()) }
     override val metadataValues: List<String>? by lazyBlocking { delegate.getMetadataValues() }
     override val logAnchor: String by lazyBlocking { delegate.getLogAnchor() }
 

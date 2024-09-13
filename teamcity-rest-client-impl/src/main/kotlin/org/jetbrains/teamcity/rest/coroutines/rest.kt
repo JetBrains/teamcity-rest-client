@@ -888,12 +888,13 @@ internal open class TestBean: IdBean() {
             wrap = false
         )
 
+        val defaultFields = listOf(TestLocatorSettings.TestField.NAME)
+
         fun buildCustomFieldsFilter(
             fields: Collection<TestLocatorSettings.TestField>,
             wrap: Boolean
         ): String {
-            val defaultFields = sequenceOf("id", "name")
-            val allFields = (fields.asSequence().map(Companion::remapField) + defaultFields).distinct()
+            val allFields = (fields.asSequence().map(Companion::remapField) + "id").distinct()
             return if (wrap) {
                 allFields.joinToString(prefix = "test(", separator = ",", postfix = ")")
             } else {
@@ -902,7 +903,8 @@ internal open class TestBean: IdBean() {
         }
 
         private fun remapField(field: TestLocatorSettings.TestField): String = when (field) {
-            TestLocatorSettings.TestField.PARSED_TEST_NAME -> "parsedTestName(${"$"}long)"
+            TestLocatorSettings.TestField.NAME -> "name"
+            TestLocatorSettings.TestField.PARSED_TEST_NAME -> "parsedTestName(testPackage,testSuite,testClass,testShortName,testNameWithoutPrefix,testMethodName,testNameWithParameters)"
         }
     }
 }
@@ -937,15 +939,29 @@ internal open class TestOccurrenceBean: IdBean() {
 
     companion object {
         val fullFieldsFilter: String = buildCustomFieldsFilter(
-            fields = EnumSet.allOf(TestRunsLocatorSettings.TestRunField::class.java),
+            testRunFields = EnumSet.allOf(TestRunsLocatorSettings.TestRunField::class.java),
+            testFields = EnumSet.allOf(TestLocatorSettings.TestField::class.java),
             wrap = false
         )
 
         fun buildCustomFieldsFilter(
-            fields: Collection<TestRunsLocatorSettings.TestRunField>,
+            testRunFields: Collection<TestRunsLocatorSettings.TestRunField>,
+            testFields: Collection<TestLocatorSettings.TestField>,
             wrap: Boolean
         ): String {
-            val allFields = (fields.asSequence().map(::remapField) + "id").distinct()
+            // test(...) fields will be added later, see testFieldsStr
+            val resultTestRunFieldsStr = (testRunFields.asSequence() - TestRunsLocatorSettings.TestRunField.TEST_ID)
+                .map(::remapField)
+                .distinct()
+
+            val testFieldsStr = when {
+                testFields.any() -> "test(${TestBean.buildCustomFieldsFilter(testFields, wrap = false)})"
+                TestRunsLocatorSettings.TestRunField.TEST_ID in testRunFields -> "test(id)"
+                else -> null
+            }
+            val allFields = (resultTestRunFieldsStr + "id" + testFieldsStr)
+                .filterNotNull()
+                .distinct()
             return if (wrap) {
                 allFields.joinToString(prefix = "nextHref,testOccurrence(", separator = ",", postfix = ")")
             } else {

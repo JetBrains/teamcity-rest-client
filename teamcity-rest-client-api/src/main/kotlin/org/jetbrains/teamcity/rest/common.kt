@@ -171,7 +171,10 @@ interface TestLocatorSettings<Self : TestLocatorSettings<Self>> {
      */
     fun prefetchFields(vararg fields: TestField): Self
 
+    fun excludePrefetchFields(vararg fields: TestField): Self
+
     enum class TestField {
+        NAME,
         PARSED_TEST_NAME,
         ;
 
@@ -219,6 +222,8 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
      * You can unselect some of them using this method.
      */
     fun excludePrefetchFields(vararg fields: TestRunField): Self
+
+    fun prefetchTestFields(vararg fields: TestLocatorSettings.TestField): Self
 
     enum class TestRunField {
         NAME,

@@ -670,6 +670,7 @@ interface TestOccurrence {
     val fixedIn: BuildId?
     val firstFailedIn: BuildId?
     val testId: TestId
+    val test: Test
     val metadataValues: List<String>?
     val logAnchor: String
 }
