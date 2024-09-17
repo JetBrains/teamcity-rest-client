@@ -175,7 +175,13 @@ interface TestLocatorSettings<Self : TestLocatorSettings<Self>> {
 
     enum class TestField {
         NAME,
-        PARSED_TEST_NAME,
+        PARSED_NAME_PACKAGE,
+        PARSED_NAME_SUITE,
+        PARSED_NAME_CLASS,
+        PARSED_SHORT_NAME,
+        PARSED_NAME_WITHOUT_PREFIX,
+        PARSED_METHOD_NAME,
+        PARSED_NAME_WITH_PARAMETERS,
         ;
 
         companion object {
@@ -262,20 +268,6 @@ data class TestId(val stringId: String) {
 
 data class TestOccurrenceId(val stringId: String) {
     override fun toString(): String = stringId
-}
-
-data class ParsedTestName(
-    val testPackage: String,
-    val testSuite: String,
-    val testClass: String,
-    val testShortName: String,
-    val testNameWithoutPrefix: String,
-    val testMethodName: String,
-    val testNameWithParameters: String,
-) {
-    override fun toString(): String {
-        return "ParsedTestName(testPackage='$testPackage', testSuite='$testSuite', testClass='$testClass', testShortName='$testShortName', testNameWithoutPrefix='$testNameWithoutPrefix', testMethodName='$testMethodName', testNameWithParameters='$testNameWithParameters')"
-    }
 }
 
 data class ChangeId(val stringId: String) {

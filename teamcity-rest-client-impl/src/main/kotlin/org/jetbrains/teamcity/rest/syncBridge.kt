@@ -1343,7 +1343,13 @@ private class TestBridge(
     override fun toString(): String = delegate.toString()
     override fun equals(other: Any?): Boolean = equalsById(other) { id }
     override fun hashCode(): Int = id.hashCode()
-    override val parsedTestName: ParsedTestName? by lazyBlocking { delegate.getParsedTestName() }
+    override val parsedNamePackage: String by lazyBlocking { delegate.getParsedNamePackage() }
+    override val parsedNameSuite: String by lazyBlocking { delegate.getParsedNameSuite() }
+    override val parsedNameClass: String by lazyBlocking { delegate.getParsedNameClass() }
+    override val parsedShortName: String by lazyBlocking { delegate.getParsedShortName() }
+    override val parsedNameWithoutPrefix: String by lazyBlocking { delegate.getParsedNameWithoutPrefix() }
+    override val parsedMethodName: String by lazyBlocking { delegate.getParsedMethodName() }
+    override val parsedNameWithParameters: String by lazyBlocking { delegate.getParsedNameWithParameters() }
 }
 
 private class TestRunBridge(

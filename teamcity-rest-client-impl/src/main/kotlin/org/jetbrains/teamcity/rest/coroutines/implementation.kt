@@ -2230,28 +2230,39 @@ private class TestImpl(
 ) :
     BaseImpl<TestBean>(bean, isFullBuildBean, instance), Test {
 
-    val parsedTestName = SuspendingLazy {
-        val p = fromFullBeanIf(TestLocatorSettings.TestField.PARSED_TEST_NAME !in prefetchedFields, TestBean::parsedTestName)
-            ?: return@SuspendingLazy null
-        ParsedTestName(
-            testPackage = notnull { p.testPackage },
-            testSuite = notnull { p.testSuite },
-            testClass = notnull { p.testClass },
-            testShortName = notnull { p.testShortName },
-            testNameWithoutPrefix = notnull { p.testNameWithoutPrefix },
-            testMethodName = notnull { p.testMethodName },
-            testNameWithParameters = notnull { p.testNameWithParameters }
-        )
-    }
-
-
     override suspend fun fetchFullBean(): TestBean = instance.service.test(idString, TestBean.fullFieldsFilter)
 
     override val id = TestId(idString)
 
     override suspend fun getName(): String = notnull { it.name }
 
-    override suspend fun getParsedTestName() = parsedTestName.getValue()
+    override suspend fun getParsedNamePackage(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_NAME_PACKAGE !in prefetchedFields
+    ) { it.parsedTestName?.testPackage })
+
+    override suspend fun getParsedNameSuite(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_NAME_SUITE !in prefetchedFields
+    ) { it.parsedTestName?.testSuite })
+
+    override suspend fun getParsedNameClass(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_NAME_CLASS !in prefetchedFields
+    ) { it.parsedTestName?.testClass })
+
+    override suspend fun getParsedShortName(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_SHORT_NAME !in prefetchedFields
+    ) { it.parsedTestName?.testShortName })
+
+    override suspend fun getParsedNameWithoutPrefix(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_NAME_WITHOUT_PREFIX !in prefetchedFields
+    ) { it.parsedTestName?.testNameWithoutPrefix })
+
+    override suspend fun getParsedMethodName(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_METHOD_NAME !in prefetchedFields
+    ) { it.parsedTestName?.testMethodName })
+
+    override suspend fun getParsedNameWithParameters(): String = checkNotNull(fromFullBeanIf(
+        TestField.PARSED_NAME_WITH_PARAMETERS !in prefetchedFields
+    ) { it.parsedTestName?.testNameWithParameters })
 
     override fun toString(): String =
         if (isFullBean) runBlocking { "Test(id=${id.stringId}, name=${getName()})" }

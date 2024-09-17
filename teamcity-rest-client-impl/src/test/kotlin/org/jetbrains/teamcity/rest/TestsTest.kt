@@ -7,7 +7,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import java.util.EnumSet
 import kotlin.test.assertEquals
 
 class TestsTest {
@@ -86,8 +85,16 @@ class TestsTest {
         Assert.assertTrue( "Not exactly one test found by ID $testId, found: ${testsById.size}", testsById.size == 1)
         Assert.assertNotNull("test name is not set for the test with id $testId", testsById.first().name)
 
-        val parsedTestName = testsById.first().parsedTestName
-        assertParsedTestNameIsNotEmpty(parsedTestName)
+        val firstTest = testsById.first()
+        // tc returns empty `testPackage`, it's expected
+        Assert.assertTrue(firstTest.parsedNamePackage.isEmpty())
+        Assert.assertTrue(firstTest.parsedNameSuite.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedNameClass.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedShortName.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedNameWithoutPrefix.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedMethodName.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedNameWithParameters.isNotEmpty())
+
 
         runBlocking {
             val testsAsync = publicCoroutinesInstance().tests().forProject(testProject)
@@ -100,28 +107,24 @@ class TestsTest {
             Assert.assertNotNull("test name is not set for the test with id $testId", testsByIdAsync.first().getName())
             assertEqualsAnyOrder(testsById.map { it.id.stringId }, testsByIdAsync.map { it.id.stringId })
 
-            val parsedAsyncTestName = testsByIdAsync.first().getParsedTestName()
-            assertParsedTestNameIsNotEmpty(parsedAsyncTestName)
+            suspend fun assertParsedNamesAreNotEmpty(test: org.jetbrains.teamcity.rest.coroutines.Test) {
+                Assert.assertTrue(test.getParsedNamePackage().isEmpty())
+                Assert.assertTrue(test.getParsedNameSuite().isNotEmpty())
+                Assert.assertTrue(test.getParsedNameClass().isNotEmpty())
+                Assert.assertTrue(test.getParsedShortName().isNotEmpty())
+                Assert.assertTrue(test.getParsedNameWithoutPrefix().isNotEmpty())
+                Assert.assertTrue(test.getParsedMethodName().isNotEmpty())
+                Assert.assertTrue(test.getParsedNameWithParameters().isNotEmpty())
+            }
 
+            assertParsedNamesAreNotEmpty(testsByIdAsync.first())
 
             // prefetched
             val testsByIdPrefetchedAsync = publicCoroutinesInstance().tests().byId(testId)
                 .prefetchFields(*TestLocatorSettings.TestField.values())
                 .all().toList()
-            assertParsedTestNameIsNotEmpty(testsByIdPrefetchedAsync.first().getParsedTestName())
+            assertParsedNamesAreNotEmpty(testsByIdPrefetchedAsync.first())
         }
     }
 
-    private fun assertParsedTestNameIsNotEmpty(parsedTestName: ParsedTestName?) {
-        Assert.assertTrue(parsedTestName != null)
-        check(parsedTestName != null)
-        // tc returns empty `testPackage`, it's expected
-        Assert.assertTrue(parsedTestName.testPackage.isEmpty())
-        Assert.assertTrue(parsedTestName.testSuite.isNotEmpty())
-        Assert.assertTrue(parsedTestName.testClass.isNotEmpty())
-        Assert.assertTrue(parsedTestName.testShortName.isNotEmpty())
-        Assert.assertTrue(parsedTestName.testNameWithoutPrefix.isNotEmpty())
-        Assert.assertTrue(parsedTestName.testMethodName.isNotEmpty())
-        Assert.assertTrue(parsedTestName.testNameWithParameters.isNotEmpty())
-    }
 }

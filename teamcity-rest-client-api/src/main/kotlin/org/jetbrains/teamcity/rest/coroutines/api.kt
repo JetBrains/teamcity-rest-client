@@ -337,7 +337,13 @@ interface Mute : Issue {
 interface Test {
     val id: TestId
     suspend fun getName(): String
-    suspend fun getParsedTestName(): ParsedTestName?
+    suspend fun getParsedNamePackage(): String
+    suspend fun getParsedNameSuite(): String
+    suspend fun getParsedNameClass(): String
+    suspend fun getParsedShortName(): String
+    suspend fun getParsedNameWithoutPrefix(): String
+    suspend fun getParsedMethodName(): String
+    suspend fun getParsedNameWithParameters(): String
 }
 
 interface BuildRunningInfo {

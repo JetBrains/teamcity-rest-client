@@ -151,14 +151,13 @@ class TestRunsTest {
     }
 
     private fun assertNumbersTestNotEmpty(test: org.jetbrains.teamcity.rest.Test) {
-        assertNotNull(test.parsedTestName)
         assertTrue(test.name.isNotEmpty())
-        assertEquals(test.parsedTestName!!.testClass, "NumbersTest")
-        assertTrue(test.parsedTestName!!.testSuite.isEmpty())
-        assertTrue(test.parsedTestName!!.testPackage.isEmpty())
-        assertTrue(test.parsedTestName!!.testMethodName.isNotEmpty())
-        assertTrue(test.parsedTestName!!.testShortName.isNotEmpty())
-        assertTrue(test.parsedTestName!!.testNameWithoutPrefix.isNotEmpty())
-        assertTrue(test.parsedTestName!!.testNameWithParameters.isNotEmpty())
+        assertEquals(test.parsedNameClass, "NumbersTest")
+        assertTrue(test.parsedNameSuite.isEmpty())
+        assertTrue(test.parsedNamePackage.isEmpty())
+        assertTrue(test.parsedMethodName.isNotEmpty())
+        assertTrue(test.parsedShortName.isNotEmpty())
+        assertTrue(test.parsedNameWithoutPrefix.isNotEmpty())
+        assertTrue(test.parsedNameWithParameters.isNotEmpty())
     }
 }

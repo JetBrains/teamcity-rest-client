@@ -894,18 +894,44 @@ internal open class TestBean: IdBean() {
             fields: Collection<TestLocatorSettings.TestField>,
             wrap: Boolean
         ): String {
-            val allFields = (fields.asSequence().map(Companion::remapField) + "id").distinct()
+            val allFields = constructFields(fields.asSequence())
             return if (wrap) {
-                allFields.joinToString(prefix = "test(", separator = ",", postfix = ")")
+                "test($allFields)"
             } else {
-                allFields.joinToString(separator = ",")
+                allFields
             }
         }
 
-        private fun remapField(field: TestLocatorSettings.TestField): String = when (field) {
-            TestLocatorSettings.TestField.NAME -> "name"
-            TestLocatorSettings.TestField.PARSED_TEST_NAME -> "parsedTestName(testPackage,testSuite,testClass,testShortName,testNameWithoutPrefix,testMethodName,testNameWithParameters)"
+        private fun remapField(field: TestLocatorSettings.TestField): GroupedField = when (field) {
+            TestLocatorSettings.TestField.NAME -> GroupedField(TestFieldGroup.NONE, "name")
+            TestLocatorSettings.TestField.PARSED_METHOD_NAME -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testMethodName")
+            TestLocatorSettings.TestField.PARSED_NAME_CLASS -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testClass")
+            TestLocatorSettings.TestField.PARSED_NAME_SUITE -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testSuite")
+            TestLocatorSettings.TestField.PARSED_SHORT_NAME -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testShortName")
+            TestLocatorSettings.TestField.PARSED_NAME_WITH_PARAMETERS -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testNameWithParameters")
+            TestLocatorSettings.TestField.PARSED_NAME_PACKAGE -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testPackage")
+            TestLocatorSettings.TestField.PARSED_NAME_WITHOUT_PREFIX -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testNameWithoutPrefix")
         }
+
+        private fun constructFields(fields: Sequence<TestLocatorSettings.TestField>): String =
+            fields.distinct()
+                .map { remapField(it) }
+                .groupBy { it.group }
+                .map { (group, groupFields) ->
+                    when (group) {
+                        TestFieldGroup.NONE -> groupFields.joinToString(separator = ",") { it.fieldStr }
+                        TestFieldGroup.PARSED_TEST_NAME -> "${group.groupName}(${groupFields.joinToString(separator = ",") { it.fieldStr }})"
+                    }
+                }
+                .plus("id")
+                .joinToString(separator = ",")
+
+        private enum class TestFieldGroup(val groupName: String) {
+            NONE(""),
+            PARSED_TEST_NAME("parsedTestName")
+        }
+
+        private data class GroupedField(val group: TestFieldGroup, val fieldStr: String)
     }
 }
 
@@ -956,7 +982,7 @@ internal open class TestOccurrenceBean: IdBean() {
 
             val testFieldsStr = when {
                 testFields.any() -> "test(${TestBean.buildCustomFieldsFilter(testFields, wrap = false)})"
-                TestRunsLocatorSettings.TestRunField.TEST_ID in testRunFields -> "test(id)"
+                TestRunsLocatorSettings.TestRunField.TEST_ID in testRunFields -> remapField(TestRunsLocatorSettings.TestRunField.TEST_ID)
                 else -> null
             }
             val allFields = (resultTestRunFieldsStr + "id" + testFieldsStr)
