@@ -1,8 +1,11 @@
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
 import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
+import jetbrains.buildServer.configs.kotlin.buildSteps.Qodana
 import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
+import jetbrains.buildServer.configs.kotlin.buildSteps.qodana
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.triggers.schedule
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 version = "2023.05"
@@ -139,6 +142,53 @@ project {
                 docker stop teamcity-server
                 docker rm teamcity-server
                 """.trimIndent()
+            }
+        }
+    }
+
+    buildType {
+        id("SecurityCheck")
+        name = "Security check with Qodana"
+
+        vcs {
+            cleanCheckout = true
+            root(DslContext.settingsRoot)
+        }
+
+        triggers {
+            vcs {
+                branchFilter = """
+                    +:<default>
+                    +:pull/*
+                """.trimIndent()
+            }
+
+            schedule {
+                daily {
+                    hour = 8
+                }
+
+                branchFilter = "+:<default>"
+            }
+        }
+
+        features {
+            pullRequests {
+                provider = github {
+                    authType = vcsRoot()
+                    filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER_OR_COLLABORATOR
+                    ignoreDrafts = true
+                }
+            }
+        }
+
+        steps {
+            qodana {
+                linter = jvm {
+                    version = Qodana.JVMVersion.LATEST
+                }
+                inspectionProfile = default()
+                param("report-as-test-mode", "each-problem-is-test")
             }
         }
     }
