@@ -187,6 +187,7 @@ project {
                 linter = jvm {
                     version = Qodana.JVMVersion.LATEST
                 }
+                cloudToken = "credentialsJSON:74c92ed1-94f9-433a-8576-5e5185a7ad54"
                 inspectionProfile = default()
                 param("report-as-test-mode", "each-problem-is-test")
             }
