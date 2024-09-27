@@ -155,6 +155,10 @@ project {
             root(DslContext.settingsRoot)
         }
 
+        params {
+            param("env.QODANA_TOKEN", "credentialsJSON:74c92ed1-94f9-433a-8576-5e5185a7ad54")
+        }
+
         triggers {
             vcs {
                 branchFilter = """
@@ -167,6 +171,10 @@ project {
                 daily {
                     hour = 8
                 }
+
+                /* We want this build to run regardless of the new changes as new vulnerabilities are being discovered all the time*/
+                withPendingChangesOnly = false
+                enableQueueOptimization = false
 
                 branchFilter = "+:<default>"
             }
@@ -187,7 +195,13 @@ project {
                 linter = jvm {
                     version = Qodana.JVMVersion.LATEST
                 }
-                inspectionProfile = default()
+                cloudToken = "credentialsJSON:74c92ed1-94f9-433a-8576-5e5185a7ad54"
+                inspectionProfile = customProfile {
+                    path = "qodana.yaml"
+                }
+
+                reportAsTests = true
+
                 param("report-as-test-mode", "each-problem-is-test")
             }
         }
