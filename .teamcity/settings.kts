@@ -157,6 +157,10 @@ project {
             param("env.QODANA_TOKEN", "credentialsJSON:74c92ed1-94f9-433a-8576-5e5185a7ad54")
         }
 
+        requirements {
+            equals("teamcity.agent.jvm.os.name", "Linux")
+        }
+
         triggers {
             vcs {
                 branchFilter = """
