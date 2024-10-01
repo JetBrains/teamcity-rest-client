@@ -212,6 +212,7 @@ project {
     buildType {
         id("Publish")
         name = "Publish to Space"
+        type = BuildTypeSettings.Type.DEPLOYMENT
 
         requirements {
             exists("docker.version")
