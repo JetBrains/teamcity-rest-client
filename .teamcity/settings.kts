@@ -8,8 +8,6 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.schedule
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-version = "2023.05"
-
 project {
     description = "REST API client written in Kotlin"
 
