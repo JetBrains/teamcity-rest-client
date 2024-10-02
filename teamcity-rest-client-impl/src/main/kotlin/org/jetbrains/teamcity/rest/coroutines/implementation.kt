@@ -64,7 +64,7 @@ private class RetryInterceptor(
     private val expBackOffFactor: Int = 2
     private val expBackOffJitter: Double = 0.1
 
-    private fun okhttp3.Response.retryRequired(): Boolean {
+    private fun Response.retryRequired(): Boolean {
         val code = code
         if (code < 400) return false
 
@@ -79,14 +79,14 @@ private class RetryInterceptor(
                 code == 429 // Too many requests == rate limited
     }
 
-    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+    override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
 
         var nextDelay = initialDelayMs
         var attempt = 1
         while (true) {
             var error: IOException? = null
-            val response: okhttp3.Response? = try {
+            val response: Response? = try {
                 chain.proceed(request)
             } catch (e: IOException) {
                 error = e
@@ -1315,7 +1315,7 @@ private class VcsRootLocatorImpl(private val instance: TeamCityCoroutinesInstanc
 
     override fun allSeq(): Sequence<VcsRoot> = lazyPagingSequence(instance,
         getFirstBean = {
-            LOG.debug("Retrieving vcs roots from ${instance.serverUrl}")
+            LOG.debug("Retrieving sequentially vcs roots from ${instance.serverUrl}")
             instance.service.vcsRoots()
         },
         convertToPage = { bean -> Page(bean.`vcs-root`.map { VcsRootImpl(it, false, instance) }, bean.nextHref) })
@@ -2412,7 +2412,7 @@ private class BuildQueueImpl(private val instance: TeamCityCoroutinesInstanceImp
             instance,
             getFirstBean = {
                 val buildLocator = if (parameters.isNotEmpty()) parameters.joinToString(",") else null
-                LOG.debug("Retrieving queued builds from ${instance.serverUrl} using query '$buildLocator'")
+                LOG.debug("Retrieving sequentially queued builds from ${instance.serverUrl} using query '$buildLocator'")
                 instance.service.queuedBuilds(
                     locator = buildLocator,
                     fields = BuildBean.buildCustomFieldsFilter(prefetchFieldsCopy, wrap = true)
@@ -2441,7 +2441,7 @@ private open class TestRunImpl(
         checkNotNull(fromFullBeanIf(TestRunField.NAME !in prefetchedFields, TestOccurrenceBean::name))
     }
 
-    private val duration = SuspendingLazy {
+    private val duration = SuspendingLazy<Duration> {
         val duration = fromFullBeanIf(TestRunField.DURATION !in prefetchedFields, TestOccurrenceBean::duration) ?: 0L
         Duration.ofMillis(duration)
     }
@@ -2524,7 +2524,7 @@ private open class TestRunImpl(
 
     final override suspend fun getStatus() = status.getValue()
 
-    override suspend fun getDuration() = duration.getValue()
+    override suspend fun getDuration(): Duration = duration.getValue()
 
     override suspend fun getDetails(): String = details.getValue()
 

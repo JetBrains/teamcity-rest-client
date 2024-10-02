@@ -8,8 +8,6 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.schedule
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-version = "2023.05"
-
 project {
     description = "REST API client written in Kotlin"
 
@@ -159,6 +157,10 @@ project {
             param("env.QODANA_TOKEN", "credentialsJSON:74c92ed1-94f9-433a-8576-5e5185a7ad54")
         }
 
+        requirements {
+            equals("teamcity.agent.jvm.os.name", "Linux")
+        }
+
         triggers {
             vcs {
                 branchFilter = """
@@ -210,6 +212,7 @@ project {
     buildType {
         id("Publish")
         name = "Publish to Space"
+        type = BuildTypeSettings.Type.DEPLOYMENT
 
         requirements {
             exists("docker.version")
