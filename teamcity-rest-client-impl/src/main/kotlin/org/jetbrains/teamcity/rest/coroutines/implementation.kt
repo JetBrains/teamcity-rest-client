@@ -1838,6 +1838,11 @@ private class BuildImpl(
 
     override suspend fun getAgent(): BuildAgent? = agent.getValue()
 
+    override suspend fun getAgentName(): String? =
+        fromFullBeanIf(BuildField.AGENT !in prefetchedFields, BuildBean::agent)?.name
+
+    override suspend fun getAgentTypeId(): String? =
+        fromFullBeanIf(BuildField.AGENT !in prefetchedFields, BuildBean::agent)?.typeId
 
     override suspend fun getBuildConfigurationId(): BuildConfigurationId = buildConfigurationId.getValue()
 
