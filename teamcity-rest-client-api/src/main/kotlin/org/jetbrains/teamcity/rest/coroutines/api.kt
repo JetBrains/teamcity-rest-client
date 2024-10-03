@@ -271,6 +271,13 @@ interface Build {
 
     suspend fun getAgent(): BuildAgent?
 
+    /**
+     * Both `getAgentName` and `getAgentTypeId` may be not-null while `getAgent` is null
+     * in case of already removed cloud agent instance
+     */
+    suspend fun getAgentName(): String?
+    suspend fun getAgentTypeId(): String?
+
     suspend fun isDetachedFromAgent(): Boolean
 
     fun getTestRuns(status: TestStatus? = null): Flow<TestRun>
