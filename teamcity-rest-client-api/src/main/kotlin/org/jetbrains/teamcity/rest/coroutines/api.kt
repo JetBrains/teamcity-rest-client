@@ -481,8 +481,9 @@ interface VcsRootInstance {
 }
 
 interface PinInfo {
-    val user: User
+    val user: User?
     val dateTime: ZonedDateTime
+    val text: String?
 }
 
 interface Revision {

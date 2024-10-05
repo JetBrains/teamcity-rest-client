@@ -1541,8 +1541,9 @@ private class AssignedRoleImpl(roleBean: RoleBean) : AssignedRole {
 }
 
 private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityCoroutinesInstanceImpl) : PinInfo {
-    override val user = UserImpl(bean.user!!, false, instance)
+    override val user = bean.user?.let { UserImpl(it, false, instance) }
     override val dateTime: ZonedDateTime = ZonedDateTime.parse(bean.timestamp!!, teamCityServiceDateFormat)
+    override val text: String? = bean.text
 }
 
 private class TriggeredImpl(

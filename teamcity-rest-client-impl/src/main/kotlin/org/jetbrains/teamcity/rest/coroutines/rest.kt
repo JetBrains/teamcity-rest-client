@@ -802,6 +802,7 @@ internal class ParameterBean() {
 internal class PinInfoBean {
     var user: UserBean? = null
     var timestamp: String? = null
+    var text: String? = null
 }
 
 internal class TriggeredBean {

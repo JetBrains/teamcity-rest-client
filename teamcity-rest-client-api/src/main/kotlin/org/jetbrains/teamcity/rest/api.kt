@@ -629,8 +629,9 @@ interface VcsRootInstance {
 }
 
 interface PinInfo {
-    val user: User
+    val user: User?
     val dateTime: ZonedDateTime
+    val text: String?
 
     @Deprecated(message = "use dateTime",
             replaceWith = ReplaceWith("Date.from(dateTime.toInstant())"))

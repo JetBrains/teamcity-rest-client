@@ -1106,8 +1106,9 @@ private class BuildRunningInfoBridge(
 private class PinInfoBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.PinInfo
 ) : PinInfo {
-    override val user: User = UserBridge(delegate.user)
+    override val user: User? = delegate.user?.let { UserBridge(it) }
     override val dateTime: ZonedDateTime by lazy { delegate.dateTime }
+    override val text: String? = delegate.text
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val time: Date = Date.from(dateTime.toInstant())
