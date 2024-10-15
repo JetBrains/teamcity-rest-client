@@ -1260,6 +1260,14 @@ private class BuildConfigurationImpl(
     override suspend fun fetchFullBean(): BuildTypeBean =
         instance.service.buildConfiguration(idString, BuildTypeBean.fields)
 
+    /**
+     * Build configuration id may change after reenaming: in UI it's displayed as
+     * 'Page was redirected to use current build configuration id "X" instead of previous one "Y".'
+     *
+     * No easy way to verify.
+     */
+    override fun isFullBeanIdValid(beanId: String?, fullBeanId: String?): Boolean = true
+
     override fun toString(): String =
         if (isFullBean) runBlocking { "BuildConfiguration(id=$idString,name=${getName()})" } else "BuildConfiguration(id=$idString)"
 
