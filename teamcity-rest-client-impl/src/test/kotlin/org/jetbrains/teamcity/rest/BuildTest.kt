@@ -155,12 +155,28 @@ class BuildTest {
 
     @Test
     fun test_snapshot_dependencies() {
-        val build = publicInstance().builds()
+        val dependant = publicInstance().builds()
                 .fromConfiguration(dependantBuildConfiguration)
                 .limitResults(1)
                 .all().first()
+        assertTrue(dependant.snapshotDependencies.isNotEmpty())
 
-        assertTrue(build.snapshotDependencies.isNotEmpty())
+        val dependency = dependant.snapshotDependencies.first()
+
+        assertTrue(
+            publicInstance().builds()
+                .snapshotDependencyFrom(dependency.id)
+                .all()
+                .any { it.id == dependant.id }
+        )
+
+        assertTrue(
+            publicInstance().builds()
+                .snapshotDependencyTo(dependant.id)
+                .all()
+                .any { it.id == dependency.id }
+        )
+
     }
 
     @Test

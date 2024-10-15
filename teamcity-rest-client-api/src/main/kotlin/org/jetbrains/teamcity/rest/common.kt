@@ -25,7 +25,15 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
      */
     fun withVcsRevision(vcsRevision: String): Self
 
+    /**
+     * Filters [buildId] build dependencies, including transitive
+     */
     fun snapshotDependencyTo(buildId: BuildId): Self
+
+    /**
+     * Filters builds dependant to [buildId] build, including transitive
+     */
+    fun snapshotDependencyFrom(buildId: BuildId): Self
 
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.

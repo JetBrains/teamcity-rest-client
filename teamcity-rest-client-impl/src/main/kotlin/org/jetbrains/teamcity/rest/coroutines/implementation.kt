@@ -404,6 +404,7 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
     private var affectedProjectId: ProjectId? = null
     private var buildConfigurationId: BuildConfigurationId? = null
     private var snapshotDependencyTo: BuildId? = null
+    private var snapshotDependencyFrom: BuildId? = null
     private var number: String? = null
     private var vcsRevision: String? = null
     private var since: Instant? = null
@@ -435,6 +436,11 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
 
     override fun snapshotDependencyTo(buildId: BuildId): BuildLocator {
         this.snapshotDependencyTo = buildId
+        return this
+    }
+
+    override fun snapshotDependencyFrom(buildId: BuildId): BuildLocator {
+        this.snapshotDependencyFrom = buildId
         return this
     }
 
@@ -555,10 +561,18 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
     private fun getLocator(): String {
         val count = selectRestApiCountForPagedRequests(limitResults = limitResults, pageSize = pageSize)
 
+        val to = snapshotDependencyTo
+        val from = snapshotDependencyFrom
+        val snapshotDependencyLocator = when {
+            to != null && from != null -> "snapshotDependency:(to:(id:$to),from:(id:$from))"
+            to != null -> "snapshotDependency:(to:(id:$to))"
+            from != null -> "snapshotDependency:(from:(id:$from))"
+            else -> null
+        }
         val parameters = listOfNotNull(
             affectedProjectId?.stringId?.let { "affectedProject:(id:$it)" },
             buildConfigurationId?.stringId?.let { "buildType:$it" },
-            snapshotDependencyTo?.stringId?.let { "snapshotDependency:(to:(id:$it))" },
+            snapshotDependencyLocator,
             number?.let { "number:$it" },
             running?.let { "running:$it" },
             canceled?.let { "canceled:$it" },

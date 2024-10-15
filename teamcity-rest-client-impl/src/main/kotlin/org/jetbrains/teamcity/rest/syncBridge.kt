@@ -341,6 +341,11 @@ private class BuildLocatorBridge(
         return this
     }
 
+    override fun snapshotDependencyFrom(buildId: BuildId): BuildLocator {
+        delegate.snapshotDependencyFrom(buildId)
+        return this
+    }
+
     override fun includeFailed(): BuildLocator {
         delegate.includeFailed()
         return this
