@@ -2,6 +2,16 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.0.0] - 2024-10-24
+
+- Upgrade slf4j api, that is the reason for major version change:  
+  `org.slf4j:slf4j-api:1.7.12 -> 2.0.16`
+- Other minor bumps:
+  - `com.squareup.retrofit2:retrofit:2.9.0 -> 2.11.0`
+  - `com.squareup.retrofit2:converter-gson:2.9.0 -> 2.11.0`
+  - `com.squareup.okhttp3:okhttp:4.10.0 -> 4.12.0`
+  - `com.squareup.okhttp3:logging-interceptor:4.10.0 -> 4.12.0`
+
 ## [2.1.0] - 2024-08-12
 
 - Added ability to select server node in multi-node setup.
