@@ -90,6 +90,11 @@ internal class TeamCityInstanceBlockingBridge(
         BuildBridge(delegate.build(id))
     }
 
+    override fun build(
+        id: BuildId,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Build = runBlocking { BuildBridge(delegate.build(id, prefetchFields)) }
+
     override fun build(buildConfigurationId: BuildConfigurationId, number: String): Build? = runBlocking {
         delegate.build(buildConfigurationId, number)?.let(::BuildBridge)
     }

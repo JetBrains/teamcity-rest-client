@@ -283,9 +283,28 @@ internal class TeamCityCoroutinesInstanceImpl(
 
     override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, emptySet(), this)
     override fun tests(): TestLocator = TestLocatorImpl(this)
-    override suspend fun build(id: BuildId): Build = BuildImpl(
-        BuildBean().also { it.id = id.stringId }, emptySet(), this
-    )
+
+    override suspend fun build(id: BuildId): Build = build(id, prefetchFields = emptySet())
+
+    override suspend fun build(
+        id: BuildId,
+        prefetchFields: Set<BuildField>,
+    ): Build {
+        val bean = if (prefetchFields.isEmpty()) {
+            // don't fetch anything if no fields requested
+            BuildBean().also { it.id = id.stringId }
+        } else {
+            service.build(id.stringId, BuildBean.buildCustomFieldsFilter(prefetchFields, wrap = false))
+        }
+
+        val build = BuildImpl(
+            bean = bean,
+            prefetchedFields = prefetchFields,
+            instance = this,
+        )
+
+        return build
+    }
 
     override suspend fun build(buildConfigurationId: BuildConfigurationId, number: String): Build? =
         BuildLocatorImpl(this).fromConfiguration(buildConfigurationId).withNumber(number).latest()

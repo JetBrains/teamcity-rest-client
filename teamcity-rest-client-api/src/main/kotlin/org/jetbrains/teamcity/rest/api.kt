@@ -26,6 +26,7 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
 
     abstract fun tests(): TestLocator
     abstract fun build(id: BuildId): Build
+    abstract fun build(id: BuildId, prefetchFields: Set<BuildField> = emptySet()): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator

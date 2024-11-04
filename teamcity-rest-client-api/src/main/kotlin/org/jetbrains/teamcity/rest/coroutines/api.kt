@@ -34,6 +34,7 @@ interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<T
 
     fun tests(): TestLocator
     suspend fun build(id: BuildId): Build
+    suspend fun build(id: BuildId, prefetchFields: Set<BuildField> = emptySet()): Build
     suspend fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     suspend fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     fun vcsRoots(): VcsRootLocator
