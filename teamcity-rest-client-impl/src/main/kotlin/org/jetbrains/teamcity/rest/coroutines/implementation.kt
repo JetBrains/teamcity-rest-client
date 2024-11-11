@@ -1171,7 +1171,8 @@ private class BuildConfigurationImpl(
     instance: TeamCityCoroutinesInstanceImpl
 ) :
     BaseImpl<BuildTypeBean>(bean, isFullBean, instance), BuildConfiguration {
-    override suspend fun fetchFullBean(): BuildTypeBean = instance.service.buildConfiguration(idString)
+    override suspend fun fetchFullBean(): BuildTypeBean =
+        instance.service.buildConfiguration(idString, BuildTypeBean.fields)
 
     override fun toString(): String =
         if (isFullBean) runBlocking { "BuildConfiguration(id=$idString,name=${getName()})" } else "BuildConfiguration(id=$idString)"
@@ -1183,6 +1184,11 @@ private class BuildConfigurationImpl(
     private val name = SuspendingLazy { notnull { it.name } }
     private val projectId = SuspendingLazy { ProjectId(notnull { it.projectId }) }
     private val paused = SuspendingLazy { nullable { it.paused } ?: false } // TC won't return paused:false field
+    private val type = SuspendingLazy {
+        notnull { it.type }.let { stringVal ->
+            BuildConfigurationType.values().single { it.value == stringVal }
+        }
+    }
 
     private val buildCounter = SuspendingLazy {
         getSetting("buildNumberCounter")?.toIntOrNull()
@@ -1198,6 +1204,8 @@ private class BuildConfigurationImpl(
     override suspend fun getProjectId(): ProjectId = projectId.getValue()
 
     override suspend fun isPaused(): Boolean = paused.getValue()
+
+    override suspend fun getType(): BuildConfigurationType = type.getValue()
 
     override suspend fun getBuildTags(): List<String> {
         return instance.service.buildTypeTags(idString).tag!!.map { it.name!! }

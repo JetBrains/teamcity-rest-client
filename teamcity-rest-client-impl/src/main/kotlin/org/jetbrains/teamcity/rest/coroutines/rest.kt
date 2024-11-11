@@ -119,7 +119,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("app/rest/buildTypes/id:{id}")
-    suspend fun buildConfiguration(@Path("id") buildTypeId: String): Response<BuildTypeBean>
+    suspend fun buildConfiguration(@Path("id") buildTypeId: String, @Query("fields") fields: String?): Response<BuildTypeBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/buildTypes/id:{id}/buildTags")
@@ -332,7 +332,7 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     ): ArtifactFileListBean = runErrorWrappingBridgeCall { service.artifactChildren(buildId, artifactPath, locator, fields) }
     suspend fun resultingProperties(buildId: String): ParametersBean = runErrorWrappingBridgeCall { service.resultingProperties(buildId) }
     suspend fun project(id: String): ProjectBean = runErrorWrappingBridgeCall { service.project(id) }
-    suspend fun buildConfiguration(buildTypeId: String): BuildTypeBean = runErrorWrappingBridgeCall { service.buildConfiguration(buildTypeId) }
+    suspend fun buildConfiguration(buildTypeId: String, fields: String?): BuildTypeBean = runErrorWrappingBridgeCall { service.buildConfiguration(buildTypeId, fields) }
     suspend fun buildTypeTags(buildTypeId: String): TagsBean = runErrorWrappingBridgeCall { service.buildTypeTags(buildTypeId) }
     suspend fun buildTypeTriggers(buildTypeId: String): TriggersBean = runErrorWrappingBridgeCall { service.buildTypeTriggers(buildTypeId) }
     suspend fun buildTypeArtifactDependencies(buildTypeId: String): ArtifactDependenciesBean = runErrorWrappingBridgeCall { service.buildTypeArtifactDependencies(buildTypeId) }
@@ -556,7 +556,12 @@ internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
     var paused: Boolean? = null
+    var type: String? = null
     var settings: BuildTypeSettingsBean? = null
+
+    companion object {
+        const val fields = "id,name,projectId,paused,type,settings"
+    }
 }
 
 internal class BuildTypeSettingsBean {

@@ -134,6 +134,7 @@ interface BuildConfiguration {
     suspend fun getName(): String
     suspend fun getProjectId(): ProjectId
     suspend fun isPaused(): Boolean
+    suspend fun getType(): BuildConfigurationType
 
     /**
      * Web UI URL for user, especially useful for error and log messages

@@ -219,6 +219,7 @@ interface BuildConfiguration {
     val finishBuildTriggers: List<FinishBuildTrigger>
     val artifactDependencies: List<ArtifactDependency>
     val snapshotDependencies: List<SnapshotDependency>
+    val type: BuildConfigurationType
 
     fun getParameters(): List<Parameter>
     fun setParameter(name: String, value: String)

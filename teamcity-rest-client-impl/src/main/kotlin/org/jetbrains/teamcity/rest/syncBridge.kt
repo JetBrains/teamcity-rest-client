@@ -636,6 +636,10 @@ private class BuildConfigurationBridge(
         delegate.getSnapshotDependencies().map(::SnapshotDependencyBridge)
     }
 
+    override val type: BuildConfigurationType by lazyBlocking {
+        delegate.getType()
+    }
+
     override var buildCounter: Int
         get() = runBlocking { delegate.getBuildCounter() }
         set(value) = runBlocking { delegate.setBuildCounter(value) }

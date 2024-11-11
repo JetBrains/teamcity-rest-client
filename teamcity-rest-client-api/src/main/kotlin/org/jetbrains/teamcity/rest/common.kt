@@ -371,3 +371,9 @@ enum class CompatibleBuildConfigurationsPolicy {
     SELECTED,
     UNKNOWN,
 }
+
+enum class BuildConfigurationType(val value: String) {
+    REGULAR("regular"),
+    COMPOSITE("composite"),
+    DEPLOYMENT("deployment"),
+}
