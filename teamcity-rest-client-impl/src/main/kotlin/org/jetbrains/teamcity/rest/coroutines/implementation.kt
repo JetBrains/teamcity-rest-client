@@ -598,9 +598,11 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
             vcsRevision?.let { "revision:$it" },
             status?.name?.let { "status:$it" },
             agentName?.let { "agentName:$it" },
-            if (tags.isNotEmpty())
+            if (tags.size == 1) {
+                "tag:(name:(${tags.first()}))"
+            } else if (tags.size > 1) {
                 tags.joinToString("),tag:(", prefix = "tag:(", postfix = ")")
-            else null,
+            } else null,
             if (pinnedOnly) "pinned:true" else null,
             count?.let { "count:$it" },
 
