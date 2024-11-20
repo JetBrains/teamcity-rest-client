@@ -505,6 +505,7 @@ internal open class BuildBean: IdBean() {
     var agent: BuildAgentBean? = null
 
     var properties: ParametersBean? = null
+    var resultingProperties: ParametersBean? = null
     var buildType: BuildTypeBean? = null
 
     var `snapshot-dependencies`: BuildListBean? = null
@@ -549,6 +550,7 @@ internal open class BuildBean: IdBean() {
             BuildLocatorSettings.BuildField.FINISH_DATETIME -> "finishDate"
             BuildLocatorSettings.BuildField.RUNNING_INFO -> "running-info(*)"
             BuildLocatorSettings.BuildField.PARAMETERS -> "properties(*,property(*))"
+            BuildLocatorSettings.BuildField.RESULTING_PARAMETERS -> "resultingProperties(*,property(*))"
             BuildLocatorSettings.BuildField.TAGS -> "tags(*,tag(*))"
             BuildLocatorSettings.BuildField.REVISIONS -> "revisions(*,revision(*))"
             BuildLocatorSettings.BuildField.SNAPSHOT_DEPENDENCIES -> "snapshot-dependencies(*,build(id,buildTypeId,number,status,branchName,defaultBranch))"

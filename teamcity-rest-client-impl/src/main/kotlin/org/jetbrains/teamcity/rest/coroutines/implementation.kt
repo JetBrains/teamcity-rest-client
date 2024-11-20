@@ -1856,6 +1856,11 @@ private class BuildImpl(
         properties?.property?.map(::ParameterImpl) ?: emptyList()
     }
 
+    private val resultingParameters = SuspendingLazy {
+        val properties = fromFullBeanIf(BuildField.RESULTING_PARAMETERS !in prefetchedFields, BuildBean::resultingProperties)
+        properties?.property?.map(::ParameterImpl) ?: emptyList()
+    }
+
     private val tags = SuspendingLazy {
         val tags = fromFullBeanIf(BuildField.TAGS !in prefetchedFields, BuildBean::tags)
         tags?.tag?.map { it.name!! } ?: emptyList()
@@ -2226,9 +2231,7 @@ private class BuildImpl(
         instance.service.cancelBuild(id.stringId, request)
     }
 
-    override suspend fun getResultingParameters(): List<Parameter> {
-        return instance.service.resultingProperties(id.stringId).property!!.map { ParameterImpl(it) }
-    }
+    override suspend fun getResultingParameters(): List<Parameter> = resultingParameters.getValue()
 
     override suspend fun finish() {
         instance.service.finishBuild(id.stringId)

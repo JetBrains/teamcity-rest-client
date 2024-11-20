@@ -107,6 +107,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         FINISH_DATETIME,
         RUNNING_INFO,
         PARAMETERS,
+        RESULTING_PARAMETERS,
         TAGS,
         REVISIONS,
         SNAPSHOT_DEPENDENCIES,
