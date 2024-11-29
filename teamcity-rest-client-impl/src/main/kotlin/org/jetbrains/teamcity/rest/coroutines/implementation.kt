@@ -23,7 +23,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URI
-import java.net.URLEncoder
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
@@ -223,6 +222,8 @@ internal class TeamCityCoroutinesInstanceImpl(
             })
         .cookieJar(nodeSelector.toCookieJar())
         .build()
+
+    internal val webLinks = WebLinks(serverUrl)
 
     internal val service = Retrofit.Builder()
         .client(client)
@@ -1043,14 +1044,10 @@ private class ProjectImpl(
         if (isFullBean) runBlocking { "Project(id=$idString,name=${getName()})" } else "Project(id=$idString)"
 
     override fun getHomeUrl(branch: String?): String =
-        getUserUrlPage(instance.serverUrl, "project.html", projectId = id, branch = branch)
+        instance.webLinks.projectPage(id, branch = branch)
 
-    override fun getTestHomeUrl(testId: TestId): String = getUserUrlPage(
-        instance.serverUrl, "project.html",
-        projectId = id,
-        testNameId = testId,
-        tab = "testDetails"
-    )
+    override fun getTestHomeUrl(testId: TestId): String =
+        instance.webLinks.testHistoryPage(testId, id)
 
     override fun getMutes(): Flow<Mute> = lazyPagingFlow(
         instance = instance,
@@ -1179,9 +1176,8 @@ private class BuildConfigurationImpl(
     override fun toString(): String =
         if (isFullBean) runBlocking { "BuildConfiguration(id=$idString,name=${getName()})" } else "BuildConfiguration(id=$idString)"
 
-    override fun getHomeUrl(branch: String?): String = getUserUrlPage(
-        instance.serverUrl, "viewType.html", buildTypeId = id, branch = branch
-    )
+    override fun getHomeUrl(branch: String?): String =
+        instance.webLinks.buildConfigurationPage(id, branch = branch)
 
     override val id = BuildConfigurationId(idString)
     private val name = SuspendingLazy { notnull { it.name } }
@@ -1332,12 +1328,7 @@ private class ChangeImpl(
     override fun getHomeUrl(
         specificBuildConfigurationId: BuildConfigurationId?,
         includePersonalBuilds: Boolean?
-    ): String = getUserUrlPage(
-        instance.serverUrl, "viewModification.html",
-        modId = id,
-        buildTypeId = specificBuildConfigurationId,
-        personal = includePersonalBuilds
-    )
+    ): String = instance.webLinks.changePage(id, specificBuildConfigurationId, includePersonalBuilds)
 
     override suspend fun firstBuilds(): List<Build> =
         instance.service
@@ -1436,10 +1427,7 @@ private class UserImpl(
 
     override suspend fun getName(): String? = name.getValue()
 
-    override fun getHomeUrl(): String = getUserUrlPage(
-        instance.serverUrl, "admin/editUser.html",
-        userId = id
-    )
+    override fun getHomeUrl(): String = instance.webLinks.userPage(id)
 
     override fun toString(): String =
         if (isFullBean) runBlocking { "User(id=${id.stringId}, username=${getUsername()})" } else "User(id=${id.stringId})"
@@ -1807,10 +1795,7 @@ private class BuildImpl(
             ?.map(::PropertyImpl) ?: emptyList()
     }
 
-    override fun getHomeUrl(): String = getUserUrlPage(
-        instance.serverUrl, "viewLog.html",
-        buildId = id
-    )
+    override fun getHomeUrl(): String = instance.webLinks.buildPage(id)
 
     override suspend fun getStatusText(): String? = statusText.getValue()
 
@@ -2557,37 +2542,6 @@ private open class TestRunImpl(
 
 private fun convertToJavaRegexp(pattern: String): Regex {
     return pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".").toRegex()
-}
-
-private fun String.urlencode(): String = URLEncoder.encode(this, "UTF-8")
-
-private fun getUserUrlPage(
-    serverUrl: String,
-    pageName: String,
-    tab: String? = null,
-    projectId: ProjectId? = null,
-    buildId: BuildId? = null,
-    testNameId: TestId? = null,
-    userId: UserId? = null,
-    modId: ChangeId? = null,
-    personal: Boolean? = null,
-    buildTypeId: BuildConfigurationId? = null,
-    branch: String? = null
-): String {
-    val params = mutableListOf<String>()
-
-    tab?.let { params.add("tab=" + tab.urlencode()) }
-    projectId?.let { params.add("projectId=" + projectId.stringId.urlencode()) }
-    buildId?.let { params.add("buildId=" + buildId.stringId.urlencode()) }
-    testNameId?.let { params.add("testNameId=" + testNameId.stringId.urlencode()) }
-    userId?.let { params.add("userId=" + userId.stringId.urlencode()) }
-    modId?.let { params.add("modId=" + modId.stringId.urlencode()) }
-    personal?.let { params.add("personal=" + if (personal) "true" else "false") }
-    buildTypeId?.let { params.add("buildTypeId=" + buildTypeId.stringId.urlencode()) }
-    branch?.let { params.add("branch=" + branch.urlencode()) }
-
-    return "$serverUrl/$pageName" +
-            if (params.isNotEmpty()) "?${params.joinToString("&")}" else ""
 }
 
 private fun saveToFile(body: ResponseBody, file: File) {
