@@ -144,7 +144,7 @@ project {
         }
     }
 
-    buildType {
+    val securityCheck = buildType {
         id("SecurityCheck")
         name = "Security check with Qodana"
 
@@ -237,6 +237,12 @@ project {
             cleanCheckout = true
             root(DslContext.settingsRoot)
             branchFilter = "+:<default>"
+        }
+
+        dependencies {
+            snapshot(securityCheck) {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
         }
 
         steps {
