@@ -2,6 +2,9 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.0.1]
+Stop using deprecated `tags` dimension to filter builds, use `tag` instead.
+
 ## [3.0.0] - 2024-10-24
 
 - Upgrade slf4j api, that is the reason for major version change:  
