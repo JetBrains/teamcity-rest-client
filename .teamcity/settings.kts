@@ -220,10 +220,12 @@ project {
         }
 
         params {
+            text("teamcity.ui.runButton.caption", "Publish")
+
             text(
                 "releaseVersion",
                 "SNAPSHOT",
-                "Version number to be used when publishing to Space",
+                "Release version",
                 "Version number to be used when publishing to Space",
                 ParameterDisplay.PROMPT,
                 readOnly = false,
