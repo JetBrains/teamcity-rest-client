@@ -5,7 +5,7 @@ import java.net.URLEncoder
 
 class WebLinks(private val serverUrl: String) {
     fun buildConfigurationPage(id: BuildConfigurationId, branch: String? = null) =
-        "$serverUrl/buildConfiguration/$id" + if (branch != null) "?${branch.urlencode()}" else ""
+        "$serverUrl/buildConfiguration/$id" + if (branch != null) "?branch=${branch.urlencode()}" else ""
 
     fun buildPage(id: BuildId, configurationId: BuildConfigurationId? = null) =
         if (configurationId != null) {
@@ -26,7 +26,7 @@ class WebLinks(private val serverUrl: String) {
     }
 
     fun projectPage(id: ProjectId, branch: String? = null) =
-        "$serverUrl/project/$id" + if (branch != null) "?${branch.urlencode()}" else ""
+        "$serverUrl/project/$id" + if (branch != null) "?branch=${branch.urlencode()}" else ""
 
     fun testHistoryPage(id: TestId, projectId: ProjectId) =
         "$serverUrl/test/$id?currentProjectId=$projectId"
