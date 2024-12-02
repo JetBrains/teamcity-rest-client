@@ -47,7 +47,7 @@ class ChangeTest {
                 change.getHomeUrl()
         )
         assertEquals(
-                "$publicInstanceUrl/change/${change.id.stringId}?personal=true&buildTypeId=xxx",
+                "$publicInstanceUrl/change/${change.id.stringId}?buildTypeId=xxx&personal=true",
                 change.getHomeUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
         )
     }
