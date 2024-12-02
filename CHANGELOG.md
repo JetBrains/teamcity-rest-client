@@ -2,6 +2,9 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.0.2]
+- Fix web links so they don't link to deprecated pages. 
+
 ## [3.0.1]
 Stop using deprecated `tags` dimension to filter builds, use `tag` instead.
 
