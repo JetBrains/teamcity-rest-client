@@ -141,7 +141,7 @@ class BuildTest {
                 .limitResults(1)
                 .all().first()
 
-        assertEquals("$publicInstanceUrl/viewLog.html?buildId=${build.id.stringId}", build.getHomeUrl())
+        assertEquals("$publicInstanceUrl/build/${build.id.stringId}", build.getHomeUrl())
     }
 
     @Test
