@@ -11,9 +11,9 @@ import jetbrains.buildServer.configs.kotlin.triggers.vcs
 project {
     description = "REST API client written in Kotlin"
 
-    buildType {
+    val buildAndTest = buildType {
         id("Build")
-        name = "Build"
+        name = "Build and test"
         triggers {
             vcs {
                 branchFilter = "+:<default>"
@@ -244,6 +244,11 @@ project {
         dependencies {
             snapshot(securityCheck) {
                 onDependencyFailure = FailureAction.FAIL_TO_START
+                reuseBuilds = ReuseBuilds.NO
+            }
+            snapshot(buildAndTest) {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+                reuseBuilds = ReuseBuilds.SUCCESSFUL
             }
         }
 

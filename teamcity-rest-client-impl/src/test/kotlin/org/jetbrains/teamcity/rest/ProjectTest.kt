@@ -32,7 +32,7 @@ class ProjectTest {
     fun `webUrl with default parameters`() {
         val proj = publicInstance().project(reportProject)
         kotlin.test.assertEquals(
-                "$publicInstanceUrl/project.html?projectId=${reportProject.stringId}",
+                "$publicInstanceUrl/project/${reportProject.stringId}",
                 proj.getHomeUrl())
     }
 
@@ -40,7 +40,7 @@ class ProjectTest {
     fun `webUrl with branch`() {
         val proj = publicInstance().project(reportProject)
         kotlin.test.assertEquals(
-                "$publicInstanceUrl/project.html?projectId=${reportProject.stringId}&branch=%3Cdefault%3E",
+                "$publicInstanceUrl/project/${reportProject.stringId}?branch=%3Cdefault%3E",
                 proj.getHomeUrl(branch = "<default>"))
     }
 

@@ -43,11 +43,11 @@ class ChangeTest {
                     build!!.changes.first()
                 }
         assertEquals(
-                "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}",
+                "$publicInstanceUrl/change/${change.id.stringId}",
                 change.getHomeUrl()
         )
         assertEquals(
-                "$publicInstanceUrl/viewModification.html?modId=${change.id.stringId}&personal=true&buildTypeId=xxx",
+                "$publicInstanceUrl/change/${change.id.stringId}?buildTypeId=xxx&personal=true",
                 change.getHomeUrl(specificBuildConfigurationId = BuildConfigurationId("xxx"), includePersonalBuilds = true)
         )
     }

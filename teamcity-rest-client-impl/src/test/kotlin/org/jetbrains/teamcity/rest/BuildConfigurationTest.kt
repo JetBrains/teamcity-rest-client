@@ -29,7 +29,7 @@ class BuildConfigurationTest {
     fun `webUrl with default parameters`() {
         val conf = publicInstance().buildConfiguration(changesBuildConfiguration)
         assertEquals(
-                "$publicInstanceUrl/viewType.html?buildTypeId=${changesBuildConfiguration.stringId}",
+                "$publicInstanceUrl/buildConfiguration/${changesBuildConfiguration.stringId}",
                 conf.getHomeUrl())
     }
 
@@ -37,7 +37,7 @@ class BuildConfigurationTest {
     fun `webUrl with branch`() {
         val conf = publicInstance().buildConfiguration(changesBuildConfiguration)
         assertEquals(
-                "$publicInstanceUrl/viewType.html?buildTypeId=${changesBuildConfiguration.stringId}&branch=%3Cdefault%3E",
+                "$publicInstanceUrl/buildConfiguration/${changesBuildConfiguration.stringId}?branch=%3Cdefault%3E",
                 conf.getHomeUrl(branch = "<default>"))
     }
 
