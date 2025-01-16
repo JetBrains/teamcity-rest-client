@@ -143,6 +143,7 @@ interface BuildConfiguration {
     suspend fun getBuildTags(): List<String>
     suspend fun getFinishBuildTriggers(): List<FinishBuildTrigger>
     suspend fun getArtifactDependencies(): List<ArtifactDependency>
+    suspend fun getSnapshotDependencies(): List<SnapshotDependency>
 
     suspend fun getParameters(): List<Parameter>
     suspend fun setParameter(name: String, value: String)
@@ -513,6 +514,12 @@ interface FinishBuildTrigger {
     val afterSuccessfulBuildOnly: Boolean
     val includedBranchPatterns: Set<String>
     val excludedBranchPatterns: Set<String>
+}
+
+interface SnapshotDependency {
+    val id: SnapshotDependencyId
+    suspend fun getName(): String
+    suspend fun getBuildConfiguration(): BuildConfiguration
 }
 
 interface ArtifactDependency {

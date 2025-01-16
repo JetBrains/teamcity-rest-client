@@ -133,6 +133,10 @@ internal interface TeamCityService {
     @GET("app/rest/buildTypes/id:{id}/artifact-dependencies")
     suspend fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): Response<ArtifactDependenciesBean>
 
+    @Headers("Accept: application/json")
+    @GET("app/rest/buildTypes/id:{id}/snapshot-dependencies")
+    suspend fun buildTypeSnapshotDependencies(@Path("id") buildTypeId: String): Response<SnapshotDependenciesBean>
+
     @PUT("app/rest/projects/id:{id}/parameters/{name}/value")
     suspend fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
 
@@ -332,6 +336,7 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun buildTypeTags(buildTypeId: String): TagsBean = runErrorWrappingBridgeCall { service.buildTypeTags(buildTypeId) }
     suspend fun buildTypeTriggers(buildTypeId: String): TriggersBean = runErrorWrappingBridgeCall { service.buildTypeTriggers(buildTypeId) }
     suspend fun buildTypeArtifactDependencies(buildTypeId: String): ArtifactDependenciesBean = runErrorWrappingBridgeCall { service.buildTypeArtifactDependencies(buildTypeId) }
+    suspend fun buildTypeSnapshotDependencies(buildTypeId: String): SnapshotDependenciesBean = runErrorWrappingBridgeCall { service.buildTypeSnapshotDependencies(buildTypeId) }
     suspend fun setProjectParameter(
         projectId: String,
         name: String,
@@ -646,6 +651,18 @@ internal class ArtifactDependencyBean: IdBean() {
 
 internal class ArtifactDependenciesBean {
     var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
+}
+
+internal class SnapshotDependencyBean: IdBean() {
+    var name: String? = null
+    var disabled: Boolean? = false
+    var inherited: Boolean? = false
+    var properties: ParametersBean? = ParametersBean()
+    var `source-buildType`: BuildTypeBean = BuildTypeBean()
+}
+
+internal class SnapshotDependenciesBean {
+    var `snapshot-dependency`: List<SnapshotDependencyBean>? = ArrayList()
 }
 
 internal class ProjectBean: IdBean() {

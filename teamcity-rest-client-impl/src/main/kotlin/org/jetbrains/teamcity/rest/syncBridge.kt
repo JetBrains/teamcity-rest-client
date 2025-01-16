@@ -632,6 +632,10 @@ private class BuildConfigurationBridge(
         delegate.getArtifactDependencies().map(::ArtifactDependencyBridge)
     }
 
+    override val snapshotDependencies: List<SnapshotDependency> by lazyBlocking {
+        delegate.getSnapshotDependencies().map(::SnapshotDependencyBridge)
+    }
+
     override var buildCounter: Int
         get() = runBlocking { delegate.getBuildCounter() }
         set(value) = runBlocking { delegate.setBuildCounter(value) }
@@ -742,6 +746,18 @@ private class FinishBuildTriggerBridge(
     override val includedBranchPatterns: Set<String> = delegate.includedBranchPatterns
     override val excludedBranchPatterns: Set<String> = delegate.excludedBranchPatterns
     override fun toString(): String = delegate.toString()
+}
+
+private class SnapshotDependencyBridge(
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.SnapshotDependency
+): SnapshotDependency {
+    override val id: SnapshotDependencyId = delegate.id
+    override val name: String by lazyBlocking {
+        delegate.getName()
+    }
+    override val buildConfiguration: BuildConfiguration by lazyBlocking {
+        BuildConfigurationBridge(delegate.getBuildConfiguration())
+    }
 }
 
 private class ArtifactDependencyBridge(

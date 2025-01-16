@@ -1218,6 +1218,14 @@ private class BuildConfigurationImpl(
             ?.map { ArtifactDependencyImpl(it, true, instance) }.orEmpty()
     }
 
+    override suspend fun getSnapshotDependencies(): List<SnapshotDependency> {
+        return instance.service
+            .buildTypeSnapshotDependencies(idString)
+            .`snapshot-dependency`
+            ?.filter { it.disabled == false }
+            ?.map { SnapshotDependencyImpl(it, true, instance) }.orEmpty()
+    }
+
     override suspend fun getBuildCounter(): Int = buildCounter.getValue()
 
     override suspend fun setBuildCounter(value: Int) {
@@ -1536,6 +1544,34 @@ private class ArtifactDependencyImpl(
 
     private suspend fun findPropertyByName(name: String): String? {
         return fullBean.getValue().properties?.property?.find { it.name == name }?.value
+    }
+}
+
+private class SnapshotDependencyImpl(
+    bean: SnapshotDependencyBean,
+    isFullBean: Boolean,
+    instance: TeamCityCoroutinesInstanceImpl
+) :
+    BaseImpl<SnapshotDependencyBean>(bean, isFullBean, instance), SnapshotDependency {
+
+    override val id = SnapshotDependencyId(bean.id!!)
+    private val name = SuspendingLazy { notnull { bean.name } }
+    override suspend fun getName() = name.getValue()
+
+    private val buildConfiguration = SuspendingLazy {
+        BuildConfigurationImpl(bean.`source-buildType`, false, instance)
+    }
+
+    override suspend fun getBuildConfiguration(): BuildConfiguration = buildConfiguration.getValue()
+
+    override suspend fun fetchFullBean(): SnapshotDependencyBean {
+        error("Not supported, ArtifactDependencyImpl should be created with full bean")
+    }
+
+    override fun toString(): String = if (isFullBean) {
+        "SnapshotDependency(buildConf=${runBlocking { getBuildConfiguration() }.id.stringId})"
+    } else {
+        "SnapshotDependency(id=$id)"
     }
 }
 

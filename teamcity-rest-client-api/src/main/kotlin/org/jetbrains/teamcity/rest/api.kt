@@ -218,6 +218,7 @@ interface BuildConfiguration {
     val buildTags: List<String>
     val finishBuildTriggers: List<FinishBuildTrigger>
     val artifactDependencies: List<ArtifactDependency>
+    val snapshotDependencies: List<SnapshotDependency>
 
     fun getParameters(): List<Parameter>
     fun setParameter(name: String, value: String)
@@ -678,6 +679,12 @@ interface FinishBuildTrigger {
     val afterSuccessfulBuildOnly: Boolean
     val includedBranchPatterns: Set<String>
     val excludedBranchPatterns: Set<String>
+}
+
+interface SnapshotDependency {
+    val id: SnapshotDependencyId
+    val name: String
+    val buildConfiguration: BuildConfiguration
 }
 
 interface ArtifactDependency {
