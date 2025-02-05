@@ -161,7 +161,7 @@ internal class TeamCityCoroutinesInstanceImpl(
     val serverUrlBase: String,
     private val authHeader: String?,
     private val nodeSelector: NodeSelector,
-    private val logResponses: Boolean,
+    private val logLevel: LoggingLevel,
     private val timeout: Long,
     private val unit: TimeUnit,
     private val maxConcurrentRequests: Int,
@@ -170,10 +170,10 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val retryInitialDelayMs: Long,
     private val retryMaxDelayMs: Long,
 
-) : TeamCityCoroutinesInstanceEx {
+    ) : TeamCityCoroutinesInstanceEx {
     override fun toBuilder(): TeamCityInstanceBuilder = TeamCityInstanceBuilder(serverUrl)
         .setUrlBaseAndAuthHeader(serverUrlBase, authHeader)
-        .setResponsesLoggingEnabled(logResponses)
+        .withLoggingLevel(logLevel)
         .withTimeout(timeout, unit)
         .withMaxConcurrentRequests(maxConcurrentRequests)
         .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
@@ -185,7 +185,12 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
         restLog.debug(if (authHeader != null) message.replace(authHeader, "[REDACTED]") else message)
     }.apply {
-        level = if (logResponses) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.HEADERS
+        level = when (logLevel) {
+            LoggingLevel.BODY -> HttpLoggingInterceptor.Level.BODY
+            LoggingLevel.HEADERS -> HttpLoggingInterceptor.Level.HEADERS
+            LoggingLevel.BASIC -> HttpLoggingInterceptor.Level.BASIC
+            LoggingLevel.NONE -> HttpLoggingInterceptor.Level.NONE
+        }
     }
 
     private var client = OkHttpClient.Builder()
