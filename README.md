@@ -77,4 +77,6 @@ https://buildserver.labs.intellij.net/buildConfiguration/BuildUtils_TeamCityRest
 
 # Contributing
 
+Some changes
+
 Your contributions are welcome, please read the [CONTRIBUTING.md](CONTRIBUTING.md) for details. 
