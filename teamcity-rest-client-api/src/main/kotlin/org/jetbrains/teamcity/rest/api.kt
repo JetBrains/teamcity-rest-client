@@ -10,7 +10,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCityInstance> {
-    @Deprecated("Use TeamCityInstanceBuilder#setResponsesLoggingEnabled")
+    @Deprecated("Use TeamCityInstanceBuilder#withLoggingLevel")
     abstract fun withLogResponses(): TeamCityInstance
 
     @Deprecated("Use TeamCityInstanceBuilder#withTimeout")

@@ -66,6 +66,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     /**
      * Enables response verbose logging.
      */
+    @Deprecated(message = "Use withLoggingLevel", replaceWith = ReplaceWith("withLoggingLevel(loggingLevel)"))
     fun setResponsesLoggingEnabled(enabled: Boolean): TeamCityInstanceBuilder {
         logLevel = if (enabled) LoggingLevel.BODY else LoggingLevel.HEADERS
         return this
