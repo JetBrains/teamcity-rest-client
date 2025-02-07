@@ -518,8 +518,7 @@ interface FinishBuildTrigger {
 }
 
 interface SnapshotDependency {
-    val id: SnapshotDependencyId
-    suspend fun getName(): String
+    val id: BuildConfigurationId
     suspend fun getBuildConfiguration(): BuildConfiguration
 }
 

@@ -322,10 +322,6 @@ data class ArtifactDependencyId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
-data class SnapshotDependencyId(val stringId: String) {
-    override fun toString(): String = stringId
-}
-
 enum class BuildStatus {
     SUCCESS,
     FAILURE,

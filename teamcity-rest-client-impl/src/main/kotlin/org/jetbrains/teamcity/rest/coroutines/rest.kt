@@ -659,7 +659,6 @@ internal class ArtifactDependenciesBean {
 }
 
 internal class SnapshotDependencyBean: IdBean() {
-    var name: String? = null
     var disabled: Boolean? = false
     var inherited: Boolean? = false
     var properties: ParametersBean? = ParametersBean()

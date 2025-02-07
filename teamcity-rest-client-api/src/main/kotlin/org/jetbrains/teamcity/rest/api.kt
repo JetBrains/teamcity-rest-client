@@ -683,8 +683,7 @@ interface FinishBuildTrigger {
 }
 
 interface SnapshotDependency {
-    val id: SnapshotDependencyId
-    val name: String
+    val id: BuildConfigurationId
     val buildConfiguration: BuildConfiguration
 }
 

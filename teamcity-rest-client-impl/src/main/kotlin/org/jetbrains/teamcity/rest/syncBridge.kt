@@ -755,10 +755,7 @@ private class FinishBuildTriggerBridge(
 private class SnapshotDependencyBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.SnapshotDependency
 ): SnapshotDependency {
-    override val id: SnapshotDependencyId = delegate.id
-    override val name: String by lazyBlocking {
-        delegate.getName()
-    }
+    override val id: BuildConfigurationId = delegate.id
     override val buildConfiguration: BuildConfiguration by lazyBlocking {
         BuildConfigurationBridge(delegate.getBuildConfiguration())
     }

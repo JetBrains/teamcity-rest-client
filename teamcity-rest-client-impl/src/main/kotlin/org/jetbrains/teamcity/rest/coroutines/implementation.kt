@@ -1189,11 +1189,7 @@ private class BuildConfigurationImpl(
     private val name = SuspendingLazy { notnull { it.name } }
     private val projectId = SuspendingLazy { ProjectId(notnull { it.projectId }) }
     private val paused = SuspendingLazy { nullable { it.paused } ?: false } // TC won't return paused:false field
-    private val type = SuspendingLazy {
-        notnull { it.type }.let { stringVal ->
-            BuildConfigurationType.values().single { it.value == stringVal }
-        }
-    }
+    private val type = SuspendingLazy { BuildConfigurationType.valueOf(notnull { it.type }) }
 
     private val buildCounter = SuspendingLazy {
         getSetting("buildNumberCounter")?.toIntOrNull()
@@ -1567,9 +1563,7 @@ private class SnapshotDependencyImpl(
 ) :
     BaseImpl<SnapshotDependencyBean>(bean, isFullBean, instance), SnapshotDependency {
 
-    override val id = SnapshotDependencyId(bean.id!!)
-    private val name = SuspendingLazy { notnull { bean.name } }
-    override suspend fun getName() = name.getValue()
+    override val id = BuildConfigurationId(bean.id!!)
 
     private val buildConfiguration = SuspendingLazy {
         BuildConfigurationImpl(bean.`source-buildType`, false, instance)
