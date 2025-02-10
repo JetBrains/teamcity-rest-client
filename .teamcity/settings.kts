@@ -32,6 +32,15 @@ project {
             cleanCheckout = true
             root(DslContext.settingsRoot)
         }
+        features {
+            pullRequests {
+                provider = github {
+                    authType = vcsRoot()
+                    filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+                    ignoreDrafts = true
+                }
+            }
+        }
         artifactRules = "+:%env.LOGS_DIR% -> server_logs"
 
         steps {
