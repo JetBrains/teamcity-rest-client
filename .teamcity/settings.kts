@@ -5,11 +5,21 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.Qodana
 import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
 import jetbrains.buildServer.configs.kotlin.buildSteps.qodana
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.projectFeatures.UntrustedBuildsSettings
+import jetbrains.buildServer.configs.kotlin.projectFeatures.untrustedBuildsSettings
 import jetbrains.buildServer.configs.kotlin.triggers.schedule
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 project {
     description = "REST API client written in Kotlin"
+
+    features {
+        untrustedBuildsSettings {
+            manualRunsApproved = true
+            approvalRules = "user:TEAMCITY_DEVELOP:1"
+            defaultAction = UntrustedBuildsSettings.DefaultAction.APPROVE
+        }
+    }
 
     val buildAndTest = buildType {
         id("Build")
