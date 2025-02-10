@@ -14,11 +14,6 @@ project {
     val buildAndTest = buildType {
         id("Build")
         name = "Build and test"
-        triggers {
-            vcs {
-                branchFilter = "+:<default>"
-            }
-        }
         requirements {
             exists("docker.version")
             equals("teamcity.agent.jvm.os.name", "Linux")
@@ -161,11 +156,19 @@ project {
             equals("teamcity.agent.jvm.os.name", "Linux")
         }
 
+        dependencies {
+            snapshot(buildAndTest) {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+                reuseBuilds = ReuseBuilds.SUCCESSFUL
+            }
+        }
+
         triggers {
             vcs {
                 branchFilter = """
                     +:<default>
-                    +:pull/*
+                    +pr: github_role=member
+                    +pr: github_role=collaborator
                 """.trimIndent()
             }
 
@@ -245,10 +248,6 @@ project {
             snapshot(securityCheck) {
                 onDependencyFailure = FailureAction.FAIL_TO_START
                 reuseBuilds = ReuseBuilds.NO
-            }
-            snapshot(buildAndTest) {
-                onDependencyFailure = FailureAction.FAIL_TO_START
-                reuseBuilds = ReuseBuilds.SUCCESSFUL
             }
         }
 
