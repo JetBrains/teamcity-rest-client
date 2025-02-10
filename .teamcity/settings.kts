@@ -32,15 +32,6 @@ project {
             cleanCheckout = true
             root(DslContext.settingsRoot)
         }
-        features {
-            pullRequests {
-                provider = github {
-                    authType = vcsRoot()
-                    filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER_OR_COLLABORATOR
-                    ignoreDrafts = true
-                }
-            }
-        }
         artifactRules = "+:%env.LOGS_DIR% -> server_logs"
 
         steps {
@@ -189,7 +180,7 @@ project {
             pullRequests {
                 provider = github {
                     authType = vcsRoot()
-                    filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER_OR_COLLABORATOR
+                    filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
                     ignoreDrafts = true
                 }
             }
