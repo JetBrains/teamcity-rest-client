@@ -16,7 +16,7 @@ project {
     features {
         untrustedBuildsSettings {
             manualRunsApproved = true
-            approvalRules = "user:TEAMCITY_DEVELOP:1"
+            approvalRules = "group:TEAMCITY_DEVELOP:1"
             defaultAction = UntrustedBuildsSettings.DefaultAction.APPROVE
             enableLog = true
         }
