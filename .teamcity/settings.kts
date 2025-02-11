@@ -16,7 +16,7 @@ project {
     features {
         untrustedBuildsSettings {
             manualRunsApproved = true
-            approvalRules = "group:TEAMCITY_DEVELOP:1"
+            approvalRules = "user:andrey.kokorev" // TODO: return the "group:TEAMCITY_DEVELOP:1"
             defaultAction = UntrustedBuildsSettings.DefaultAction.APPROVE
             enableLog = true
         }
