@@ -2,10 +2,11 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
-## [Unreleased]
+## [3.0.3]
 - Added ability to fetch build configurations' snapshot dependencies
 - Added property `type` to `BuildConfiguration`
 - Added a way to specify precise logging level for HTTP requests
+- Deprecated `TeamCityInstanceBuilder.setResponsesLoggingEnabled`
 
 ## [3.0.2]
 - Fix web links so they don't link to deprecated pages. 
