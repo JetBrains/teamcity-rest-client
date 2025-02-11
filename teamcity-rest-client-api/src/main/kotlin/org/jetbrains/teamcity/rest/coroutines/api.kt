@@ -134,6 +134,7 @@ interface BuildConfiguration {
     suspend fun getName(): String
     suspend fun getProjectId(): ProjectId
     suspend fun isPaused(): Boolean
+    suspend fun getType(): BuildConfigurationType
 
     /**
      * Web UI URL for user, especially useful for error and log messages
@@ -143,6 +144,7 @@ interface BuildConfiguration {
     suspend fun getBuildTags(): List<String>
     suspend fun getFinishBuildTriggers(): List<FinishBuildTrigger>
     suspend fun getArtifactDependencies(): List<ArtifactDependency>
+    suspend fun getSnapshotDependencies(): List<SnapshotDependency>
 
     suspend fun getParameters(): List<Parameter>
     suspend fun setParameter(name: String, value: String)
@@ -513,6 +515,11 @@ interface FinishBuildTrigger {
     val afterSuccessfulBuildOnly: Boolean
     val includedBranchPatterns: Set<String>
     val excludedBranchPatterns: Set<String>
+}
+
+interface SnapshotDependency {
+    val id: BuildConfigurationId
+    suspend fun getBuildConfiguration(): BuildConfiguration
 }
 
 interface ArtifactDependency {

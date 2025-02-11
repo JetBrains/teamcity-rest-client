@@ -322,7 +322,6 @@ data class ArtifactDependencyId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
-
 enum class BuildStatus {
     SUCCESS,
     FAILURE,
@@ -367,4 +366,10 @@ enum class CompatibleBuildConfigurationsPolicy {
     ANY,
     SELECTED,
     UNKNOWN,
+}
+
+enum class BuildConfigurationType(val value: String) {
+    REGULAR("regular"),
+    COMPOSITE("composite"),
+    DEPLOYMENT("deployment"),
 }

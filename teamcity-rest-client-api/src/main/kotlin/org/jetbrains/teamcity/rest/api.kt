@@ -10,7 +10,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCityInstance> {
-    @Deprecated("Use TeamCityInstanceBuilder#setResponsesLoggingEnabled")
+    @Deprecated("Use TeamCityInstanceBuilder#withLoggingLevel")
     abstract fun withLogResponses(): TeamCityInstance
 
     @Deprecated("Use TeamCityInstanceBuilder#withTimeout")
@@ -218,6 +218,8 @@ interface BuildConfiguration {
     val buildTags: List<String>
     val finishBuildTriggers: List<FinishBuildTrigger>
     val artifactDependencies: List<ArtifactDependency>
+    val snapshotDependencies: List<SnapshotDependency>
+    val type: BuildConfigurationType
 
     fun getParameters(): List<Parameter>
     fun setParameter(name: String, value: String)
@@ -678,6 +680,11 @@ interface FinishBuildTrigger {
     val afterSuccessfulBuildOnly: Boolean
     val includedBranchPatterns: Set<String>
     val excludedBranchPatterns: Set<String>
+}
+
+interface SnapshotDependency {
+    val id: BuildConfigurationId
+    val buildConfiguration: BuildConfiguration
 }
 
 interface ArtifactDependency {

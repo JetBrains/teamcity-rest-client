@@ -161,7 +161,7 @@ internal class TeamCityCoroutinesInstanceImpl(
     val serverUrlBase: String,
     private val authHeader: String?,
     private val nodeSelector: NodeSelector,
-    private val logResponses: Boolean,
+    private val logLevel: LoggingLevel,
     private val timeout: Long,
     private val unit: TimeUnit,
     private val maxConcurrentRequests: Int,
@@ -170,10 +170,10 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val retryInitialDelayMs: Long,
     private val retryMaxDelayMs: Long,
 
-) : TeamCityCoroutinesInstanceEx {
+    ) : TeamCityCoroutinesInstanceEx {
     override fun toBuilder(): TeamCityInstanceBuilder = TeamCityInstanceBuilder(serverUrl)
         .setUrlBaseAndAuthHeader(serverUrlBase, authHeader)
-        .setResponsesLoggingEnabled(logResponses)
+        .withLoggingLevel(logLevel)
         .withTimeout(timeout, unit)
         .withMaxConcurrentRequests(maxConcurrentRequests)
         .withRetry(retryMaxAttempts, retryInitialDelayMs, retryMaxDelayMs, TimeUnit.MILLISECONDS)
@@ -185,7 +185,12 @@ internal class TeamCityCoroutinesInstanceImpl(
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
         restLog.debug(if (authHeader != null) message.replace(authHeader, "[REDACTED]") else message)
     }.apply {
-        level = if (logResponses) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.HEADERS
+        level = when (logLevel) {
+            LoggingLevel.BODY -> HttpLoggingInterceptor.Level.BODY
+            LoggingLevel.HEADERS -> HttpLoggingInterceptor.Level.HEADERS
+            LoggingLevel.BASIC -> HttpLoggingInterceptor.Level.BASIC
+            LoggingLevel.NONE -> HttpLoggingInterceptor.Level.NONE
+        }
     }
 
     private var client = OkHttpClient.Builder()
@@ -1171,7 +1176,8 @@ private class BuildConfigurationImpl(
     instance: TeamCityCoroutinesInstanceImpl
 ) :
     BaseImpl<BuildTypeBean>(bean, isFullBean, instance), BuildConfiguration {
-    override suspend fun fetchFullBean(): BuildTypeBean = instance.service.buildConfiguration(idString)
+    override suspend fun fetchFullBean(): BuildTypeBean =
+        instance.service.buildConfiguration(idString, BuildTypeBean.fields)
 
     override fun toString(): String =
         if (isFullBean) runBlocking { "BuildConfiguration(id=$idString,name=${getName()})" } else "BuildConfiguration(id=$idString)"
@@ -1183,6 +1189,7 @@ private class BuildConfigurationImpl(
     private val name = SuspendingLazy { notnull { it.name } }
     private val projectId = SuspendingLazy { ProjectId(notnull { it.projectId }) }
     private val paused = SuspendingLazy { nullable { it.paused } ?: false } // TC won't return paused:false field
+    private val type = SuspendingLazy { BuildConfigurationType.valueOf(notnull { it.type }) }
 
     private val buildCounter = SuspendingLazy {
         getSetting("buildNumberCounter")?.toIntOrNull()
@@ -1198,6 +1205,8 @@ private class BuildConfigurationImpl(
     override suspend fun getProjectId(): ProjectId = projectId.getValue()
 
     override suspend fun isPaused(): Boolean = paused.getValue()
+
+    override suspend fun getType(): BuildConfigurationType = type.getValue()
 
     override suspend fun getBuildTags(): List<String> {
         return instance.service.buildTypeTags(idString).tag!!.map { it.name!! }
@@ -1216,6 +1225,14 @@ private class BuildConfigurationImpl(
             .`artifact-dependency`
             ?.filter { it.disabled == false }
             ?.map { ArtifactDependencyImpl(it, true, instance) }.orEmpty()
+    }
+
+    override suspend fun getSnapshotDependencies(): List<SnapshotDependency> {
+        return instance.service
+            .buildTypeSnapshotDependencies(idString)
+            .`snapshot-dependency`
+            ?.filter { it.disabled == false }
+            ?.map { SnapshotDependencyImpl(it, true, instance) }.orEmpty()
     }
 
     override suspend fun getBuildCounter(): Int = buildCounter.getValue()
@@ -1536,6 +1553,32 @@ private class ArtifactDependencyImpl(
 
     private suspend fun findPropertyByName(name: String): String? {
         return fullBean.getValue().properties?.property?.find { it.name == name }?.value
+    }
+}
+
+private class SnapshotDependencyImpl(
+    bean: SnapshotDependencyBean,
+    isFullBean: Boolean,
+    instance: TeamCityCoroutinesInstanceImpl
+) :
+    BaseImpl<SnapshotDependencyBean>(bean, isFullBean, instance), SnapshotDependency {
+
+    override val id = BuildConfigurationId(bean.id!!)
+
+    private val buildConfiguration = SuspendingLazy {
+        BuildConfigurationImpl(bean.`source-buildType`, false, instance)
+    }
+
+    override suspend fun getBuildConfiguration(): BuildConfiguration = buildConfiguration.getValue()
+
+    override suspend fun fetchFullBean(): SnapshotDependencyBean {
+        error("Not supported, ArtifactDependencyImpl should be created with full bean")
+    }
+
+    override fun toString(): String = if (isFullBean) {
+        "SnapshotDependency(buildConf=${runBlocking { getBuildConfiguration() }.id.stringId})"
+    } else {
+        "SnapshotDependency(id=$id)"
     }
 }
 

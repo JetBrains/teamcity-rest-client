@@ -119,7 +119,7 @@ internal interface TeamCityService {
 
     @Headers("Accept: application/json")
     @GET("app/rest/buildTypes/id:{id}")
-    suspend fun buildConfiguration(@Path("id") buildTypeId: String): Response<BuildTypeBean>
+    suspend fun buildConfiguration(@Path("id") buildTypeId: String, @Query("fields") fields: String?): Response<BuildTypeBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/buildTypes/id:{id}/buildTags")
@@ -132,6 +132,10 @@ internal interface TeamCityService {
     @Headers("Accept: application/json")
     @GET("app/rest/buildTypes/id:{id}/artifact-dependencies")
     suspend fun buildTypeArtifactDependencies(@Path("id") buildTypeId: String): Response<ArtifactDependenciesBean>
+
+    @Headers("Accept: application/json")
+    @GET("app/rest/buildTypes/id:{id}/snapshot-dependencies")
+    suspend fun buildTypeSnapshotDependencies(@Path("id") buildTypeId: String): Response<SnapshotDependenciesBean>
 
     @PUT("app/rest/projects/id:{id}/parameters/{name}/value")
     suspend fun setProjectParameter(@Path("id") projectId: String, @Path("name") name: String, @Body value: RequestBody): Response<ResponseBody>
@@ -328,10 +332,11 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     ): ArtifactFileListBean = runErrorWrappingBridgeCall { service.artifactChildren(buildId, artifactPath, locator, fields) }
     suspend fun resultingProperties(buildId: String): ParametersBean = runErrorWrappingBridgeCall { service.resultingProperties(buildId) }
     suspend fun project(id: String): ProjectBean = runErrorWrappingBridgeCall { service.project(id) }
-    suspend fun buildConfiguration(buildTypeId: String): BuildTypeBean = runErrorWrappingBridgeCall { service.buildConfiguration(buildTypeId) }
+    suspend fun buildConfiguration(buildTypeId: String, fields: String?): BuildTypeBean = runErrorWrappingBridgeCall { service.buildConfiguration(buildTypeId, fields) }
     suspend fun buildTypeTags(buildTypeId: String): TagsBean = runErrorWrappingBridgeCall { service.buildTypeTags(buildTypeId) }
     suspend fun buildTypeTriggers(buildTypeId: String): TriggersBean = runErrorWrappingBridgeCall { service.buildTypeTriggers(buildTypeId) }
     suspend fun buildTypeArtifactDependencies(buildTypeId: String): ArtifactDependenciesBean = runErrorWrappingBridgeCall { service.buildTypeArtifactDependencies(buildTypeId) }
+    suspend fun buildTypeSnapshotDependencies(buildTypeId: String): SnapshotDependenciesBean = runErrorWrappingBridgeCall { service.buildTypeSnapshotDependencies(buildTypeId) }
     suspend fun setProjectParameter(
         projectId: String,
         name: String,
@@ -551,7 +556,12 @@ internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
     var paused: Boolean? = null
+    var type: String? = null
     var settings: BuildTypeSettingsBean? = null
+
+    companion object {
+        const val fields = "id,name,projectId,paused,type,settings"
+    }
 }
 
 internal class BuildTypeSettingsBean {
@@ -646,6 +656,17 @@ internal class ArtifactDependencyBean: IdBean() {
 
 internal class ArtifactDependenciesBean {
     var `artifact-dependency`: List<ArtifactDependencyBean>? = ArrayList()
+}
+
+internal class SnapshotDependencyBean: IdBean() {
+    var disabled: Boolean? = false
+    var inherited: Boolean? = false
+    var properties: ParametersBean? = ParametersBean()
+    var `source-buildType`: BuildTypeBean = BuildTypeBean()
+}
+
+internal class SnapshotDependenciesBean {
+    var `snapshot-dependency`: List<SnapshotDependencyBean>? = ArrayList()
 }
 
 internal class ProjectBean: IdBean() {

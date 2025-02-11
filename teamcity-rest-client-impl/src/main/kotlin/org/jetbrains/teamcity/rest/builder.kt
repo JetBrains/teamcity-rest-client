@@ -17,7 +17,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     private val serverUrl: String = serverUrl.trimEnd('/')
     private var urlBase: UrlBase = UrlBase.MISSING
     private var authHeader: String? = null
-    private var logResponses: Boolean = false
+    private var logLevel: LoggingLevel = LoggingLevel.HEADERS
     private var timeout: Long = 2
     private var timeoutTimeUnit: TimeUnit = TimeUnit.MINUTES
     private var maxConcurrentRequests: Int = 64
@@ -66,8 +66,17 @@ class TeamCityInstanceBuilder(serverUrl: String) {
     /**
      * Enables response verbose logging.
      */
+    @Deprecated(message = "Use withLoggingLevel", replaceWith = ReplaceWith("withLoggingLevel(loggingLevel)"))
     fun setResponsesLoggingEnabled(enabled: Boolean): TeamCityInstanceBuilder {
-        logResponses = enabled
+        logLevel = if (enabled) LoggingLevel.BODY else LoggingLevel.HEADERS
+        return this
+    }
+
+    /**
+     * Set logging level
+     */
+    fun withLoggingLevel(level: LoggingLevel): TeamCityInstanceBuilder {
+        logLevel = level
         return this
     }
 
@@ -131,7 +140,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         urlBase.value,
         authHeader,
         nodeSelector,
-        logResponses,
+        logLevel,
         timeout,
         timeoutTimeUnit,
         maxConcurrentRequests,
@@ -158,7 +167,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         if (serverUrl != other.serverUrl) return false
         if (urlBase != other.urlBase) return false
         if (authHeader != other.authHeader) return false
-        if (logResponses != other.logResponses) return false
+        if (logLevel != other.logLevel) return false
         if (timeout != other.timeout) return false
         if (timeoutTimeUnit != other.timeoutTimeUnit) return false
         if (maxConcurrentRequests != other.maxConcurrentRequests) return false
@@ -171,7 +180,7 @@ class TeamCityInstanceBuilder(serverUrl: String) {
         var result = serverUrl.hashCode()
         result = 31 * result + urlBase.hashCode()
         result = 31 * result + (authHeader?.hashCode() ?: 0)
-        result = 31 * result + logResponses.hashCode()
+        result = 31 * result + logLevel.hashCode()
         result = 31 * result + timeout.hashCode()
         result = 31 * result + timeoutTimeUnit.hashCode()
         result = 31 * result + maxConcurrentRequests.hashCode()
@@ -195,6 +204,13 @@ class TeamCityInstanceBuilder(serverUrl: String) {
                 return urlBaseValue
             }
     }
+}
+
+enum class LoggingLevel {
+    BODY,
+    HEADERS,
+    BASIC,
+    NONE
 }
 
 
