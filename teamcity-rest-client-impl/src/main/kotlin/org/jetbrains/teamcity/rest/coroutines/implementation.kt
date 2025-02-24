@@ -1995,6 +1995,10 @@ private class BuildImpl(
 
     override fun getHomeUrl(): String = instance.webLinks.buildPage(id)
 
+    private val history = SuspendingLazy {
+        fromFullBeanIf(BuildField.HISTORY !in prefetchedFields, BuildBean::history) ?: false
+    }
+
     override suspend fun getStatusText(): String? = statusText.getValue()
 
     override suspend fun getQueuedDateTime(): ZonedDateTime? = queuedDateTime.getValue()
@@ -2096,6 +2100,8 @@ private class BuildImpl(
                 nextHref = bean.nextHref
             )
         })
+
+    override suspend fun isHistory(): Boolean = history.getValue()
 
     override suspend fun addTag(tag: String) {
         LOG.info("Adding tag $tag to build ${getHomeUrl()}")

@@ -403,6 +403,8 @@ interface Build {
 
     val buildProblems: Sequence<BuildProblemOccurrence>
 
+    val isHistory: Boolean
+
     fun addTag(tag: String)
     fun setComment(comment: String)
     fun replaceTags(tags: List<String>)

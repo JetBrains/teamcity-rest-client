@@ -295,6 +295,8 @@ interface Build {
 
     fun getBuildProblems(): Flow<BuildProblemOccurrence>
 
+    suspend fun isHistory(): Boolean
+
     suspend fun addTag(tag: String)
     suspend fun setComment(comment: String)
     suspend fun replaceTags(tags: List<String>)

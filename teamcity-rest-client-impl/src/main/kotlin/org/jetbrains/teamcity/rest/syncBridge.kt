@@ -873,6 +873,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
 
+    override val isHistory: Boolean by lazyBlocking { delegate.isHistory() }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val buildTypeId: BuildConfigurationId by lazy { runBlocking { delegate.getBuildConfigurationId() } }

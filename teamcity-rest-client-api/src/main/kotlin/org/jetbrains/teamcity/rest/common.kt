@@ -117,6 +117,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         IS_DETACHED_FROM_AGENT,
         QUEUED_WAIT_REASONS,
         IS_FAILED_TO_START,
+        HISTORY,
         ;
 
         companion object {
