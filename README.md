@@ -1,6 +1,6 @@
 # teamcity-rest-client [![JetBrains team project](http://jb.gg/badges/team.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![plugin status](https://teamcity.jetbrains.com/app/rest/builds/buildType:(id:TeamCityRestApiClients_KotlinClient_Build)/statusIcon.svg)](https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityRestApiClients_KotlinClient_Build&guest=1)
 
-Client    for TeamCity REST API written in Kotlin. The code snippet below will download `*.zip` artifacts from the latest successful build with tag `publish` of the specified build configuration to `out` directory using *coroutines non-blocking API*.
+Client    for TeamCity REST API      written in Kotlin. The code snippet below will download `*.zip` artifacts from the latest successful build with tag `publish` of the specified build configuration to `out` directory using *coroutines non-blocking API*.
 ```kotlin
 val docs = BuildConfigurationId("Kotlin_StandardLibraryDocumentation")
 val build = TeamCityInstanceBuilder("https://teamcity.jetbrains.com").withGuestAuth().build()
