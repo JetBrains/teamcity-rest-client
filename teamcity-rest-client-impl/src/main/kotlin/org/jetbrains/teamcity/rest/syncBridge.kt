@@ -15,6 +15,13 @@ import org.jetbrains.teamcity.rest.coroutines.InvestigationScope as Investigatio
 
 private fun <T> lazyBlocking(block: suspend () -> T): Lazy<T> = lazy { runBlocking { block() } }
 
+/**
+ * Helper function which allows to simplify implementing [equals][Object.equals] implementations.
+ *
+ * Important! Make sure that [idMapper] doesn't capture id of the external entity.
+ *
+ * Example: `{ it.id }` is usually correct, while `{ id }` is usually not correct.
+ */
 private inline fun <reified SelfT : Any, reified IdT, reified OtherT : Any> SelfT.equalsById(
     other: OtherT?,
     idMapper: (SelfT) -> IdT
@@ -603,7 +610,7 @@ private class ProjectBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchParameters(): List<Parameter> = parameters
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -738,7 +745,7 @@ private class BuildConfigurationBridge(
     override fun fetchArtifactDependencies(): List<ArtifactDependency> = artifactDependencies
 
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -775,7 +782,7 @@ private class ArtifactDependencyBridge(
     }
     override val cleanDestinationDirectory: Boolean by lazyBlocking { delegate.isCleanDestinationDirectory() }
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -805,7 +812,7 @@ private class UserBridge(private val delegate: org.jetbrains.teamcity.rest.corou
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -973,7 +980,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     @Suppress("OVERRIDE_DEPRECATION")
     override fun fetchTriggeredInfo(): TriggeredInfo? = triggeredInfo
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1046,7 +1053,7 @@ private class ChangeBridge(
     @Suppress("OVERRIDE_DEPRECATION")
     override val date: Date by lazy { Date.from(dateTime.toInstant()) }
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1141,7 +1148,7 @@ private class BuildAgentPoolBridge(
     override val projects: List<Project> by lazyBlocking { delegate.getProjects().map(::ProjectBridge) }
     override val agents: List<BuildAgent> by lazyBlocking { delegate.getAgents().map(::BuildAgentBridge) }
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1180,7 +1187,7 @@ private class BuildAgentBridge(
         }
 
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1217,7 +1224,7 @@ private class VcsRootBridge(
     override val url: String? by lazyBlocking { delegate.getUrl() }
     override val defaultBranch: String? by lazyBlocking { delegate.getDefaultBranch() }
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1267,7 +1274,7 @@ private class InvestigationBridge(
     override val state: InvestigationState by lazy { delegate.state }
 
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1293,7 +1300,7 @@ private class MuteBridge(
     }
 
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1303,7 +1310,7 @@ private class TestBridge(
     override val id: TestId by lazy { delegate.id }
     override val name: String by lazyBlocking { delegate.getName() }
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { id }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -1328,6 +1335,6 @@ private class TestRunBridge(
     override val logAnchor: String by lazyBlocking { delegate.getLogAnchor() }
 
     override fun toString(): String = delegate.toString()
-    override fun equals(other: Any?): Boolean = equalsById(other) { testOccurrenceId }
+    override fun equals(other: Any?): Boolean = equalsById(other) { it.testOccurrenceId }
     override fun hashCode(): Int = testOccurrenceId.hashCode()
 }
