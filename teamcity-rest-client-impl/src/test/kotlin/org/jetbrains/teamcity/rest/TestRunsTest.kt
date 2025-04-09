@@ -6,6 +6,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TestRunsTest {
@@ -106,5 +107,57 @@ class TestRunsTest {
             .toList()
 
         assertEqualsAnyOrder(testRuns, listOf("NumbersTest.testNumsNotEqual", "NumbersTest.testNumsAreEqual"))
+    }
+
+    @Test
+    fun test_prefetch_test() {
+        val testBuild: Build = publicInstance()
+            .builds()
+            .fromConfiguration(testsBuildConfiguration)
+            .withBranch("branch-1571048951")
+            .latest() ?: throw IllegalArgumentException("At least one build should be found")
+
+        val testRun = publicInstance()
+            .testRuns()
+            .forBuild(testBuild.id)
+            .prefetchTestFields(*TestLocatorSettings.TestField.values())
+            .all()
+            .firstOrNull { it.name == "NumbersTest.testNumsNotEqual" }
+
+        assertNotNull(testRun, "Test with name \"NumbersTest.testNumsNotEqual\" should be found")
+        assertNumbersTestNotEmpty(testRun.test)
+    }
+
+    @Test
+    fun test_test_from_full_bean() {
+        val testBuild: Build = publicInstance()
+            .builds()
+            .fromConfiguration(testsBuildConfiguration)
+            .withBranch("branch-1571048951")
+            .latest() ?: throw IllegalArgumentException("At least one build should be found")
+
+        val emptyTestRun = publicInstance()
+            .testRuns()
+            .forBuild(testBuild.id)
+            .prefetchTestFields(fields = emptyArray())
+            .prefetchFields(fields = emptyArray())
+            .limitResults(1)
+            .all()
+            .firstOrNull { it.name == "NumbersTest.testNumsNotEqual" }
+
+        assertNotNull(emptyTestRun, "Test with name \"NumbersTest.testNumsNotEqual\" should be found")
+        val test = emptyTestRun.test // will fetch full bean
+        assertNumbersTestNotEmpty(test)
+    }
+
+    private fun assertNumbersTestNotEmpty(test: org.jetbrains.teamcity.rest.Test) {
+        assertTrue(test.name.isNotEmpty())
+        assertEquals(test.parsedNameClass, "NumbersTest")
+        assertTrue(test.parsedNameSuite.isEmpty())
+        assertTrue(test.parsedNamePackage.isEmpty())
+        assertTrue(test.parsedMethodName.isNotEmpty())
+        assertTrue(test.parsedShortName.isNotEmpty())
+        assertTrue(test.parsedNameWithoutPrefix.isNotEmpty())
+        assertTrue(test.parsedNameWithParameters.isNotEmpty())
     }
 }

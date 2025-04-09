@@ -19,7 +19,9 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BuildTest {
@@ -54,6 +56,13 @@ class BuildTest {
             val second = publicCoroutinesInstance().build(id)
             assertEquals(first, second)
         }
+    }
+
+    @Test
+    fun different_builds_should_not_be_equal() {
+        val (buildA, buildB) = publicInstance().builds().all().take(2).toList()
+        assertNotEquals(buildA.id, buildB.id)
+        assertNotEquals(buildA, buildB)
     }
 
     @Test
@@ -146,12 +155,28 @@ class BuildTest {
 
     @Test
     fun test_snapshot_dependencies() {
-        val build = publicInstance().builds()
+        val dependant = publicInstance().builds()
                 .fromConfiguration(dependantBuildConfiguration)
                 .limitResults(1)
                 .all().first()
+        assertTrue(dependant.snapshotDependencies.isNotEmpty())
 
-        assertTrue(build.snapshotDependencies.isNotEmpty())
+        val dependency = dependant.snapshotDependencies.first()
+
+        assertTrue(
+            publicInstance().builds()
+                .snapshotDependencyFrom(dependency.id)
+                .all()
+                .any { it.id == dependant.id }
+        )
+
+        assertTrue(
+            publicInstance().builds()
+                .snapshotDependencyTo(dependant.id)
+                .all()
+                .any { it.id == dependency.id }
+        )
+
     }
 
     @Test
@@ -160,6 +185,24 @@ class BuildTest {
 
         assertTrue(build.tags.isNotEmpty())
         assertTrue(build.tags.contains("1.0"))
+    }
+
+    @Test
+    fun `test a default branch for vcs root with non-empty branch spec`() {
+        val build = publicInstance().build(BuildId("433"))
+        assertNotNull(build.branch.name)
+    }
+
+    @Test
+    fun `test a non-default branch for vcs root with non-empty branch spec`() {
+        val build = publicInstance().build(BuildId("427"))
+        assertNotNull(build.branch.name)
+    }
+
+    @Test
+    fun `test a branch for vcs root with empty branch spec`() {
+        val build = publicInstance().build(BuildId("241"))
+        assertNull(build.branch.name)
     }
 
     @Test

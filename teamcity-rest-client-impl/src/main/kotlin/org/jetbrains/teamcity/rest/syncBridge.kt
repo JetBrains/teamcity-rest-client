@@ -24,7 +24,7 @@ private fun <T> lazyBlocking(block: suspend () -> T): Lazy<T> = lazy { runBlocki
  */
 private inline fun <reified SelfT : Any, reified IdT, reified OtherT : Any> SelfT.equalsById(
     other: OtherT?,
-    idMapper: (SelfT) -> IdT
+    idMapper: SelfT.() -> IdT
 ): Boolean {
     if (this === other) return true
     if (this.javaClass != other?.javaClass) return false
@@ -62,6 +62,7 @@ internal class TeamCityInstanceBlockingBridge(
                 override val id = investigation.id
                 override val assignee = investigation.assignee.id
                 override val reporter = investigation.reporter?.id
+                override val reportedAt: ZonedDateTime? = investigation.reportedAt
                 override val state: InvestigationState = investigation.state
                 override val resolutionTime: ZonedDateTime? = investigation.resolutionTime
                 override val comment: String = investigation.comment
@@ -83,13 +84,23 @@ internal class TeamCityInstanceBlockingBridge(
         })
     }
 
+    override fun deleteInvestigation(investigationId: InvestigationId) = runBlocking {
+        delegate.deleteInvestigation(investigationId)
+    }
+
     override fun mutes(): MuteLocator = MuteLocatorBridge(delegate.mutes() as MuteLocatorEx)
+    override fun createMutes(mutes: List<Mute>) = runBlocking { delegate.createMutes(mutes.map(::MuteReverseBridge)) }
 
     override fun tests(): TestLocator = TestLocatorBridge(delegate.tests() as TestLocatorEx)
 
     override fun build(id: BuildId): Build = runBlocking {
         BuildBridge(delegate.build(id))
     }
+
+    override fun build(
+        id: BuildId,
+        prefetchFields: Set<BuildLocatorSettings.BuildField>
+    ): Build = runBlocking { BuildBridge(delegate.build(id, prefetchFields)) }
 
     override fun build(buildConfigurationId: BuildConfigurationId, number: String): Build? = runBlocking {
         delegate.build(buildConfigurationId, number)?.let(::BuildBridge)
@@ -286,6 +297,11 @@ private class TestRunsLocatorBridge(
         return this
     }
 
+    override fun currentlyMuted(currentlyMuted: Boolean): TestRunsLocator {
+        delegate.currentlyMuted(currentlyMuted)
+        return this
+    }
+
     override fun prefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
         delegate.prefetchFields(*fields)
         return this
@@ -293,6 +309,11 @@ private class TestRunsLocatorBridge(
 
     override fun excludePrefetchFields(vararg fields: TestRunsLocatorSettings.TestRunField): TestRunsLocator {
         delegate.excludePrefetchFields(*fields)
+        return this
+    }
+
+    override fun prefetchTestFields(vararg fields: TestLocatorSettings.TestField): TestRunsLocator {
+        delegate.prefetchTestFields(*fields)
         return this
     }
 }
@@ -329,6 +350,11 @@ private class BuildLocatorBridge(
 
     override fun snapshotDependencyTo(buildId: BuildId): BuildLocator {
         delegate.snapshotDependencyTo(buildId)
+        return this
+    }
+
+    override fun snapshotDependencyFrom(buildId: BuildId): BuildLocator {
+        delegate.snapshotDependencyFrom(buildId)
         return this
     }
 
@@ -533,6 +559,16 @@ private class TestLocatorBridge(
         delegate.forProject(projectId)
         return this
     }
+
+    override fun prefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
+        delegate.prefetchFields(*fields)
+        return this
+    }
+
+    override fun excludePrefetchFields(vararg fields: TestLocatorSettings.TestField): TestLocator {
+        delegate.excludePrefetchFields(*fields)
+        return this
+    }
 }
 
 private class ProjectBridge(
@@ -571,31 +607,9 @@ private class ProjectBridge(
     override fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration =
         BuildConfigurationBridge(runBlocking { delegate.createBuildConfiguration(buildConfigurationDescriptionXml) })
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun createMutes(mutes: List<Mute>) = runBlocking {
-        delegate.createMutes(mutes.map { mute ->
-            object : org.jetbrains.teamcity.rest.coroutines.Mute {
-                override val id = mute.id
-                override val assignee = mute.assignee?.id
-                override val reporter = mute.reporter?.id
-
-                override val resolutionTime: ZonedDateTime? = mute.resolutionTime
-                override val comment: String = mute.comment
-                override val resolveMethod: InvestigationResolveMethod = mute.resolveMethod
-                override val targetType: InvestigationTargetType = mute.targetType
-                override val testIds: List<TestId>? = mute.testIds
-                override val problemIds: List<BuildProblemId>? = mute.problemIds
-                override val scope: InvestigationScopeCoroutines = when (val sc = mute.scope) {
-                    is InvestigationScope.InBuildConfiguration ->
-                        InvestigationScopeCoroutines.InBuildConfiguration(sc.configuration.id)
-
-                    is InvestigationScope.InBuildConfigurations ->
-                        InvestigationScopeCoroutines.InBuildConfigurations(sc.configuration.map(BuildConfiguration::id))
-
-                    is InvestigationScope.InProject ->
-                        InvestigationScopeCoroutines.InProject(sc.project.id)
-                }
-            }
-        })
+        (delegate as ProjectEx).createMutes(mutes.map(::MuteReverseBridge))
     }
 
     @Suppress("OVERRIDE_DEPRECATION")
@@ -618,7 +632,7 @@ private class ParameterBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Parameter,
 ) : Parameter {
     override val name: String by lazy { delegate.name }
-    override val value: String by lazy { delegate.value }
+    override val value: String? by lazy { delegate.value }
     override val own: Boolean by lazy { delegate.own }
     override fun toString(): String = delegate.toString()
 }
@@ -629,6 +643,7 @@ private class BuildConfigurationBridge(
     override val id: BuildConfigurationId by lazy { delegate.id }
     override val name: String by lazyBlocking { delegate.getName() }
     override val projectId: ProjectId by lazyBlocking { delegate.getProjectId() }
+    override val projectName: String by lazyBlocking { delegate.getProjectName() }
     override val paused: Boolean by lazyBlocking { delegate.isPaused() }
     override val buildTags: List<String> by lazyBlocking { delegate.getBuildTags() }
     override val finishBuildTriggers: List<FinishBuildTrigger> by lazyBlocking {
@@ -832,13 +847,14 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     override val state: BuildState by lazyBlocking { delegate.getState() }
     override val personal: Boolean by lazyBlocking { delegate.isPersonal() }
     override val name: String by lazyBlocking { delegate.getName() }
+    override val projectName: String by lazyBlocking { delegate.getProjectName() }
     override val canceledInfo: BuildCanceledInfo? by lazyBlocking {
         delegate.getCanceledInfo()?.let(::BuildCanceledInfoBridge)
     }
     override val comment: BuildCommentInfo? by lazyBlocking { delegate.getComment()?.let(::BuildCommentInfoBridge) }
     override val composite: Boolean? by lazyBlocking { delegate.isComposite() }
     override val statusText: String? by lazyBlocking { delegate.getStatusText() }
-    override val queuedDateTime: ZonedDateTime by lazyBlocking { delegate.getQueuedDateTime() }
+    override val queuedDateTime: ZonedDateTime? by lazyBlocking { delegate.getQueuedDateTime() }
     override val startDateTime: ZonedDateTime? by lazyBlocking { delegate.getStartDateTime() }
     override val finishDateTime: ZonedDateTime? by lazyBlocking { delegate.getFinishDateTime() }
     override val runningInfo: BuildRunningInfo? by lazyBlocking {
@@ -857,18 +873,20 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     }
     override val agent: BuildAgent? by lazyBlocking { delegate.getAgent()?.let(::BuildAgentBridge) }
     override val detachedFromAgent: Boolean by lazyBlocking { delegate.isDetachedFromAgent() }
+    override val isFailedToStart: Boolean by lazyBlocking { delegate.isFailedToStart() }
     override val buildProblems: Sequence<BuildProblemOccurrence> by lazyBlocking {
         (delegate as BuildEx).getBuildProblemsSeq().map(::BuildProblemOccurrenceBridge)
     }
 
     override fun getHomeUrl(): String = delegate.getHomeUrl()
 
+    override val isHistory: Boolean by lazyBlocking { delegate.isHistory() }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val buildTypeId: BuildConfigurationId by lazy { runBlocking { delegate.getBuildConfigurationId() } }
 
     @Suppress("OVERRIDE_DEPRECATION")
-    override val queuedDate: Date by lazy { Date.from(queuedDateTime.toInstant()) }
+    override val queuedDate: Date? by lazy { queuedDateTime?.let { Date.from(it.toInstant()) } }
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val startDate: Date? by lazy { startDateTime?.let { Date.from(it.toInstant()) } }
@@ -909,14 +927,16 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     }
 
     override fun getArtifacts(parentPath: String, recursive: Boolean, hidden: Boolean): List<BuildArtifact> =
-        runBlocking { delegate.getArtifacts(parentPath, recursive, hidden).map(::BuildArtifactBridge) }
+        runBlocking {
+            delegate.getArtifacts(parentPath, recursive, hidden).map { BuildArtifactBridge(it, this@BuildBridge) }
+        }
 
     override fun findArtifact(pattern: String, parentPath: String): BuildArtifact = runBlocking {
-        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath) })
+        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath) }, this@BuildBridge)
     }
 
     override fun findArtifact(pattern: String, parentPath: String, recursive: Boolean): BuildArtifact = runBlocking {
-        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath, recursive) })
+        BuildArtifactBridge(runBlocking { delegate.findArtifact(pattern, parentPath, recursive) }, this@BuildBridge)
     }
 
     override fun downloadArtifacts(pattern: String, outputDir: File) = runBlocking {
@@ -947,6 +967,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
         runBlocking { delegate.getResultingParameters().map(::ParameterBridge) }
 
     override fun finish() = runBlocking { delegate.finish() }
+    override fun log(message: String) = runBlocking { delegate.log(message) }
     override fun markAsSuccessful(comment: String) = runBlocking { delegate.markAsSuccessful(comment) }
     override fun markAsFailed(comment: String) = runBlocking { delegate.markAsFailed(comment) }
 
@@ -957,7 +978,7 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
     override fun fetchStatusText(): String? = statusText
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
-    override fun fetchQueuedDate(): Date = queuedDate
+    override fun fetchQueuedDate(): Date? = queuedDate
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
     override fun fetchStartDate(): Date? = startDate
@@ -986,13 +1007,13 @@ private class BuildBridge(private val delegate: org.jetbrains.teamcity.rest.coro
 
 
 private class BuildArtifactBridge(
-    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildArtifact
+    private val delegate: org.jetbrains.teamcity.rest.coroutines.BuildArtifact,
+    override val build: Build,
 ) : BuildArtifact {
     override val name: String by lazy { delegate.name }
     override val fullName: String by lazy { delegate.fullName }
     override val size: Long? by lazy { delegate.size }
     override val modificationDateTime: ZonedDateTime by lazy { delegate.modificationDateTime }
-    override val build: Build = BuildBridge(delegate.build)
 
     override fun download(output: File) = runBlocking { delegate.download(output) }
 
@@ -1103,8 +1124,9 @@ private class BuildRunningInfoBridge(
 private class PinInfoBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.PinInfo
 ) : PinInfo {
-    override val user: User = UserBridge(delegate.user)
+    override val user: User? = delegate.user?.let { UserBridge(it) }
     override val dateTime: ZonedDateTime by lazy { delegate.dateTime }
+    override val text: String? = delegate.text
 
     @Suppress("OVERRIDE_DEPRECATION")
     override val time: Date = Date.from(dateTime.toInstant())
@@ -1264,6 +1286,7 @@ private class InvestigationBridge(
     override val id: InvestigationId by lazy { delegate.id }
     override val assignee: User by lazyBlocking { UserBridge((delegate as IssueEx).tcInstance.user(delegate.assignee)) }
     override val reporter: User? by lazyBlocking { delegate.reporter?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
+    override val reportedAt: ZonedDateTime? by lazy { delegate.reportedAt }
     override val comment: String by lazy { delegate.comment }
     override val resolveMethod: InvestigationResolveMethod by lazy { delegate.resolveMethod }
     override val resolutionTime: ZonedDateTime? by lazy { delegate.resolutionTime }
@@ -1284,6 +1307,7 @@ private class MuteBridge(
     override val id: InvestigationId by lazy { delegate.id }
     override val assignee: User? by lazyBlocking { delegate.assignee?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
     override val reporter: User? by lazyBlocking { delegate.reporter?.let { UserBridge((delegate as IssueEx).tcInstance.user(it)) } }
+    override val reportedAt: ZonedDateTime? by lazy { delegate.reportedAt }
     override val mutedBy: User?
         get() = reporter
     override val comment: String by lazy { delegate.comment }
@@ -1304,6 +1328,32 @@ private class MuteBridge(
     override fun hashCode(): Int = id.hashCode()
 }
 
+private class MuteReverseBridge(
+    delegate: Mute,
+) : org.jetbrains.teamcity.rest.coroutines.Mute {
+    override val id = delegate.id
+    override val assignee = delegate.assignee?.id
+    override val reporter = delegate.reporter?.id
+    override val reportedAt = delegate.reportedAt
+
+    override val resolutionTime: ZonedDateTime? = delegate.resolutionTime
+    override val comment: String = delegate.comment
+    override val resolveMethod: InvestigationResolveMethod = delegate.resolveMethod
+    override val targetType: InvestigationTargetType = delegate.targetType
+    override val testIds: List<TestId>? = delegate.testIds
+    override val problemIds: List<BuildProblemId>? = delegate.problemIds
+    override val scope: InvestigationScopeCoroutines = when (val sc = delegate.scope) {
+        is InvestigationScope.InBuildConfiguration ->
+            InvestigationScopeCoroutines.InBuildConfiguration(sc.configuration.id)
+
+        is InvestigationScope.InBuildConfigurations ->
+            InvestigationScopeCoroutines.InBuildConfigurations(sc.configuration.map(BuildConfiguration::id))
+
+        is InvestigationScope.InProject ->
+            InvestigationScopeCoroutines.InProject(sc.project.id)
+    }
+}
+
 private class TestBridge(
     private val delegate: org.jetbrains.teamcity.rest.coroutines.Test
 ) : Test {
@@ -1312,6 +1362,13 @@ private class TestBridge(
     override fun toString(): String = delegate.toString()
     override fun equals(other: Any?): Boolean = equalsById(other) { it.id }
     override fun hashCode(): Int = id.hashCode()
+    override val parsedNamePackage: String by lazyBlocking { delegate.getParsedNamePackage() }
+    override val parsedNameSuite: String by lazyBlocking { delegate.getParsedNameSuite() }
+    override val parsedNameClass: String by lazyBlocking { delegate.getParsedNameClass() }
+    override val parsedShortName: String by lazyBlocking { delegate.getParsedShortName() }
+    override val parsedNameWithoutPrefix: String by lazyBlocking { delegate.getParsedNameWithoutPrefix() }
+    override val parsedMethodName: String by lazyBlocking { delegate.getParsedMethodName() }
+    override val parsedNameWithParameters: String by lazyBlocking { delegate.getParsedNameWithParameters() }
 }
 
 private class TestRunBridge(
@@ -1331,6 +1388,7 @@ private class TestRunBridge(
     override val fixedIn: BuildId? by lazyBlocking { delegate.getFixedIn() }
     override val firstFailedIn: BuildId? by lazyBlocking { delegate.getFirstFailedIn() }
     override val testId: TestId by lazyBlocking { delegate.getTestId() }
+    override val test: Test by lazyBlocking { TestBridge(delegate.getTest()) }
     override val metadataValues: List<String>? by lazyBlocking { delegate.getMetadataValues() }
     override val logAnchor: String by lazyBlocking { delegate.getLogAnchor() }
 

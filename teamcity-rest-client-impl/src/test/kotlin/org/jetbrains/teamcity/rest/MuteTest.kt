@@ -61,6 +61,7 @@ class MuteTest {
                 hasAtLeastOneReporter = true
                 Assert.assertNotNull("Reporter id is not set in the mute", mute.reporter?.id)
                 Assert.assertNotNull("Reporter username is not set in the mute", mute.reporter?.username)
+                Assert.assertNotNull("ReportedAt is not set for the mute", mute.reportedAt)
             }
         }
 

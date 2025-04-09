@@ -84,7 +84,18 @@ class TestsTest {
         val testsById = publicInstance().tests().byId(testId).all().toList()
         Assert.assertTrue( "Not exactly one test found by ID $testId, found: ${testsById.size}", testsById.size == 1)
         Assert.assertNotNull("test name is not set for the test with id $testId", testsById.first().name)
-        
+
+        val firstTest = testsById.first()
+        // tc returns empty `testPackage`, it's expected
+        Assert.assertTrue(firstTest.parsedNamePackage.isEmpty())
+        Assert.assertTrue(firstTest.parsedNameSuite.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedNameClass.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedShortName.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedNameWithoutPrefix.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedMethodName.isNotEmpty())
+        Assert.assertTrue(firstTest.parsedNameWithParameters.isNotEmpty())
+
+
         runBlocking {
             val testsAsync = publicCoroutinesInstance().tests().forProject(testProject)
                 .currentlyMuted(true)
@@ -95,6 +106,25 @@ class TestsTest {
             Assert.assertTrue("Not exactly one test found by ID $testId, found: ${testsByIdAsync.size}", testsByIdAsync.size == 1)
             Assert.assertNotNull("test name is not set for the test with id $testId", testsByIdAsync.first().getName())
             assertEqualsAnyOrder(testsById.map { it.id.stringId }, testsByIdAsync.map { it.id.stringId })
+
+            suspend fun assertParsedNamesAreNotEmpty(test: org.jetbrains.teamcity.rest.coroutines.Test) {
+                Assert.assertTrue(test.getParsedNamePackage().isEmpty())
+                Assert.assertTrue(test.getParsedNameSuite().isNotEmpty())
+                Assert.assertTrue(test.getParsedNameClass().isNotEmpty())
+                Assert.assertTrue(test.getParsedShortName().isNotEmpty())
+                Assert.assertTrue(test.getParsedNameWithoutPrefix().isNotEmpty())
+                Assert.assertTrue(test.getParsedMethodName().isNotEmpty())
+                Assert.assertTrue(test.getParsedNameWithParameters().isNotEmpty())
+            }
+
+            assertParsedNamesAreNotEmpty(testsByIdAsync.first())
+
+            // prefetched
+            val testsByIdPrefetchedAsync = publicCoroutinesInstance().tests().byId(testId)
+                .prefetchFields(*TestLocatorSettings.TestField.values())
+                .all().toList()
+            assertParsedNamesAreNotEmpty(testsByIdPrefetchedAsync.first())
         }
     }
+
 }

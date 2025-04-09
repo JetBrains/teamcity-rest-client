@@ -8,6 +8,7 @@ import org.jetbrains.teamcity.rest.*
 import retrofit2.Response
 import retrofit2.http.*
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 
 internal interface TeamCityService {
     // Even with `@Path(encoded = true)` retrofit2 will encode special characters like [?,=,&]
@@ -38,16 +39,20 @@ internal interface TeamCityService {
     suspend fun createInvestigations(@Body investigations: InvestigationListBean): Response<ResponseBody>
 
     @Headers("Accept: application/json")
+    @DELETE("app/rest/investigations/{locator}")
+    suspend fun deleteInvestigations(@Path("locator") locator: String): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
     @POST("app/rest/mutes/multiple")
     suspend fun createMutes(@Body mutes: MuteListBean): Response<ResponseBody>
 
     @Headers("Accept: application/json")
     @GET("app/rest/tests")
-    suspend fun tests(@Query("locator") locator: String?): Response<TestListBean>
+    suspend fun tests(@Query("locator") locator: String?, @Query("fields") fields: String): Response<TestListBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/tests/id:{id}")
-    suspend fun test(@Path("id") id: String): Response<TestBean>
+    suspend fun test(@Path("id") id: String, @Query("fields") fields: String): Response<TestBean>
 
     @Headers("Accept: application/json")
     @GET("app/rest/investigations/id:{id}")
@@ -166,6 +171,10 @@ internal interface TeamCityService {
 
     @PUT("app/rest/builds/id:{id}/finish")
     suspend fun finishBuild(@Path("id") buildId: String): Response<ResponseBody>
+
+    @Headers("Content-Type: text/plain")
+    @POST("app/rest/builds/id:{id}/log")
+    suspend fun log(@Path("id") buildId: String, @Body message: String): Response<ResponseBody>
 
     @Headers("Accept: application/json")
     @POST("app/rest/buildQueue/id:{id}")
@@ -288,7 +297,10 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
             )
         } catch (e: TeamCityRestException) {
             throw e
-        } catch (t: Throwable) {
+        } catch (ce: CancellationException) {
+            throw ce
+        }
+        catch (t: Throwable) {
             throw TeamCityRestException("Connect failed: ${t.message}", t)
         }
     }
@@ -302,9 +314,10 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun build(id: String, fields: String?): BuildBean = runErrorWrappingBridgeCall { service.build(id, fields) }
     suspend fun investigations(investigationLocator: String?): InvestigationListBean = runErrorWrappingBridgeCall { service.investigations(investigationLocator) }
     suspend fun createInvestigations(investigations: InvestigationListBean) = runErrorWrappingBridgeCall { service.createInvestigations(investigations) }
+    suspend fun deleteInvestigations(investigationLocator: String) = runErrorWrappingBridgeCallNullable { service.deleteInvestigations(investigationLocator) }
     suspend fun createMutes(mutes: MuteListBean) = runErrorWrappingBridgeCall { service.createMutes(mutes) }
-    suspend fun tests(locator: String?): TestListBean = runErrorWrappingBridgeCall { service.tests(locator) }
-    suspend fun test(id: String): TestBean = runErrorWrappingBridgeCall { service.test(id) }
+    suspend fun tests(locator: String?, fields: String): TestListBean = runErrorWrappingBridgeCall { service.tests(locator, fields) }
+    suspend fun test(id: String, fields: String): TestBean = runErrorWrappingBridgeCall { service.test(id, fields) }
     suspend fun investigation(id: String): InvestigationBean = runErrorWrappingBridgeCall { service.investigation(id) }
     suspend fun mutes(muteLocator: String?): MuteListBean = runErrorWrappingBridgeCall { service.mutes(muteLocator) }
     suspend fun mute(id: String): MuteBean = runErrorWrappingBridgeCall { service.mute(id) }
@@ -371,6 +384,8 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
         runErrorWrappingBridgeCallNullable { service.cancelBuild(buildId, value) }
     suspend fun finishBuild(buildId: String): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.finishBuild(buildId) }
+    suspend fun log(buildId: String, message: String): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.log(buildId, message) }
     suspend fun removeQueuedBuild(buildId: String, value: BuildCancelRequestBean): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.removeQueuedBuild(buildId, value) }
     suspend fun users(): UserListBean = runErrorWrappingBridgeCall { service.users() }
@@ -490,11 +505,14 @@ internal open class BuildBean: IdBean() {
     var agent: BuildAgentBean? = null
 
     var properties: ParametersBean? = null
+    var resultingProperties: ParametersBean? = null
     var buildType: BuildTypeBean? = null
 
     var `snapshot-dependencies`: BuildListBean? = null
     var detachedFromAgent: Boolean? = null
     var queuedWaitReasons: QueueWaitReasonsPropertiesBean? = null
+    var failedToStart: Boolean? = null
+    var history: Boolean? = null
 
     companion object {
         val fullFieldsFilter: String = buildCustomFieldsFilter(
@@ -516,7 +534,8 @@ internal open class BuildBean: IdBean() {
 
         private fun remapField(field: BuildLocatorSettings.BuildField): String = when (field) {
             BuildLocatorSettings.BuildField.NAME,
-            BuildLocatorSettings.BuildField.PROJECT_ID -> "buildType(name,projectId)"
+            BuildLocatorSettings.BuildField.PROJECT_ID,
+            BuildLocatorSettings.BuildField.PROJECT_NAME -> "buildType(name,projectId,projectName)"
             BuildLocatorSettings.BuildField.BUILD_CONFIGURATION_ID -> "buildTypeId"
             BuildLocatorSettings.BuildField.BUILD_NUMBER -> "number"
             BuildLocatorSettings.BuildField.STATUS -> "status"
@@ -532,6 +551,7 @@ internal open class BuildBean: IdBean() {
             BuildLocatorSettings.BuildField.FINISH_DATETIME -> "finishDate"
             BuildLocatorSettings.BuildField.RUNNING_INFO -> "running-info(*)"
             BuildLocatorSettings.BuildField.PARAMETERS -> "properties(*,property(*))"
+            BuildLocatorSettings.BuildField.RESULTING_PARAMETERS -> "resultingProperties(*,property(*))"
             BuildLocatorSettings.BuildField.TAGS -> "tags(*,tag(*))"
             BuildLocatorSettings.BuildField.REVISIONS -> "revisions(*,revision(*))"
             BuildLocatorSettings.BuildField.SNAPSHOT_DEPENDENCIES -> "snapshot-dependencies(*,build(id,buildTypeId,number,status,branchName,defaultBranch))"
@@ -540,6 +560,8 @@ internal open class BuildBean: IdBean() {
             BuildLocatorSettings.BuildField.AGENT -> "agent"
             BuildLocatorSettings.BuildField.IS_DETACHED_FROM_AGENT -> "detachedFromAgent"
             BuildLocatorSettings.BuildField.QUEUED_WAIT_REASONS -> "queuedWaitReasons(*,property(*))"
+            BuildLocatorSettings.BuildField.IS_FAILED_TO_START -> "failedToStart"
+            BuildLocatorSettings.BuildField.HISTORY -> "history"
         }
     }
 }
@@ -555,12 +577,13 @@ internal class BuildRunningInfoBean {
 internal class BuildTypeBean: IdBean() {
     var name: String? = null
     var projectId: String? = null
+    var projectName: String? = null
     var paused: Boolean? = null
     var type: String? = null
     var settings: BuildTypeSettingsBean? = null
 
     companion object {
-        const val fields = "id,name,projectId,paused,type,settings"
+        const val fields = "id,name,projectId,projectName,paused,type,settings"
     }
 }
 
@@ -593,7 +616,9 @@ internal class BuildProblemOccurrenceBean {
     var details: String? = null
     var additionalData: String? = null
     var problem: BuildProblemBean? = null
-    var build: BuildBean? = null
+    var muted: Boolean? = null
+    var currentlyMuted: Boolean? = null
+    var currentlyInvestigated: Boolean? = null
 }
 
 internal class BuildTypesBean {
@@ -781,6 +806,7 @@ internal class ParameterBean() {
 internal class PinInfoBean {
     var user: UserBean? = null
     var timestamp: String? = null
+    var text: String? = null
 }
 
 internal class TriggeredBean {
@@ -859,6 +885,69 @@ internal class TestListBean {
 }
 internal open class TestBean: IdBean() {
     var name: String? = null
+    val parsedTestName: ParsedTestNameBean? = null
+
+    companion object {
+        val fullFieldsFilter: String = buildCustomFieldsFilter(
+            fields = EnumSet.allOf(TestLocatorSettings.TestField::class.java),
+            wrap = false
+        )
+
+        val defaultFields = listOf(TestLocatorSettings.TestField.NAME)
+
+        fun buildCustomFieldsFilter(
+            fields: Collection<TestLocatorSettings.TestField>,
+            wrap: Boolean
+        ): String {
+            val allFields = constructFields(fields.asSequence())
+            return if (wrap) {
+                "test($allFields)"
+            } else {
+                allFields
+            }
+        }
+
+        private fun remapField(field: TestLocatorSettings.TestField): GroupedField = when (field) {
+            TestLocatorSettings.TestField.NAME -> GroupedField(TestFieldGroup.NONE, "name")
+            TestLocatorSettings.TestField.PARSED_METHOD_NAME -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testMethodName")
+            TestLocatorSettings.TestField.PARSED_NAME_CLASS -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testClass")
+            TestLocatorSettings.TestField.PARSED_NAME_SUITE -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testSuite")
+            TestLocatorSettings.TestField.PARSED_SHORT_NAME -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testShortName")
+            TestLocatorSettings.TestField.PARSED_NAME_WITH_PARAMETERS -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testNameWithParameters")
+            TestLocatorSettings.TestField.PARSED_NAME_PACKAGE -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testPackage")
+            TestLocatorSettings.TestField.PARSED_NAME_WITHOUT_PREFIX -> GroupedField(TestFieldGroup.PARSED_TEST_NAME, "testNameWithoutPrefix")
+        }
+
+        private fun constructFields(fields: Sequence<TestLocatorSettings.TestField>): String =
+            fields.distinct()
+                .map { remapField(it) }
+                .groupBy { it.group }
+                .map { (group, groupFields) ->
+                    when (group) {
+                        TestFieldGroup.NONE -> groupFields.joinToString(separator = ",") { it.fieldStr }
+                        TestFieldGroup.PARSED_TEST_NAME -> "${group.groupName}(${groupFields.joinToString(separator = ",") { it.fieldStr }})"
+                    }
+                }
+                .plus("id")
+                .joinToString(separator = ",")
+
+        private enum class TestFieldGroup(val groupName: String) {
+            NONE(""),
+            PARSED_TEST_NAME("parsedTestName")
+        }
+
+        private data class GroupedField(val group: TestFieldGroup, val fieldStr: String)
+    }
+}
+
+internal open class ParsedTestNameBean {
+    var testPackage: String? = null
+    var testSuite: String? = null
+    var testClass: String? = null
+    var testShortName: String? = null
+    var testNameWithoutPrefix: String? = null
+    var testMethodName: String? = null
+    var testNameWithParameters: String? = null
 }
 
 internal open class TestOccurrenceBean: IdBean() {
@@ -881,15 +970,29 @@ internal open class TestOccurrenceBean: IdBean() {
 
     companion object {
         val fullFieldsFilter: String = buildCustomFieldsFilter(
-            fields = EnumSet.allOf(TestRunsLocatorSettings.TestRunField::class.java),
+            testRunFields = EnumSet.allOf(TestRunsLocatorSettings.TestRunField::class.java),
+            testFields = EnumSet.allOf(TestLocatorSettings.TestField::class.java),
             wrap = false
         )
 
         fun buildCustomFieldsFilter(
-            fields: Collection<TestRunsLocatorSettings.TestRunField>,
+            testRunFields: Collection<TestRunsLocatorSettings.TestRunField>,
+            testFields: Collection<TestLocatorSettings.TestField>,
             wrap: Boolean
         ): String {
-            val allFields = (fields.asSequence().map(::remapField) + "id").distinct()
+            // test(...) fields will be added later, see testFieldsStr
+            val resultTestRunFieldsStr = (testRunFields.asSequence() - TestRunsLocatorSettings.TestRunField.TEST_ID)
+                .map(::remapField)
+                .distinct()
+
+            val testFieldsStr = when {
+                testFields.any() -> "test(${TestBean.buildCustomFieldsFilter(testFields, wrap = false)})"
+                TestRunsLocatorSettings.TestRunField.TEST_ID in testRunFields -> remapField(TestRunsLocatorSettings.TestRunField.TEST_ID)
+                else -> null
+            }
+            val allFields = (resultTestRunFieldsStr + "id" + testFieldsStr)
+                .filterNotNull()
+                .distinct()
             return if (wrap) {
                 allFields.joinToString(prefix = "nextHref,testOccurrence(", separator = ",", postfix = ")")
             } else {
@@ -939,6 +1042,7 @@ internal class MuteBean(
 }
 
 internal class InvestigationListBean {
+    var nextHref: String? = null
     var investigation: List<InvestigationBean> = ArrayList()
 }
 

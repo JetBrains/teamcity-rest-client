@@ -2,7 +2,6 @@ package org.jetbrains.teamcity.rest
 
 import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import java.time.Instant
-import java.util.concurrent.TimeUnit
 
 interface TeamCityInstanceSettings<Self : TeamCityInstanceSettings<Self>> {
     val serverUrl: String
@@ -26,7 +25,15 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
      */
     fun withVcsRevision(vcsRevision: String): Self
 
+    /**
+     * Filters [buildId] build dependencies, including transitive
+     */
     fun snapshotDependencyTo(buildId: BuildId): Self
+
+    /**
+     * Filters builds dependant to [buildId] build, including transitive
+     */
+    fun snapshotDependencyFrom(buildId: BuildId): Self
 
     /**
      * By default only successful builds are returned, call this method to include failed builds as well.
@@ -85,6 +92,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         NAME,
         BUILD_CONFIGURATION_ID,
         PROJECT_ID,
+        PROJECT_NAME,
         BUILD_NUMBER,
         STATUS,
         STATUS_TEXT,
@@ -99,6 +107,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         FINISH_DATETIME,
         RUNNING_INFO,
         PARAMETERS,
+        RESULTING_PARAMETERS,
         TAGS,
         REVISIONS,
         SNAPSHOT_DEPENDENCIES,
@@ -107,6 +116,8 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
         AGENT,
         IS_DETACHED_FROM_AGENT,
         QUEUED_WAIT_REASONS,
+        IS_FAILED_TO_START,
+        HISTORY,
         ;
 
         companion object {
@@ -136,6 +147,7 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
                 BuildLocatorSettings.BuildField.AGENT,
                 BuildLocatorSettings.BuildField.PARAMETERS,
                 BuildLocatorSettings.BuildField.SNAPSHOT_DEPENDENCIES,
+                BuildLocatorSettings.BuildField.IS_FAILED_TO_START,
             )
         }
     }
@@ -163,6 +175,30 @@ interface TestLocatorSettings<Self : TestLocatorSettings<Self>> {
     fun byName(testName: String): Self
     fun currentlyMuted(muted: Boolean): Self
     fun forProject(projectId: ProjectId): Self
+
+    /**
+     * Use this method to manually select Test fields to prefetch.
+     */
+    fun prefetchFields(vararg fields: TestField): Self
+
+    fun excludePrefetchFields(vararg fields: TestField): Self
+
+    enum class TestField {
+        NAME,
+        PARSED_NAME_PACKAGE,
+        PARSED_NAME_SUITE,
+        PARSED_NAME_CLASS,
+        PARSED_SHORT_NAME,
+        PARSED_NAME_WITHOUT_PREFIX,
+        PARSED_METHOD_NAME,
+        PARSED_NAME_WITH_PARAMETERS,
+        ;
+
+        companion object {
+            val size = TestField.values().size
+        }
+    }
+
 }
 
 interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
@@ -189,6 +225,8 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
 
     fun muted(muted: Boolean): Self
 
+    fun currentlyMuted(currentlyMuted: Boolean): Self
+
 
     /**
      * Use this method to manually select TestRun fields to prefetch.
@@ -200,6 +238,8 @@ interface TestRunsLocatorSettings<Self : TestRunsLocatorSettings<Self>> {
      * You can unselect some of them using this method.
      */
     fun excludePrefetchFields(vararg fields: TestRunField): Self
+
+    fun prefetchTestFields(vararg fields: TestLocatorSettings.TestField): Self
 
     enum class TestRunField {
         NAME,

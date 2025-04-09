@@ -19,11 +19,14 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
     abstract fun builds(): BuildLocator
     abstract fun investigations(): InvestigationLocator
     abstract fun createInvestigations(investigations: Collection<Investigation>)
+    abstract fun deleteInvestigation(investigationId: InvestigationId)
 
     abstract fun mutes(): MuteLocator
+    abstract fun createMutes(mutes: List<Mute>)
 
     abstract fun tests(): TestLocator
     abstract fun build(id: BuildId): Build
+    abstract fun build(id: BuildId, prefetchFields: Set<BuildField> = emptySet()): Build
     abstract fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     abstract fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     abstract fun vcsRoots(): VcsRootLocator
@@ -187,6 +190,7 @@ interface Project {
      */
     fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
+    @Deprecated(message = "use TeamCityInstance.createMutes(mutes)")
     fun createMutes(mutes: List<Mute>)
 
     @Deprecated(message = "use getHomeUrl(branch)",
@@ -208,6 +212,7 @@ interface BuildConfiguration {
     val id: BuildConfigurationId
     val name: String
     val projectId: ProjectId
+    val projectName: String
     val paused: Boolean
 
     /**
@@ -289,7 +294,7 @@ interface BuildProblemOccurrence {
 
 interface Parameter {
     val name: String
-    val value: String
+    val value: String?
     val own: Boolean
 }
 
@@ -334,6 +339,7 @@ interface Build {
     val state: BuildState
     val personal: Boolean
     val name: String
+    val projectName: String
     val canceledInfo: BuildCanceledInfo?
     val comment: BuildCommentInfo?
 
@@ -344,7 +350,7 @@ interface Build {
     fun getHomeUrl(): String
 
     val statusText: String?
-    val queuedDateTime: ZonedDateTime
+    val queuedDateTime: ZonedDateTime?
     val startDateTime: ZonedDateTime?
     val finishDateTime: ZonedDateTime?
 
@@ -380,6 +386,8 @@ interface Build {
 
     val detachedFromAgent: Boolean
 
+    val isFailedToStart: Boolean
+
     @Suppress("DEPRECATION")
     @Deprecated(message = "Deprecated due to unclear naming. use testRuns()", replaceWith = ReplaceWith("testRuns()"))
     fun tests(status: TestStatus? = null) : Sequence<TestOccurrence>
@@ -394,6 +402,8 @@ interface Build {
     fun testRuns(status: TestStatus? = null) : Sequence<TestRun>
 
     val buildProblems: Sequence<BuildProblemOccurrence>
+
+    val isHistory: Boolean
 
     fun addTag(tag: String)
     fun setComment(comment: String)
@@ -411,7 +421,7 @@ interface Build {
     fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     fun getResultingParameters(): List<Parameter>
     fun finish()
-
+    fun log(message: String)
     fun markAsSuccessful(comment: String)
     fun markAsFailed(comment: String)
 
@@ -419,8 +429,8 @@ interface Build {
     fun getWebUrl(): String
     @Deprecated(message = "use statusText", replaceWith = ReplaceWith("statusText"))
     fun fetchStatusText(): String?
-    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
-    fun fetchQueuedDate(): Date
+    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("queuedDateTime?.toInstant()?.let { Date.from(it) }"))
+    fun fetchQueuedDate(): Date?
     @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("startDateTime?.toInstant()?.let { Date.from(it) }"))
     fun fetchStartDate(): Date?
     @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("finishDateTime?.toInstant()?.let { Date.from(it) }"))
@@ -437,8 +447,8 @@ interface Build {
     fun fetchTriggeredInfo(): TriggeredInfo?
     @Deprecated(message = "use buildConfigurationId", replaceWith = ReplaceWith("buildConfigurationId"))
     val buildTypeId: BuildConfigurationId
-    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("Date.from(queuedDateTime.toInstant())"))
-    val queuedDate: Date
+    @Deprecated(message = "use queuedDateTime", replaceWith = ReplaceWith("queuedDateTime?.toInstant()?.let { Date.from(it) }"))
+    val queuedDate: Date?
     @Deprecated(message = "use startDateTime", replaceWith = ReplaceWith("startDateTime?.toInstant()?.let { Date.from(it) }"))
     val startDate: Date?
     @Deprecated(message = "use finishDateTime", replaceWith = ReplaceWith("finishDateTime?.toInstant()?.let { Date.from(it) }"))
@@ -453,19 +463,19 @@ interface Issue {
     val testIds: List<TestId>? // test ids if target type is test
     val problemIds: List<BuildProblemId>? // build problem ids if target type is build problem
     val scope: InvestigationScope // scope of investigation/mute
+    val reporter: User?
+    val reportedAt: ZonedDateTime?
 }
 
 interface Investigation : Issue {
     val id: InvestigationId
     val assignee: User
-    val reporter: User?
     val state: InvestigationState
 }
 
 interface Mute : Issue {
     val id: InvestigationId
     val assignee: User?
-    val reporter: User?
     val mutedBy: User?
     val tests: List<Test>?
 }
@@ -473,6 +483,13 @@ interface Mute : Issue {
 interface Test {
     val id: TestId
     val name: String
+    val parsedNamePackage: String
+    val parsedNameSuite: String
+    val parsedNameClass: String
+    val parsedShortName: String
+    val parsedNameWithoutPrefix: String
+    val parsedMethodName: String
+    val parsedNameWithParameters: String
 }
 
 interface BuildRunningInfo {
@@ -615,8 +632,9 @@ interface VcsRootInstance {
 }
 
 interface PinInfo {
-    val user: User
+    val user: User?
     val dateTime: ZonedDateTime
+    val text: String?
 
     @Deprecated(message = "use dateTime",
             replaceWith = ReplaceWith("Date.from(dateTime.toInstant())"))
@@ -662,6 +680,7 @@ interface TestOccurrence {
     val fixedIn: BuildId?
     val firstFailedIn: BuildId?
     val testId: TestId
+    val test: Test
     val metadataValues: List<String>?
     val logAnchor: String
 }

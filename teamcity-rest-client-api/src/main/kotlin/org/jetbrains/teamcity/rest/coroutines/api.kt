@@ -27,11 +27,14 @@ interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<T
     fun builds(): BuildLocator
     fun investigations(): InvestigationLocator
     suspend fun createInvestigations(investigations: Collection<Investigation>)
+    suspend fun deleteInvestigation(investigationId: InvestigationId)
 
     fun mutes(): MuteLocator
+    suspend fun createMutes(mutes: List<Mute>)
 
     fun tests(): TestLocator
     suspend fun build(id: BuildId): Build
+    suspend fun build(id: BuildId, prefetchFields: Set<BuildField> = emptySet()): Build
     suspend fun build(buildConfigurationId: BuildConfigurationId, number: String): Build?
     suspend fun buildConfiguration(id: BuildConfigurationId): BuildConfiguration
     fun vcsRoots(): VcsRootLocator
@@ -124,7 +127,6 @@ interface Project {
      */
     suspend fun createBuildConfiguration(buildConfigurationDescriptionXml: String): BuildConfiguration
 
-    suspend fun createMutes(mutes: List<Mute>)
     fun getMutes(): Flow<Mute>
     suspend fun assignToAgentPool(agentPoolId: BuildAgentPoolId)
 }
@@ -133,6 +135,7 @@ interface BuildConfiguration {
     val id: BuildConfigurationId
     suspend fun getName(): String
     suspend fun getProjectId(): ProjectId
+    suspend fun getProjectName(): String
     suspend fun isPaused(): Boolean
     suspend fun getType(): BuildConfigurationType
 
@@ -181,11 +184,14 @@ interface BuildProblemOccurrence {
     val build: Build
     val details: String
     val additionalData: String?
+    val muted: Boolean
+    val currentlyMuted: Boolean
+    val currentlyInvestigated: Boolean
 }
 
 interface Parameter {
     val name: String
-    val value: String
+    val value: String?
     val own: Boolean
 }
 
@@ -228,6 +234,7 @@ interface Build {
     suspend fun getState(): BuildState
     suspend fun isPersonal(): Boolean
     suspend fun getName(): String
+    suspend fun getProjectName(): String
     suspend fun getCanceledInfo(): BuildCanceledInfo?
     suspend fun getComment(): BuildCommentInfo?
 
@@ -239,7 +246,7 @@ interface Build {
     fun getHomeUrl(): String
 
     suspend fun getStatusText(): String?
-    suspend fun getQueuedDateTime(): ZonedDateTime
+    suspend fun getQueuedDateTime(): ZonedDateTime?
     suspend fun getStartDateTime(): ZonedDateTime?
     suspend fun getFinishDateTime(): ZonedDateTime?
 
@@ -273,11 +280,22 @@ interface Build {
 
     suspend fun getAgent(): BuildAgent?
 
+    /**
+     * Both `getAgentName` and `getAgentTypeId` may be not-null while `getAgent` is null
+     * in case of already removed cloud agent instance
+     */
+    suspend fun getAgentName(): String?
+    suspend fun getAgentTypeId(): String?
+
     suspend fun isDetachedFromAgent(): Boolean
+
+    suspend fun isFailedToStart(): Boolean
 
     fun getTestRuns(status: TestStatus? = null): Flow<TestRun>
 
     fun getBuildProblems(): Flow<BuildProblemOccurrence>
+
+    suspend fun isHistory(): Boolean
 
     suspend fun addTag(tag: String)
     suspend fun setComment(comment: String)
@@ -295,6 +313,7 @@ interface Build {
     suspend fun cancel(comment: String = "", reAddIntoQueue: Boolean = false)
     suspend fun getResultingParameters(): List<Parameter>
     suspend fun finish()
+    suspend fun log(message: String)
     suspend fun getStatistics(): List<Property>
     suspend fun getQueuedWaitReasons(): List<Property>
     fun testRunsLocator(status: TestStatus?): TestRunsLocator
@@ -303,31 +322,38 @@ interface Build {
 }
 
 interface Issue {
-    val resolutionTime: ZonedDateTime? // resolution time
-    val comment: String // assignment comment
-    val resolveMethod: InvestigationResolveMethod // resolution type
-    val targetType: InvestigationTargetType // investigation target type
-    val testIds: List<TestId>? // test ids if target type is test
-    val problemIds: List<BuildProblemId>? // build problem ids if target type is build problem
-    val scope: InvestigationScope // scope of investigation/mute
+    val resolutionTime: ZonedDateTime?
+    val comment: String
+    val resolveMethod: InvestigationResolveMethod
+    val targetType: InvestigationTargetType
+    val testIds: List<TestId>?
+    val problemIds: List<BuildProblemId>?
+    val scope: InvestigationScope
+    val reporter: UserId?
+    val reportedAt: ZonedDateTime?
 }
 
 interface Investigation : Issue {
     val id: InvestigationId
     val assignee: UserId
-    val reporter: UserId?
     val state: InvestigationState
 }
 
 interface Mute : Issue {
     val id: InvestigationId
     val assignee: UserId?
-    val reporter: UserId?
 }
 
 interface Test {
     val id: TestId
     suspend fun getName(): String
+    suspend fun getParsedNamePackage(): String
+    suspend fun getParsedNameSuite(): String
+    suspend fun getParsedNameClass(): String
+    suspend fun getParsedShortName(): String
+    suspend fun getParsedNameWithoutPrefix(): String
+    suspend fun getParsedMethodName(): String
+    suspend fun getParsedNameWithParameters(): String
 }
 
 interface BuildRunningInfo {
@@ -458,8 +484,9 @@ interface VcsRootInstance {
 }
 
 interface PinInfo {
-    val user: User
+    val user: User?
     val dateTime: ZonedDateTime
+    val text: String?
 }
 
 interface Revision {
@@ -502,6 +529,7 @@ interface TestRun {
     suspend fun getTestId(): TestId
     suspend fun getMetadataValues(): List<String>?
     suspend fun getLogAnchor(): String
+    suspend fun getTest(): Test
 }
 
 interface TriggeredInfo {

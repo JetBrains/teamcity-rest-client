@@ -65,7 +65,7 @@ class Hackathon17Tests {
         val build = getBuild(triggeredBuild.id)
 
         val newTriggeredBuild = teamcity.buildConfiguration(buildTypeID).runBuild(
-                parameters = build.parameters.associate { it.name to it.value }
+                parameters = build.parameters.associate { it.name to it.value!! }
         )
 
         val newBuild = awaitState(newTriggeredBuild.id, BuildState.FINISHED, 60000)
