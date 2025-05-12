@@ -53,6 +53,13 @@ interface BuildLocatorSettings<Self : BuildLocatorSettings<Self>> {
     fun onlyCanceled(): Self
 
     fun withStatus(status: BuildStatus): Self
+
+    /**
+     * By default failedToStart builds are not returned
+     */
+    fun includeFailedToStart(): Self
+    fun onlyFailedToStart(): Self
+
     fun withTag(tag: String): Self
 
     fun withBranch(branch: String): Self
