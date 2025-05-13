@@ -429,6 +429,7 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
     private var since: Instant? = null
     private var until: Instant? = null
     private var status: BuildStatus? = BuildStatus.SUCCESS
+    private var failedToStart: String? = null
     private var tags = ArrayList<String>()
     private var limitResults: Int? = null
     private var pageSize: Int? = null
@@ -480,6 +481,16 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
 
     override fun withStatus(status: BuildStatus): BuildLocator {
         this.status = status
+        return this
+    }
+
+    override fun includeFailedToStart(): BuildLocator {
+        failedToStart = "any"
+        return this
+    }
+
+    override fun onlyFailedToStart(): BuildLocator {
+        failedToStart = "true"
         return this
     }
 
@@ -597,6 +608,7 @@ private class BuildLocatorImpl(private val instance: TeamCityCoroutinesInstanceI
             canceled?.let { "canceled:$it" },
             vcsRevision?.let { "revision:$it" },
             status?.name?.let { "status:$it" },
+            failedToStart?.let { "failedToStart:$it" },
             agentName?.let { "agentName:$it" },
             if (tags.size == 1) {
                 "tag:(name:(${tags.first()}))"

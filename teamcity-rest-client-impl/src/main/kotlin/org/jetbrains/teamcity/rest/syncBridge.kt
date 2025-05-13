@@ -384,6 +384,16 @@ private class BuildLocatorBridge(
         return this
     }
 
+    override fun includeFailedToStart(): BuildLocator {
+        delegate.includeFailedToStart()
+        return this
+    }
+
+    override fun onlyFailedToStart(): BuildLocator {
+        delegate.onlyFailedToStart()
+        return this
+    }
+
     override fun withTag(tag: String): BuildLocator {
         delegate.withTag(tag)
         return this
