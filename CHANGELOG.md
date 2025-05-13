@@ -2,6 +2,13 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.1.0]
+- Added parsed test name details to `Test`
+- Added ability to delete an investigation
+- Added ability to mute several tests or problems
+- It is now possible to prefetch build fields
+- BuildLocator now allows to control fetching builds which failed to start
+
 ## [3.0.3]
 - Added ability to fetch build configurations' snapshot dependencies
 - Added property `type` to `BuildConfiguration`
