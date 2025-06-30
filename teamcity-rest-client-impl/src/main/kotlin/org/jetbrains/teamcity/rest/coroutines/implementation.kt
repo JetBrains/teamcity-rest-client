@@ -68,15 +68,20 @@ private class RetryInterceptor(
         val code = code
         if (code < 400) return false
 
-        // Do not retry non-GET methods, their result may be not idempotent
-        if (request.method != "GET") return false
+        // Always retry '429 Too Many Requests', despite the method
+        if (code == 429) return true
+
+        val method = request.method
+        if (method != "GET" && method != "HEAD" && method != "OPTIONS" && method != "PUT" && method != "DELETE") {
+            // Do not retry non-idempotent requests
+            return false
+        }
 
         return code == HttpURLConnection.HTTP_CLIENT_TIMEOUT ||
                 code == HttpURLConnection.HTTP_INTERNAL_ERROR ||
                 code == HttpURLConnection.HTTP_BAD_GATEWAY ||
                 code == HttpURLConnection.HTTP_UNAVAILABLE ||
-                code == HttpURLConnection.HTTP_GATEWAY_TIMEOUT ||
-                code == 429 // Too many requests == rate limited
+                code == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
