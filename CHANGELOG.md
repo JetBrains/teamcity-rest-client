@@ -2,6 +2,9 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.1.1]
+- Always retry on 429 response + retry idempotent methods in some cases.
+
 ## [3.1.0]
 - Added parsed test name details to `Test`
 - Added ability to delete an investigation
