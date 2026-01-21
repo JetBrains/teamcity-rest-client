@@ -275,6 +275,59 @@ internal interface TeamCityService {
         @Path("locator") agentLocator: String,
         @Body policy: CompatibilityPolicyBean
     ): Response<ResponseBody>
+
+    @Headers("Accept: text/plain")
+    @GET("app/rest/projects/{projectLocator}/{field}")
+    suspend fun getProjectField(
+        @Path("projectLocator") projectLocator: String,
+        @Path("field") field: String
+    ): Response<String>
+
+    @Headers("Accept: text/plain", "Content-Type: text/plain")
+    @PUT("app/rest/projects/{projectLocator}/{field}")
+    suspend fun setProjectField(
+        @Path("projectLocator") projectLocator: String,
+        @Path("field") field: String,
+        @Body body: String
+    ): Response<String>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @GET("app/rest/users/{userLocator}/groups")
+    suspend fun getAllUserGroups(
+        @Path("userLocator") locator: String,
+        @Query("fields") fields: String?
+    ): Response<GroupListBean>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @PUT("app/rest/users/{userLocator}/groups")
+    suspend fun setUserGroups(
+        @Path("userLocator") locator: String,
+        @Body groups: GroupListBean,
+        @Query("fields") fields: String?
+    ): Response<GroupListBean>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @DELETE("app/rest/users/{userLocator}/groups/{groupLocator}")
+    suspend fun removeUserFromGroup(
+        @Path("userLocator") userLocator: String,
+        @Path("groupLocator") groupLocator: String,
+        @Query("fields") fields: String?
+    ): Response<ResponseBody>
+
+    @Headers("Accept: application/json")
+    @GET("app/rest/projects/{locator}/versionedSettings/config")
+    suspend fun getVersionedSettings(
+        @Path("locator") projectLocator: String,
+        @Query("fields") fields: String?
+    ): Response<VersionedSettingsConfigBean>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @PUT("app/rest/projects/{locator}/versionedSettings/config")
+    suspend fun setVersionedSettings(
+        @Path("locator") projectLocator: String,
+        @Body body: VersionedSettingsConfigBean,
+        @Query("fields") fields: String?
+    ): Response<VersionedSettingsConfigBean>
 }
 
 internal fun TeamCityService.errorCatchingBridge() = TeamCityServiceErrorCatchingBridge(this)
@@ -420,6 +473,23 @@ internal class TeamCityServiceErrorCatchingBridge(private val service: TeamCityS
     suspend fun updateAgentCompatibilityPolicy(agentLocator: String, policy: CompatibilityPolicyBean): ResponseBody? =
         runErrorWrappingBridgeCallNullable { service.updateAgentCompatibilityPolicy(agentLocator, policy) }
 
+    suspend fun setProjectField(projectLocator: String, field: String, body: String): String =
+        runErrorWrappingBridgeCall { service.setProjectField(projectLocator, field, body) }
+
+    suspend fun getAllUserGroups(locator: String, fields: String? = null): GroupListBean =
+        runErrorWrappingBridgeCall { service.getAllUserGroups(locator, fields) }
+
+    suspend fun setUserGroups(locator: String, groups: GroupListBean, fields: String? = null): GroupListBean =
+        runErrorWrappingBridgeCall { service.setUserGroups(locator, groups, fields) }
+
+    suspend fun removeUserFromGroup(userLocator: String, groupLocator: String, fields: String? = null): ResponseBody? =
+        runErrorWrappingBridgeCallNullable { service.removeUserFromGroup(userLocator, groupLocator, fields) }
+
+    suspend fun getVersionedSettings(projectLocator: String, fields: String? = null): VersionedSettingsConfigBean =
+        runErrorWrappingBridgeCall { service.getVersionedSettings(projectLocator, fields) }
+
+    suspend fun setVersionedSettings(projectLocator: String, body: VersionedSettingsConfigBean, fields: String? = null): VersionedSettingsConfigBean =
+        runErrorWrappingBridgeCall { service.setVersionedSettings(projectLocator, body, fields) }
 }
 
 internal class ProjectsBean {
@@ -472,6 +542,10 @@ internal open class VcsRootInstanceBean {
 internal class BuildListBean {
     var nextHref: String? = null
     var build: List<BuildBean> = ArrayList()
+}
+
+internal class GroupListBean {
+    var group: List<GroupBean> = ArrayList()
 }
 
 internal class UserListBean {
@@ -773,6 +847,18 @@ internal class UserBean: IdBean() {
     var name: String? = null
     var email: String? = null
     var roles: RolesBean? = null
+    var groups: GroupListBean? = null
+}
+
+internal class GroupBean {
+    var key: String? = null
+    var name: String? = null
+    var users: List<UserBean>? = null
+}
+
+
+internal class VersionedSettingsConfigBean {
+    var synchronizationMode: String? = null
 }
 
 internal class RolesBean {
