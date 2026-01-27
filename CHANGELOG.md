@@ -2,6 +2,12 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.2.0]
+- Ability to archive and unarchive projects
+- Ability to set a new project name
+- Ability to set versioned settings mode for a project
+- Users can be added and removed to/from groups
+
 ## [3.1.1]
 - Always retry on 429 response + retry idempotent methods in some cases.
 
