@@ -19,9 +19,12 @@ import org.jetbrains.teamcity.rest.BuildLocatorSettings.BuildField
 import org.jetbrains.teamcity.rest.TestLocatorSettings.TestField
 import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import org.slf4j.LoggerFactory
+import retrofit2.Converter
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Headers
 import java.io.*
+import java.lang.reflect.Type
 import java.net.HttpURLConnection
 import java.net.URI
 import java.time.Duration
@@ -162,6 +165,41 @@ private fun selectRestApiCountForPagedRequests(limitResults: Int?, pageSize: Int
     return pageSize ?: limitResults?.let { min(it, reasonableMaxPageSize) }
 }
 
+private object PlainTextConverterFactory : Converter.Factory() {
+    override fun responseBodyConverter(
+        type: Type,
+        annotations: Array<out Annotation>,
+        retrofit: Retrofit
+    ): Converter<ResponseBody, *>? {
+        if (type == String::class.java && hasTextPlainHeader(annotations, "Accept")) {
+            return Converter<ResponseBody, String> { value -> value.string() }
+        }
+        return null
+    }
+
+    override fun requestBodyConverter(
+        type: Type,
+        parameterAnnotations: Array<out Annotation>,
+        methodAnnotations: Array<out Annotation>,
+        retrofit: Retrofit
+    ): Converter<*, RequestBody>? {
+        if (type == String::class.java && hasTextPlainHeader(methodAnnotations, "Content-Type")) {
+            return Converter<String, RequestBody> { value ->
+                value.toRequestBody(textPlainMediaType)
+            }
+        }
+        return null
+    }
+
+    private fun hasTextPlainHeader(annotations: Array<out Annotation>, headerName: String): Boolean {
+        return annotations.any {
+            it is Headers && it.value.any { h ->
+                h.startsWith("$headerName:", ignoreCase = true) && h.contains("text/plain", ignoreCase = true)
+            }
+        }
+    }
+}
+
 internal class TeamCityCoroutinesInstanceImpl(
     override val serverUrl: String,
     val serverUrlBase: String,
@@ -244,6 +282,7 @@ internal class TeamCityCoroutinesInstanceImpl(
     internal val service = Retrofit.Builder()
         .client(client)
         .baseUrl("$serverUrl$serverUrlBase")
+        .addConverterFactory(PlainTextConverterFactory)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(TeamCityService::class.java)
@@ -333,7 +372,6 @@ internal class TeamCityCoroutinesInstanceImpl(
         val bean = service.users("username:$userName")
         return UserImpl(bean, true, this)
     }
-
     override fun users(): UserLocator = UserLocatorImpl(this)
     override suspend fun buildAgent(id: BuildAgentId): BuildAgent {
         return BuildAgentImpl(BuildAgentBean().also { it.id = id.stringId }, false, this)
@@ -1301,6 +1339,34 @@ private class ProjectImpl(
         val bean = instance.service.createBuildType(buildConfigurationDescriptionXml.toApplicationXmlBody())
         return BuildConfigurationImpl(bean, false, instance)
     }
+
+    override suspend fun setProjectName(name: String) {
+        instance.service.setProjectField(id.stringId, "name", name)
+    }
+
+    override suspend fun archive() {
+        instance.service.setProjectField(id.stringId, "archived", "true")
+    }
+
+    override suspend fun unarchive() {
+        instance.service.setProjectField(id.stringId, "archived", "false")
+    }
+
+    override suspend fun getVersionedSettings(): VersionedSettingsConfig {
+        return instance.service.getVersionedSettings(id.stringId)
+            .let { VersionedSettingsConfigImpl(it) }
+    }
+
+    override suspend fun setVersionedSettings(config: VersionedSettingsConfig) {
+        val bean = VersionedSettingsConfigBean().apply { synchronizationMode = config.synchronizationMode.value }
+        instance.service.setVersionedSettings(id.stringId, bean)
+    }
+}
+
+private class VersionedSettingsConfigImpl(private val bean: VersionedSettingsConfigBean) : VersionedSettingsConfig {
+    override val synchronizationMode: VCSSynchronizationMode
+        get() = VCSSynchronizationMode.values().find { it.value == bean.synchronizationMode }
+            ?: error("Unknown synchronization mode: ${bean.synchronizationMode}")
 }
 
 private class BuildConfigurationImpl(
@@ -1572,6 +1638,7 @@ private class UserImpl(
     private val name = SuspendingLazy { nullable { it.name } }
     private val username = SuspendingLazy { notnull { it.username } }
     private val roles = SuspendingLazy { fullBean.getValue().roles?.role?.map(::AssignedRoleImpl) ?: emptyList() }
+    private val groups = SuspendingLazy { notnull { it.groups } }
 
     override suspend fun getEmail(): String? = email.getValue()
     override suspend fun getRoles(): List<AssignedRole> = roles.getValue()
@@ -1592,12 +1659,29 @@ private class UserImpl(
 
     override fun toString(): String =
         if (isFullBean) runBlocking { "User(id=${id.stringId}, username=${getUsername()})" } else "User(id=${id.stringId})"
+
+    override suspend fun getGroups() =
+        instance.service.getAllUserGroups(locator, "id").group.map { GroupImpl(it) }
+
+    override suspend fun addToGroup(groupKey: GroupKey) {
+        val groupsBean = instance.service.getAllUserGroups(locator, "id")
+        groupsBean.group += GroupBean().apply { key = groupKey.stringId }
+        instance.service.setUserGroups(locator, groupsBean)
+    }
+
+    override suspend fun removeFromGroup(groupKey: GroupKey) {
+        instance.service.removeUserFromGroup(locator, "key:${groupKey.stringId}")
+    }
 }
 
 private class AssignedRoleImpl(roleBean: RoleBean) : AssignedRole {
     override val id = RoleId(roleBean.roleId!!)
     override val scope = RoleScope(roleBean.scope!!)
     override fun toString() = "RoleImpl(id=$id,scope=$scope)"
+}
+
+private class GroupImpl(groupBean: GroupBean): Group {
+    override val key = GroupKey(groupBean.key!!)
 }
 
 private class PinInfoImpl(bean: PinInfoBean, instance: TeamCityCoroutinesInstanceImpl) : PinInfo {

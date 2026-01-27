@@ -129,6 +129,13 @@ interface Project {
 
     fun getMutes(): Flow<Mute>
     suspend fun assignToAgentPool(agentPoolId: BuildAgentPoolId)
+
+    suspend fun setProjectName(name: String)
+    suspend fun archive()
+    suspend fun unarchive()
+
+    suspend fun getVersionedSettings(): VersionedSettingsConfig
+    suspend fun setVersionedSettings(config: VersionedSettingsConfig)
 }
 
 interface BuildConfiguration {
@@ -420,11 +427,19 @@ interface User {
      * Web UI URL for user, especially useful for error and log messages
      */
     fun getHomeUrl(): String
+
+    suspend fun getGroups(): List<Group>
+    suspend fun addToGroup(groupKey: GroupKey)
+    suspend fun removeFromGroup(groupKey: GroupKey)
 }
 
 interface AssignedRole {
     val id: RoleId
     val scope: RoleScope
+}
+
+interface Group {
+    val key: GroupKey
 }
 
 interface BuildArtifact {
@@ -605,4 +620,8 @@ sealed class InvestigationScope {
 interface CompatibleBuildConfigurations {
     val buildConfigurationIds: List<BuildConfigurationId>
     val policy: CompatibleBuildConfigurationsPolicy
+}
+
+interface VersionedSettingsConfig {
+    val synchronizationMode: VCSSynchronizationMode
 }

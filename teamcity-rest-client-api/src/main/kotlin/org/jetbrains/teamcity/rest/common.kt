@@ -1,6 +1,5 @@
 package org.jetbrains.teamcity.rest
 
-import org.jetbrains.teamcity.rest.TestRunsLocatorSettings.TestRunField
 import java.time.Instant
 
 interface TeamCityInstanceSettings<Self : TeamCityInstanceSettings<Self>> {
@@ -365,6 +364,10 @@ data class RoleId(val stringId: String) {
     override fun toString(): String = stringId
 }
 
+data class GroupKey(val stringId: String) {
+    override fun toString(): String = stringId
+}
+
 data class ArtifactDependencyId(val stringId: String) {
     override fun toString(): String = stringId
 }
@@ -419,4 +422,10 @@ enum class BuildConfigurationType(val value: String) {
     REGULAR("regular"),
     COMPOSITE("composite"),
     DEPLOYMENT("deployment"),
+}
+
+enum class VCSSynchronizationMode(val value: String) {
+    PARENT_PROJECT_SETTINGS("useParentProjectSettings"),
+    DISABLED("disabled"),
+    ENABLED("enabled"),
 }
