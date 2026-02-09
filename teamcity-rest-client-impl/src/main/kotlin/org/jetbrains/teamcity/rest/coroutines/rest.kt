@@ -819,6 +819,7 @@ internal class ChangeBean: IdBean() {
     var version: String? = null
     var user: UserBean? = null
     var date: String? = null
+    var commitDate: String? = null
     val registrationDate: String? = null
     var comment: String? = null
     var username: String? = null

@@ -1057,6 +1057,7 @@ private class ChangeBridge(
     override val username: String by lazyBlocking { delegate.getUsername() }
     override val user: User? by lazyBlocking { delegate.getUser()?.let(::UserBridge) }
     override val dateTime: ZonedDateTime by lazyBlocking { delegate.getDateTime() }
+    override val commitDate: ZonedDateTime by lazyBlocking { delegate.getCommitDate() }
     override val registrationDate: ZonedDateTime by lazyBlocking { delegate.getRegistrationDate() }
     override val comment: String by lazyBlocking { delegate.getComment() }
     override val vcsRootInstance: VcsRootInstance? by lazyBlocking {
