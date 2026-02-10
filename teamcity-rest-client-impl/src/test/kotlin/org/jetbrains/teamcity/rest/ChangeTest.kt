@@ -69,6 +69,18 @@ class ChangeTest {
     }
 
     @Test
+    fun commitDate() {
+        val build = publicInstance().builds()
+            .fromConfiguration(changesBuildConfiguration)
+            .limitResults(10)
+            .all()
+            .first { it.changes.isNotEmpty() }
+        val change = build.changes.first()
+
+        assertNotNull(change.commitDate)
+    }
+
+    @Test
     fun buildByVcsRevision() {
         val build = publicInstance().builds()
                 .fromConfiguration(changesBuildConfiguration)

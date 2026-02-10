@@ -377,6 +377,7 @@ interface Change {
     suspend fun getUsername(): String
     suspend fun getUser(): User?
     suspend fun getDateTime(): ZonedDateTime
+    suspend fun getCommitDate(): ZonedDateTime
     suspend fun getComment(): String
     suspend fun getVcsRootInstance(): VcsRootInstance?
     suspend fun getFiles(): List<ChangeFile>

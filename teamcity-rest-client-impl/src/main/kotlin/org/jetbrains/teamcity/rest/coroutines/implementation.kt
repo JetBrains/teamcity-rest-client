@@ -1574,12 +1574,16 @@ private class ChangeImpl(
     private val registrationDate = SuspendingLazy {
         ZonedDateTime.parse(notnull { it.registrationDate }, teamCityServiceDateFormat)
     }
+    private val commitDate = SuspendingLazy {
+        ZonedDateTime.parse(nullable { it.commitDate } ?: notnull { it.date }, teamCityServiceDateFormat)
+    }
 
     override suspend fun getVersion(): String = version.getValue()
     override suspend fun getUsername(): String = username.getValue()
     override suspend fun getUser(): User? = user.getValue()
     override suspend fun getDateTime(): ZonedDateTime = dateTime.getValue()
     override suspend fun getRegistrationDate(): ZonedDateTime = registrationDate.getValue()
+    override suspend fun getCommitDate(): ZonedDateTime = commitDate.getValue()
     override suspend fun getComment(): String = comment.getValue()
     override suspend fun getVcsRootInstance(): VcsRootInstance? = vcsRootInstance.getValue()
 

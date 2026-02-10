@@ -194,7 +194,7 @@ interface Project {
     fun createMutes(mutes: List<Mute>)
 
     @Deprecated(message = "use getHomeUrl(branch)",
-                replaceWith = ReplaceWith("getHomeUrl(branch"))
+                replaceWith = ReplaceWith("getHomeUrl(branch)"))
     fun getWebUrl(branch: String? = null): String
 
     @Deprecated(message = "use childProjects",
@@ -506,6 +506,7 @@ interface Change {
     val username: String
     val user: User?
     val dateTime: ZonedDateTime
+    val commitDate: ZonedDateTime
     val registrationDate: ZonedDateTime
     val comment: String
     val vcsRootInstance: VcsRootInstance?
