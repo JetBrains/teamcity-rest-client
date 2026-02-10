@@ -1595,7 +1595,7 @@ private class ChangeImpl(
     override fun toString(): String {
         return if (isFullBean) {
             runBlocking {
-                "Change(id=$id, version=${getVersion()}, username=${getUsername()}, user=${getUser()}, date=${getDateTime()}, comment=${getComment()}, vcsRootInstance=${getVcsRootInstance()})"
+                "Change(id=$id, version=${getVersion()}, username=${getUsername()}, user=${getUser()}, date=${getDateTime()}, commitDate=${getCommitDate()}, comment=${getComment()}, vcsRootInstance=${getVcsRootInstance()})"
             }
         } else {
             "Change(id=$id)"
