@@ -1595,7 +1595,7 @@ private class ChangeImpl(
     override fun toString(): String {
         return if (isFullBean) {
             runBlocking {
-                "Change(id=$id, version=${getVersion()}, username=${getUsername()}, user=${getUser()}, date=${getDateTime()}, comment=${getComment()}, vcsRootInstance=${getVcsRootInstance()})"
+                "Change(id=$id, version=${getVersion()}, username=${getUsername()}, user=${getUser()}, date=${getDateTime()}, commitDate=${getCommitDate()}, comment=${getComment()}, vcsRootInstance=${getVcsRootInstance()})"
             }
         } else {
             "Change(id=$id)"
@@ -2028,7 +2028,7 @@ private class BuildImpl(
     private val changes = SuspendingLazy {
         instance.service.changes(
             "build:$idString",
-            "change(id,version,username,user,date,comment,vcsRootInstance)"
+            "change(id,version,username,user,date,commitDate,comment,vcsRootInstance)"
         ).change!!.map { ChangeImpl(it, true, instance) }
     }
 
