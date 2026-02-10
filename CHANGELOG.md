@@ -2,6 +2,9 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.3.0]
+- Ability to fetch commit date in addition to "authored" date
+
 ## [3.2.0]
 - Ability to archive and unarchive projects
 - Ability to set a new project name
