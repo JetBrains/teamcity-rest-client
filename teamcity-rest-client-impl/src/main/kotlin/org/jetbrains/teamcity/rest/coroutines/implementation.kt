@@ -2028,7 +2028,7 @@ private class BuildImpl(
     private val changes = SuspendingLazy {
         instance.service.changes(
             "build:$idString",
-            "change(id,version,username,user,date,comment,vcsRootInstance)"
+            "change(id,version,username,user,date,commitDate,comment,vcsRootInstance)"
         ).change!!.map { ChangeImpl(it, true, instance) }
     }
 
