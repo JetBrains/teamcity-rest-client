@@ -23,6 +23,7 @@ abstract class TeamCityInstance : AutoCloseable, TeamCityInstanceSettings<TeamCi
 
     abstract fun mutes(): MuteLocator
     abstract fun createMutes(mutes: List<Mute>)
+    abstract fun deleteMute(muteId: InvestigationId)
 
     abstract fun tests(): TestLocator
     abstract fun build(id: BuildId): Build

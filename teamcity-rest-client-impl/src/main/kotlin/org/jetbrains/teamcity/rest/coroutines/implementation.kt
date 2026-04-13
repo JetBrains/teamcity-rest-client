@@ -325,6 +325,10 @@ internal class TeamCityCoroutinesInstanceImpl(
         service.createMutes(bean)
     }
 
+    override suspend fun deleteMute(muteId: InvestigationId) {
+        service.deleteMute(muteId.stringId)
+    }
+
     override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, emptySet(), this)
     override fun tests(): TestLocator = TestLocatorImpl(this)
 
