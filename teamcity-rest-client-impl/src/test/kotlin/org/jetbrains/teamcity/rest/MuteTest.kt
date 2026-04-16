@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import java.time.ZonedDateTime
 
 class MuteTest {
     @Before
@@ -85,6 +86,44 @@ class MuteTest {
         val allMutes = publicInstance().mutes().all()
         Assert.assertTrue("No filtered mutes were found, whereas expected", filteredMutes.count() > 0)
         Assert.assertTrue("Number of filtered mutes is more or same as all mutes", filteredMutes.count() < allMutes.count())
+    }
+
+    @Test
+    fun test_createAndDeleteMute() {
+        val testId = publicInstance().builds()
+            .fromConfiguration(manyTestsBuildConfiguration)
+            .limitResults(3)
+            .all()
+            .first().testRuns().first().testId
+
+        val project = publicInstance().project(mutesProject)
+
+        val muteToCreate = object : Mute {
+            override val id = InvestigationId("00001")
+            override val assignee: User? = null
+            override val mutedBy: User? = null
+            override val tests: List<org.jetbrains.teamcity.rest.Test>? = null
+            override val comment = "Test mute created by teamcity-rest-client tests"
+            override val resolveMethod = InvestigationResolveMethod.MANUALLY
+            override val resolutionTime: ZonedDateTime? = null
+            override val targetType = InvestigationTargetType.TEST
+            override val testIds = listOf(testId)
+            override val problemIds: List<BuildProblemId>? = null
+            override val scope: InvestigationScope = InvestigationScope.InProject(project)
+            override val reporter: User? = null
+            override val reportedAt: ZonedDateTime? = null
+        }
+
+        publicInstance().createMutes(listOf(muteToCreate))
+
+        val mutesForTest = publicInstance().mutes().forTest(testId).all().toList()
+        Assert.assertTrue("No mutes found for test $testId after creation", mutesForTest.isNotEmpty())
+
+        val muteId = mutesForTest.first().id
+        publicInstance().deleteMute(muteId)
+
+        val mutesAfterDeletion = publicInstance().mutes().forTest(testId).all().toList()
+        Assert.assertTrue("Mute still exists after deletion", mutesAfterDeletion.none { it.id == muteId })
     }
 
 }

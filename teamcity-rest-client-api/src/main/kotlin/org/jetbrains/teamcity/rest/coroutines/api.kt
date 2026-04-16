@@ -31,6 +31,7 @@ interface TeamCityCoroutinesInstance : AutoCloseable, TeamCityInstanceSettings<T
 
     fun mutes(): MuteLocator
     suspend fun createMutes(mutes: List<Mute>)
+    suspend fun deleteMute(muteId: InvestigationId)
 
     fun tests(): TestLocator
     suspend fun build(id: BuildId): Build

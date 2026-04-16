@@ -325,6 +325,10 @@ internal class TeamCityCoroutinesInstanceImpl(
         service.createMutes(bean)
     }
 
+    override suspend fun deleteMute(muteId: InvestigationId) {
+        service.deleteMute(muteId.stringId)
+    }
+
     override suspend fun test(testId: TestId): Test = TestImpl(TestBean().apply { id = testId.stringId }, false, emptySet(), this)
     override fun tests(): TestLocator = TestLocatorImpl(this)
 
@@ -785,6 +789,7 @@ private class InvestigationLocatorImpl(private val instance: TeamCityCoroutinesI
 }
 
 private class MuteLocatorImpl(private val instance: TeamCityCoroutinesInstanceImpl) : MuteLocatorEx {
+    private var id: InvestigationId? = null
     private var limitResults: Int? = null
     private var reporter: UserId? = null
     private var test: TestId? = null
@@ -807,6 +812,11 @@ private class MuteLocatorImpl(private val instance: TeamCityCoroutinesInstanceIm
 
     override fun forTest(testId: TestId): MuteLocator {
         this.test = testId
+        return this
+    }
+
+    override fun byId(muteId: InvestigationId): MuteLocator {
+        this.id = muteId
         return this
     }
 
