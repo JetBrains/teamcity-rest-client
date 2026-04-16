@@ -2,6 +2,9 @@
 
 All notable changes to teamcity-rest-client library will be documented in this file.
 
+## [3.4.0]
+- Now it's possible to remove a mute
+
 ## [3.3.0]
 - Ability to fetch commit date in addition to "authored" date
 
