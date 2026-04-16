@@ -25,6 +25,7 @@ project {
     val buildAndTest = buildType {
         id("Build")
         name = "Build and test"
+        allowExternalStatus = true
         requirements {
             exists("docker.version")
             equals("teamcity.agent.jvm.os.name", "Linux")
